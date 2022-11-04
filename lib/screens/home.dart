@@ -102,6 +102,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 builder: (context, snapshot) {
                   switch (snapshot.connectionState) {
                     case ConnectionState.done:
+                      _mailClient.getMailBoxes();
                       return _makeMailList(_mailClient.getMessages());
                     default:
                       return _buildLoadingScreen();
@@ -140,7 +141,9 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class MailClient {
-  late List<MimeMessage> _messages;
+  final ImapClient _client = ImapClient(isLogEnabled: false);
+  late List<MimeMessage> _messages = [];
+  late List<Mailbox> _mailBoxes = [];
 
   List<MimeMessage> getMessages() {
     return _messages;
@@ -148,6 +151,31 @@ class MailClient {
 
   MimeMessage getMessagesIdx(idx) {
     return _messages[idx];
+  }
+
+  Future<bool> connect() async {
+    try {
+      await _client.connectToServer('imap.gmail.com', 993, isSecure: true);
+      await _client.login('test1928346534@gmail.com', 'xsccljyfbfrgvtjw');
+
+      return true;
+    } on ImapException catch (e) {
+      print(e);
+    }
+
+    return false;
+  }
+
+  Future<bool> disconnect() async {
+    try {
+      await _client.logout();
+
+      return true;
+    } on ImapException catch (e) {
+      print(e);
+    }
+
+    return false;
   }
 
   Future<void> discoverExample() async {
@@ -159,37 +187,15 @@ class MailClient {
     }
   }
 
-  void printMessage(MimeMessage message) {
-    if (!message.isTextPlainMessage()) {
-    } else {
-      final plainText = message.decodeTextPlainPart();
-
-      if (plainText != null) {
-        final lines = plainText.split('\r\n');
-
-        for (final line in lines) {
-          if (line.startsWith('>')) {
-            // break when quoted text starts
-            break;
-          }
-        }
-      }
-    }
-  }
-
   Future<bool> imapExample() async {
-    final client = ImapClient(isLogEnabled: false);
     try {
-      await client.connectToServer('imap.gmail.com', 993, isSecure: true);
-      await client.login('test1928346534@gmail.com', 'xsccljyfbfrgvtjw');
-      // final mailboxes = await client.listMailboxes();
-      // print('mailboxes: $mailboxes');
-      await client.selectInbox();
-      // fetch 10 most recent messages:
-      final fetchResult = await client.fetchRecentMessages(
-          messageCount: 10, criteria: 'BODY[]');
+      await _client.connectToServer('imap.gmail.com', 993, isSecure: true);
+      await _client.login('test1928346534@gmail.com', 'xsccljyfbfrgvtjw');
 
-      await client.logout();
+      await _client.selectInbox();
+      // fetch 10 most recent messages:
+      final fetchResult = await _client.fetchRecentMessages(
+          messageCount: 100, criteria: 'BODY[]');
 
       _messages = fetchResult.messages;
 
@@ -200,4 +206,82 @@ class MailClient {
 
     return false;
   }
+
+  Future<void> getMailBoxes() async {
+    _mailBoxes = await _client.listMailboxes(recursive: true);
+  }
 }
+
+void printMessage(MimeMessage message) {
+  if (!message.isTextPlainMessage()) {
+  } else {
+    final plainText = message.decodeTextPlainPart();
+
+    if (plainText != null) {
+      final lines = plainText.split('\r\n');
+
+      for (final line in lines) {
+        if (line.startsWith('>')) {
+          // break when quoted text starts
+          break;
+        }
+      }
+    }
+  }
+}
+
+// [
+//   "INBOX" exists: 0,
+//   highestModeSequence: null,
+//   flags: [MailboxFlag.hasNoChildren,
+//   MailboxFlag.inbox
+// ], 
+//   "[Gmail]" exists: 0,
+//   highestModeSequence: null,
+//   flags: [
+//     MailboxFlag.hasChildren,
+//     MailboxFlag.noSelect
+//   ],
+//   "[Gmail]/All Mail" exists: 0,
+//   highestModeSequence: null, 
+//   flags: [
+//     MailboxFlag.all, 
+//     MailboxFlag.hasNoChildren
+//   ],
+//   "[Gmail]/Drafts" exists: 0,
+//   highestModeSequence: null,
+//   flags: [
+//     MailboxFlag.drafts,
+//     MailboxFlag.hasNoChildren
+//   ], 
+//   "[Gmail]/Important" exists: 0,
+//   highestModeSequence: null, 
+//   flags: [
+//     MailboxFlag.hasNoChildren, 
+//     MailboxFlag.flagged
+//   ], 
+//   "[Gmail]/Sent Mail" exists: 0,
+//   highestModeSequence: null,
+//   flags: [
+//     MailboxFlag.hasNoChildren,
+//     MailboxFlag.sent
+//   ],
+//   "[Gmail]/Spam" exists: 0, 
+//   highestModeSequence: null, 
+//   flags: [
+//     MailboxFlag.hasNoChildren, 
+//     MailboxFlag.juck
+//   ],
+//   "[Gmail]/Starred" exists: 0, 
+//   highestModeSequence: null, 
+//   flags: [
+//     MailboxFlag.flagged, 
+//     MailboxFlag.hasNoChildren
+//   ], 
+//   "[Gmail]/Trash" exists: 0, 
+//   highestModeSequence: null, 
+//   flags: [
+//     MailboxFlag.hasNoChildren, 
+//     MailboxFlag.trash
+//   ]
+// ]

@@ -78,8 +78,10 @@ class _VerticalSplitViewState extends State<VerticalSplitView> {
         child: Stack(
           alignment: AlignmentDirectional.center,
           children: <Widget>[
-            Align(
-              alignment: Alignment.centerLeft,
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
               child: SizedBox(
                 width: _width1,
                 child: widget.left,
