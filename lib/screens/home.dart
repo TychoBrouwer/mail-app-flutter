@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:enough_mail/enough_mail.dart';
-import 'package:mail_app/widgets/message-preview.dart';
+// import 'package:enough_mail/enough_mail.dart';
 
+import '../services/mail-client.dart';
+import '../widgets/message-preview.dart';
 import '../widgets/vertical-split.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -14,6 +15,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  late Future<bool> clientLoaded;
   late Future<bool> mailLoaded;
 
   final _mailClient = MailClient();
@@ -22,13 +24,48 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
 
-    mailLoaded = _mailClient.imapExample();
+    clientLoaded = _loadClient();
   }
 
   int _shownMessageID = 0;
 
-  Widget _makeMailList(List<MimeMessage>? emails) {
-    emails!.sort((a, b) => b
+  Future<bool> _loadClient() async {
+    final connect = _mailClient.connect();
+
+    return connect;
+  }
+
+  // Widget _makeMailList(emails) {
+  //   emails!.sort((a, b) => b
+  //       .decodeDate()!
+  //       .millisecondsSinceEpoch
+  //       .compareTo(a.decodeDate()!.millisecondsSinceEpoch));
+
+  //   return ListView.builder(
+  //     itemBuilder: (ctx, idx) {
+  //       // return _makeMailPreview(emails[idx], idx);
+  //       return MailPreview(
+  //           email: emails[idx],
+  //           idx: idx,
+  //           getActive: getActive,
+  //           updateMessageID: updateMessageID);
+  //     },
+  //     itemCount: emails.length,
+  //   );
+  // }
+
+  Future<Widget> _makeMailList() async {
+    await clientLoaded;
+
+    final mailboxes = _mailClient.getMailBoxes();
+
+    mailLoaded = _mailClient.updateMailboxMessages(mailboxes[2]);
+
+    await mailLoaded;
+
+    final emails = _mailClient.getMessages(mailboxes[2]);
+
+    emails.sort((a, b) => b
         .decodeDate()!
         .millisecondsSinceEpoch
         .compareTo(a.decodeDate()!.millisecondsSinceEpoch));
@@ -55,7 +92,7 @@ class _MyHomePageState extends State<MyHomePage> {
   getActive(idx) => _shownMessageID == idx;
 
   Widget _makeMessage(idx) {
-    final email = _mailClient.getMessagesIdx(idx);
+    final email = _mailClient.getMessageFromIdx(idx);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, top: 8, left: 16, right: 16),
@@ -97,13 +134,16 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             middle: SizedBox(
               height: double.infinity,
-              child: FutureBuilder<bool>(
-                future: mailLoaded,
+              child: FutureBuilder<Widget>(
+                future: _makeMailList(),
                 builder: (context, snapshot) {
                   switch (snapshot.connectionState) {
                     case ConnectionState.done:
-                      _mailClient.getMailBoxes();
-                      return _makeMailList(_mailClient.getMessages());
+                      // _mailClient.getMailBoxes();
+                      // return _makeMailList(_mailClient.getMessages());
+                      // return snapshot.data!;
+                      // print(snapshot.data);
+                      return snapshot.data!;
                     default:
                       return _buildLoadingScreen();
                   }
@@ -115,17 +155,17 @@ class _MyHomePageState extends State<MyHomePage> {
                 border: Border(left: BorderSide(color: Colors.black)),
               ),
               height: double.infinity,
-              child: FutureBuilder<bool>(
-                future: mailLoaded,
-                builder: (context, snapshot) {
-                  switch (snapshot.connectionState) {
-                    case ConnectionState.done:
-                      return _makeMessage(_shownMessageID);
-                    default:
-                      return Container();
-                  }
-                },
-              ),
+              // child: FutureBuilder<bool>(
+              //   future: mailLoaded,
+              //   builder: (context, snapshot) {
+              //     switch (snapshot.connectionState) {
+              //       case ConnectionState.done:
+              //         return _makeMessage(_shownMessageID);
+              //       default:
+              //         return Container();
+              //     }
+              //   },
+              // ),
             ),
             ratio2: 0.3,
             minRatio2: 0.1,
@@ -140,83 +180,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class MailClient {
-  final ImapClient _client = ImapClient(isLogEnabled: false);
-  late List<MimeMessage> _messages = [];
-  late List<Mailbox> _mailBoxes = [];
-
-  List<MimeMessage> getMessages() {
-    return _messages;
-  }
-
-  MimeMessage getMessagesIdx(idx) {
-    return _messages[idx];
-  }
-
-  Future<bool> connect() async {
-    try {
-      await _client.connectToServer('imap.gmail.com', 993, isSecure: true);
-      await _client.login('test1928346534@gmail.com', 'xsccljyfbfrgvtjw');
-
-      return true;
-    } on ImapException catch (e) {
-      print(e);
-    }
-
-    return false;
-  }
-
-  Future<bool> disconnect() async {
-    try {
-      await _client.logout();
-
-      return true;
-    } on ImapException catch (e) {
-      print(e);
-    }
-
-    return false;
-  }
-
-  Future<void> discoverExample() async {
-    var email = 't.brouwer1@student.tue.nl';
-    var config = await Discover.discover(email, isLogEnabled: false);
-    if (config == null) {
-    } else {
-      for (var provider in config.emailProviders!) {}
-    }
-  }
-
-  Future<bool> imapExample() async {
-    try {
-      await _client.connectToServer('imap.gmail.com', 993, isSecure: true);
-      await _client.login('test1928346534@gmail.com', 'xsccljyfbfrgvtjw');
-
-      await _client.selectInbox();
-      // fetch 10 most recent messages:
-      final fetchResult = await _client.fetchRecentMessages(
-          messageCount: 100, criteria: 'BODY[]');
-
-      _messages = fetchResult.messages;
-
-      return true;
-    } on ImapException catch (e) {
-      print(e);
-    }
-
-    return false;
-  }
-
-  Future<void> getMailBoxes() async {
-    _mailBoxes = await _client.listMailboxes(recursive: true);
-  }
-
-  mailBoxNames() {
-    return _mailBoxes.map((box) => box.encodedName);
-  }
-}
-
-void printMessage(MimeMessage message) {
+void printMessage(message) {
   if (!message.isTextPlainMessage()) {
   } else {
     final plainText = message.decodeTextPlainPart();
