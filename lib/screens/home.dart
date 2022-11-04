@@ -210,6 +210,10 @@ class MailClient {
   Future<void> getMailBoxes() async {
     _mailBoxes = await _client.listMailboxes(recursive: true);
   }
+
+  mailBoxNames() {
+    return _mailBoxes.map((box) => box.encodedName);
+  }
 }
 
 void printMessage(MimeMessage message) {
