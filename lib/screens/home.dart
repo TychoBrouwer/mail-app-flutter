@@ -1,9 +1,10 @@
+import 'package:enough_mail/codecs.dart';
 import 'package:flutter/material.dart';
 // import 'package:enough_mail/enough_mail.dart';
 
 import '../services/mail-client.dart';
-import '../widgets/message-preview.dart';
 import '../widgets/vertical-split.dart';
+import '../widgets/message-list.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -15,81 +16,43 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late Future<bool> clientLoaded;
-  late Future<bool> mailLoaded;
+  final _mailClient = CustomMailClient();
+  final email = 'test1928346534@gmail.com';
+  final password = 'xsccljyfbfrgvtjw';
 
-  final _mailClient = MailClient();
+  late List<MimeMessage> _messages = [];
+  late int _activeID = 0;
 
   @override
   void initState() {
     super.initState();
 
-    clientLoaded = _loadClient();
+    _mailClient.connect(email: email, password: password);
+    _updateMailList(0);
   }
 
-  int _shownMessageID = 0;
-
-  Future<bool> _loadClient() async {
-    final connect = _mailClient.connect();
-
-    return connect;
+  _updateActiveID(int idx) {
+    setState(() {
+      _activeID = idx;
+    });
   }
 
-  // Widget _makeMailList(emails) {
-  //   emails!.sort((a, b) => b
-  //       .decodeDate()!
-  //       .millisecondsSinceEpoch
-  //       .compareTo(a.decodeDate()!.millisecondsSinceEpoch));
+  _updateMailList(int mailboxIdx) async {
+    await _mailClient.connected();
 
-  //   return ListView.builder(
-  //     itemBuilder: (ctx, idx) {
-  //       // return _makeMailPreview(emails[idx], idx);
-  //       return MailPreview(
-  //           email: emails[idx],
-  //           idx: idx,
-  //           getActive: getActive,
-  //           updateMessageID: updateMessageID);
-  //     },
-  //     itemCount: emails.length,
-  //   );
-  // }
+    _mailClient.selectMailbox(mailboxIdx);
+    await _mailClient.updateMailboxMessages();
+    final messages = _mailClient.getMessages();
 
-  Future<Widget> _makeMailList() async {
-    await clientLoaded;
-
-    final mailboxes = _mailClient.getMailBoxes();
-
-    mailLoaded = _mailClient.updateMailboxMessages(mailboxes[2]);
-
-    await mailLoaded;
-
-    final emails = _mailClient.getMessages(mailboxes[2]);
-
-    emails.sort((a, b) => b
+    messages.sort((a, b) => b
         .decodeDate()!
         .millisecondsSinceEpoch
         .compareTo(a.decodeDate()!.millisecondsSinceEpoch));
 
-    return ListView.builder(
-      itemBuilder: (ctx, idx) {
-        // return _makeMailPreview(emails[idx], idx);
-        return MailPreview(
-            email: emails[idx],
-            idx: idx,
-            getActive: getActive,
-            updateMessageID: updateMessageID);
-      },
-      itemCount: emails.length,
-    );
-  }
-
-  updateMessageID(int idx) {
     setState(() {
-      _shownMessageID = idx;
+      _messages = messages;
     });
   }
-
-  getActive(idx) => _shownMessageID == idx;
 
   Widget _makeMessage(idx) {
     final email = _mailClient.getMessageFromIdx(idx);
@@ -97,18 +60,45 @@ class _MyHomePageState extends State<MyHomePage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, top: 8, left: 16, right: 16),
       child: Text(
-        email.decodeTextPlainPart() ?? 'unable to get message contents',
+        email.decodeTextPlainPart() ?? '',
         style: const TextStyle(color: Colors.white60),
       ),
     );
   }
 
-  Widget _buildLoadingScreen() {
-    return const Center(
-      child: SizedBox(
-        width: 50,
-        height: 50,
-        child: CircularProgressIndicator(),
+  Widget _makeAccountTree() {
+    final inboxes = _mailClient.getMailBoxes();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10, top: 10, left: 10, right: 10),
+      child: ListView.builder(
+        itemBuilder: (_, idx) {
+          String displayValue = inboxes[idx].encodedName;
+          bool indent = false;
+
+          if (displayValue == 'INBOX') {
+            displayValue = email;
+          }
+
+          if (RegExp(r'\[.*\]').hasMatch(displayValue)) {
+            return Container();
+          }
+
+          if (RegExp(r'\[.*\]').hasMatch(inboxes[idx].encodedPath)) {
+            indent = true;
+          }
+
+          return Padding(
+            padding: indent ? const EdgeInsets.only(left: 10) : EdgeInsets.zero,
+            child: Text(
+              displayValue,
+              style: const TextStyle(color: Colors.white60),
+              overflow: TextOverflow.clip,
+              softWrap: false,
+            ),
+          );
+        },
+        itemCount: inboxes.length,
       ),
     );
   }
@@ -116,9 +106,6 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   title: Text(widget.title),
-      // ),
       body: Container(
         decoration: const BoxDecoration(
           color: Colors.black87,
@@ -130,42 +117,42 @@ class _MyHomePageState extends State<MyHomePage> {
                 border: Border(right: BorderSide(color: Colors.black)),
               ),
               height: double.infinity,
-              child: const Text('All Accounts'),
-            ),
-            middle: SizedBox(
-              height: double.infinity,
-              child: FutureBuilder<Widget>(
-                future: _makeMailList(),
+              child: FutureBuilder<bool>(
+                future: _mailClient.connected(),
                 builder: (context, snapshot) {
                   switch (snapshot.connectionState) {
                     case ConnectionState.done:
-                      // _mailClient.getMailBoxes();
-                      // return _makeMailList(_mailClient.getMessages());
-                      // return snapshot.data!;
-                      // print(snapshot.data);
-                      return snapshot.data!;
+                      return _makeAccountTree();
                     default:
-                      return _buildLoadingScreen();
+                      return Container();
                   }
                 },
               ),
+            ),
+            middle: SizedBox(
+              height: double.infinity,
+              child: MessageList(
+                  messages: _messages,
+                  activeID: _activeID,
+                  updateActiveID: _updateActiveID,
+                  key: UniqueKey()),
             ),
             right: Container(
               decoration: const BoxDecoration(
                 border: Border(left: BorderSide(color: Colors.black)),
               ),
               height: double.infinity,
-              // child: FutureBuilder<bool>(
-              //   future: mailLoaded,
-              //   builder: (context, snapshot) {
-              //     switch (snapshot.connectionState) {
-              //       case ConnectionState.done:
-              //         return _makeMessage(_shownMessageID);
-              //       default:
-              //         return Container();
-              //     }
-              //   },
-              // ),
+              child: FutureBuilder<bool>(
+                future: _mailClient.connected(),
+                builder: (context, snapshot) {
+                  switch (snapshot.connectionState) {
+                    case ConnectionState.done:
+                      return _makeMessage(_activeID);
+                    default:
+                      return Container();
+                  }
+                },
+              ),
             ),
             ratio2: 0.3,
             minRatio2: 0.1,

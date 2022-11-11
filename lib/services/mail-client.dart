@@ -1,22 +1,27 @@
-import 'package:enough_mail/enough_mail.dart';
+import 'dart:async';
 
-class MailClient {
+import 'package:enough_mail/enough_mail.dart';
+import 'package:mail_app/utils/wait-until.dart';
+
+class CustomMailClient {
   final ImapClient _client = ImapClient(isLogEnabled: false);
 
-  late Map<String, List<MimeMessage>> _messages;
+  final Map<String, List<MimeMessage>> _messages = {};
   late List<Mailbox> _mailBoxes;
-  late Mailbox currentMailbox;
+  late Mailbox _currentMailbox;
 
-  List<MimeMessage> getMessages(Mailbox mailbox) {
-    return _messages[mailbox.encodedPath]!;
+  bool _connected = false;
+
+  List<MimeMessage> getMessages() {
+    return _messages[_currentMailbox.encodedPath]!;
   }
 
   MimeMessage getMessageFromIdx(idx) {
-    if (_messages[currentMailbox] != null) {
-      return _messages[currentMailbox]![idx];
-    }
+    return _messages[_currentMailbox.encodedPath]?[idx] ?? MimeMessage();
+  }
 
-    return MimeMessage();
+  Future<bool> connected() async {
+    return await waitUntil(() => _connected);
   }
 
   Future<bool> connect(
@@ -25,21 +30,33 @@ class MailClient {
     try {
       await _client.connectToServer('imap.gmail.com', 993, isSecure: true);
       await _client.login(email, password);
-      currentMailbox = await _client.selectInbox();
+      _currentMailbox = await _client.selectInbox();
       await updateMailBoxes();
 
-      return true;
+      _connected = true;
     } on ImapException catch (e) {
       print(e);
     }
 
-    return false;
+    return _connected;
   }
 
   Future<bool> disconnect() async {
     try {
       await _client.logout();
 
+      _connected = false;
+    } on ImapException catch (e) {
+      print(e);
+    }
+
+    return _connected;
+  }
+
+  Future<bool> selectMailbox(idx) async {
+    try {
+      _currentMailbox = await _client.selectMailbox(_mailBoxes[idx]);
+
       return true;
     } on ImapException catch (e) {
       print(e);
@@ -48,11 +65,14 @@ class MailClient {
     return false;
   }
 
-  Future<bool> selectMailbox(idx) async {
+  Future<bool> updateMailboxMessages() async {
     try {
-      currentMailbox = await _client.selectMailbox(_mailBoxes[idx]);
+      await _client.selectMailbox(_currentMailbox);
+      // fetch 10 most recent messages:
+      final fetchResult = await _client.fetchRecentMessages(
+          messageCount: 10, criteria: 'BODY[]');
 
-      print(currentMailbox);
+      _messages[_currentMailbox.encodedPath] = fetchResult.messages;
 
       return true;
     } on ImapException catch (e) {
@@ -60,6 +80,20 @@ class MailClient {
     }
 
     return false;
+  }
+
+  Future<List<Mailbox>> updateMailBoxes() async {
+    _mailBoxes = await _client.listMailboxes(recursive: true);
+
+    return _mailBoxes;
+  }
+
+  List<Mailbox> getMailBoxes() {
+    return _mailBoxes;
+  }
+
+  List<String> getMailBoxNames() {
+    return _mailBoxes.map((box) => box.encodedPath).toList();
   }
 
   // Future<void> discoverExample() async {
@@ -87,35 +121,4 @@ class MailClient {
 
   //   return false;
   // }
-
-  Future<bool> updateMailboxMessages(Mailbox mailBox) async {
-    try {
-      await _client.selectMailbox(mailBox);
-      // fetch 10 most recent messages:
-      final fetchResult = await _client.fetchRecentMessages(
-          messageCount: 100, criteria: 'BODY[]');
-
-      _messages[mailBox.encodedName] = fetchResult.messages;
-
-      return true;
-    } on ImapException catch (e) {
-      print(e);
-    }
-
-    return false;
-  }
-
-  Future<List<Mailbox>> updateMailBoxes() async {
-    _mailBoxes = await _client.listMailboxes(recursive: true);
-
-    return _mailBoxes;
-  }
-
-  List<Mailbox> getMailBoxes() {
-    return _mailBoxes;
-  }
-
-  List<String> getMailBoxNames() {
-    return _mailBoxes.map((box) => box.encodedName).toList();
-  }
 }
