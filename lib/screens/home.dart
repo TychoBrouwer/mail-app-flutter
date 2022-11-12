@@ -40,7 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
   _updateMailList(int mailboxIdx) async {
     await _mailClient.connected();
 
-    _mailClient.selectMailbox(mailboxIdx);
+    await _mailClient.selectMailbox(mailboxIdx);
     await _mailClient.updateMailboxMessages();
     final messages = _mailClient.getMessages();
 
@@ -88,13 +88,20 @@ class _MyHomePageState extends State<MyHomePage> {
             indent = true;
           }
 
-          return Padding(
-            padding: indent ? const EdgeInsets.only(left: 10) : EdgeInsets.zero,
-            child: Text(
-              displayValue,
-              style: const TextStyle(color: Colors.white60),
-              overflow: TextOverflow.clip,
-              softWrap: false,
+          return GestureDetector(
+            onTap: () => {
+              print(idx),
+              _updateMailList(idx),
+            },
+            child: Padding(
+              padding:
+                  indent ? const EdgeInsets.only(left: 10) : EdgeInsets.zero,
+              child: Text(
+                displayValue,
+                style: const TextStyle(color: Colors.white60),
+                overflow: TextOverflow.clip,
+                softWrap: false,
+              ),
             ),
           );
         },
@@ -186,57 +193,13 @@ void printMessage(message) {
 }
 
 // [
-//   "INBOX" exists: 0,
-//   highestModeSequence: null,
-//   flags: [MailboxFlag.hasNoChildren,
-//   MailboxFlag.inbox
-// ], 
-//   "[Gmail]" exists: 0,
-//   highestModeSequence: null,
-//   flags: [
-//     MailboxFlag.hasChildren,
-//     MailboxFlag.noSelect
-//   ],
-//   "[Gmail]/All Mail" exists: 0,
-//   highestModeSequence: null, 
-//   flags: [
-//     MailboxFlag.all, 
-//     MailboxFlag.hasNoChildren
-//   ],
-//   "[Gmail]/Drafts" exists: 0,
-//   highestModeSequence: null,
-//   flags: [
-//     MailboxFlag.drafts,
-//     MailboxFlag.hasNoChildren
-//   ], 
-//   "[Gmail]/Important" exists: 0,
-//   highestModeSequence: null, 
-//   flags: [
-//     MailboxFlag.hasNoChildren, 
-//     MailboxFlag.flagged
-//   ], 
-//   "[Gmail]/Sent Mail" exists: 0,
-//   highestModeSequence: null,
-//   flags: [
-//     MailboxFlag.hasNoChildren,
-//     MailboxFlag.sent
-//   ],
-//   "[Gmail]/Spam" exists: 0, 
-//   highestModeSequence: null, 
-//   flags: [
-//     MailboxFlag.hasNoChildren, 
-//     MailboxFlag.juck
-//   ],
-//   "[Gmail]/Starred" exists: 0, 
-//   highestModeSequence: null, 
-//   flags: [
-//     MailboxFlag.flagged, 
-//     MailboxFlag.hasNoChildren
-//   ], 
-//   "[Gmail]/Trash" exists: 0, 
-//   highestModeSequence: null, 
-//   flags: [
-//     MailboxFlag.hasNoChildren, 
-//     MailboxFlag.trash
-//   ]
+//   "INBOX" exists: 3, highestModeSequence: 1589, flags: [MailboxFlag.hasNoChildren, MailboxFlag.inbox],
+//   "[Gmail]" exists: 0, highestModeSequence: null, flags: [MailboxFlag.hasChildren, MailboxFlag.noSelect],
+//   "[Gmail]/All Mail" exists: 0, highestModeSequence: null, flags: [MailboxFlag.all, MailboxFlag.hasNoChildren],
+//   "[Gmail]/Drafts" exists: 0, highestModeSequence: null, flags: [MailboxFlag.drafts, MailboxFlag.hasNoChildren],
+//   "[Gmail]/Important" exists: 0, highestModeSequence: null, flags: [MailboxFlag.hasNoChildren, MailboxFlag.flagged],
+//   "[Gmail]/Sent Mail" exists: 0, highestModeSequence: null, flags: [MailboxFlag.hasNoChildren, MailboxFlag.sent],
+//   "[Gmail]/Spam" exists: 0, highestModeSequence: null, flags: [MailboxFlag.hasNoChildren, MailboxFlag.junk],
+//   "[Gmail]/Starred" exists: 0, highestModeSequence: null, flags: [MailboxFlag.flagged, MailboxFlag.hasNoChildren],
+//   "[Gmail]/Trash" exists: 0, highestModeSequence: null, flags: [MailboxFlag.hasNoChildren, MailboxFlag.trash]
 // ]

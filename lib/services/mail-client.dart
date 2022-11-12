@@ -57,6 +57,9 @@ class CustomMailClient {
     try {
       _currentMailbox = await _client.selectMailbox(_mailBoxes[idx]);
 
+      print(idx);
+      print(_mailBoxes[idx]);
+
       return true;
     } on ImapException catch (e) {
       print(e);
