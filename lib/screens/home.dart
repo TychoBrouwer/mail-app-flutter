@@ -16,9 +16,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final _mailClient = CustomMailClient();
-  final email = 'test1928346534@gmail.com';
-  final password = 'xsccljyfbfrgvtjw';
+  final CustomMailClient _mailClient = CustomMailClient();
+  final String email = 'test1928346534@gmail.com';
+  final String password = 'xsccljyfbfrgvtjw';
 
   late List<MimeMessage> _messages = [];
   late int _activeID = 0;
@@ -27,7 +27,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
 
-    _mailClient.connect(email: email, password: password);
+    _mailClient.connect(email, password);
     _updateMailList(0);
   }
 
@@ -37,12 +37,8 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  _updateMailList(int mailboxIdx) async {
-    await _mailClient.connected();
-
-    await _mailClient.selectMailbox(mailboxIdx);
-    await _mailClient.updateMailboxMessages();
-    final messages = _mailClient.getMessages();
+  _setMessages() {
+    final List<MimeMessage> messages = _mailClient.getMessages();
 
     messages.sort((a, b) => b
         .decodeDate()!
@@ -54,14 +50,29 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  Widget _makeMessage(idx) {
-    final email = _mailClient.getMessageFromIdx(idx);
+  _updateMailList(int mailboxIdx) async {
+    await _mailClient.connected();
+
+    _mailClient.selectLocalMailbox(mailboxIdx);
+
+    _setMessages();
+
+    await _mailClient.selectMailbox(mailboxIdx);
+    await _mailClient.updateMailboxMessages();
+
+    _setMessages();
+  }
+
+  Widget _makeMessage(int idx) {
+    final MimeMessage message = _mailClient.getMessageFromIdx(idx);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, top: 8, left: 16, right: 16),
-      child: Text(
-        email.decodeTextPlainPart() ?? '',
-        style: const TextStyle(color: Colors.white60),
+      child: SingleChildScrollView(
+        child: Text(
+          message.decodeTextPlainPart() ?? '',
+          style: const TextStyle(color: Colors.white60),
+        ),
       ),
     );
   }
@@ -90,7 +101,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
           return GestureDetector(
             onTap: () => {
-              print(idx),
               _updateMailList(idx),
             },
             child: Padding(

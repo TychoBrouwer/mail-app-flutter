@@ -33,7 +33,7 @@ class _MessageList extends State<MessageList> {
     _updateActiveID = widget.updateActiveID;
   }
 
-  _getActive(idx) => _activeID == idx;
+  bool _getActive(int idx) => _activeID == idx;
 
   @override
   Widget build(BuildContext context) {

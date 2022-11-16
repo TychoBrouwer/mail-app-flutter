@@ -16,22 +16,27 @@ class CustomMailClient {
     return _messages[_currentMailbox.encodedPath]!;
   }
 
-  MimeMessage getMessageFromIdx(idx) {
-    return _messages[_currentMailbox.encodedPath]?[idx] ?? MimeMessage();
+  MimeMessage getMessageFromIdx(int idx) {
+    if (_messages.containsKey(_currentMailbox.encodedPath) &&
+        _messages[_currentMailbox.encodedPath]!.isNotEmpty) {
+      return _messages[_currentMailbox.encodedPath]![idx];
+    } else {
+      return MimeMessage();
+    }
   }
 
   Future<bool> connected() async {
     return await waitUntil(() => _connected);
   }
 
-  Future<bool> connect(
-      {String email = 'test1928346534@gmail.com',
-      String password = 'xsccljyfbfrgvtjw'}) async {
+  Future<bool> connect(String email, String password) async {
     try {
       await _client.connectToServer('imap.gmail.com', 993, isSecure: true);
       await _client.login(email, password);
       _currentMailbox = await _client.selectInbox();
       await updateMailBoxes();
+
+      // handle fetching cached/ saved messages
 
       _connected = true;
     } on ImapException catch (e) {
@@ -53,12 +58,13 @@ class CustomMailClient {
     return _connected;
   }
 
-  Future<bool> selectMailbox(idx) async {
-    try {
-      _currentMailbox = await _client.selectMailbox(_mailBoxes[idx]);
+  selectLocalMailbox(int idx) {
+    _currentMailbox = _mailBoxes[idx];
+  }
 
-      print(idx);
-      print(_mailBoxes[idx]);
+  Future<bool> selectMailbox(int idx) async {
+    try {
+      await _client.selectMailbox(_mailBoxes[idx]);
 
       return true;
     } on ImapException catch (e) {
@@ -72,10 +78,21 @@ class CustomMailClient {
     try {
       await _client.selectMailbox(_currentMailbox);
       // fetch 10 most recent messages:
-      final fetchResult = await _client.fetchRecentMessages(
-          messageCount: 10, criteria: 'BODY[]');
+      // final fetchResult = await _client.fetchRecentMessages(
+      //     messageCount: 10, criteria: 'BODY.PEEK[]');
 
-      _messages[_currentMailbox.encodedPath] = fetchResult.messages;
+      // final test =
+      //     await _client.fetchRecentMessages(messageCount: 10, criteria: 'FULL');
+      final SearchImapResult sequenceFetch =
+          await _client.searchMessages(searchCriteria: 'ALL');
+
+      if (sequenceFetch.matchingSequence != null &&
+          sequenceFetch.matchingSequence!.isNotEmpty) {
+        final FetchImapResult fetchResult = await _client.fetchMessages(
+            sequenceFetch.matchingSequence!, 'BODY.PEEK[]');
+
+        _messages[_currentMailbox.encodedPath] = fetchResult.messages;
+      }
 
       return true;
     } on ImapException catch (e) {
@@ -87,6 +104,12 @@ class CustomMailClient {
 
   Future<List<Mailbox>> updateMailBoxes() async {
     _mailBoxes = await _client.listMailboxes(recursive: true);
+
+    for (var mailbox in _mailBoxes) {
+      if (!_messages.containsKey(mailbox.encodedPath)) {
+        _messages[mailbox.encodedPath] = [];
+      }
+    }
 
     return _mailBoxes;
   }
