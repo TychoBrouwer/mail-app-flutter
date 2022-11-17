@@ -1,6 +1,7 @@
 import 'dart:async';
 
-import 'package:enough_mail/enough_mail.dart';
+// import 'package:enough_mail/enough_mail.dart';
+import '../mail-client/enough_mail.dart';
 import 'package:mail_app/utils/wait-until.dart';
 
 class CustomMailClient {

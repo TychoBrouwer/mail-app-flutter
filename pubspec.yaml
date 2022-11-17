@@ -29,7 +29,18 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
-  enough_mail: ^2.1.1
+  # enough_mail: ^2.1.1
+  basic_utils: ^5.4.2
+  collection: ^1.16.0
+  crypto: ^3.0.0
+  encrypt: ^5.0.0
+  enough_convert: ^1.5.0
+  enough_serialization: ^1.4.0
+  event_bus: ^2.0.0
+  intl: ^0.17.0
+  pointycastle: ^3.6.0
+  xml: '>=6.0.0 <7.0.0'
+
   flutter:
     sdk: flutter
 

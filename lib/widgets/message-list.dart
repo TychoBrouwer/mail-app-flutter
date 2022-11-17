@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:enough_mail/enough_mail.dart';
+// import 'package:enough_mail/enough_mail.dart';
+import '../mail-client/enough_mail.dart';
 
 import '../widgets/message-preview.dart';
 

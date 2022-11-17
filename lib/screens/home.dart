@@ -1,8 +1,9 @@
-import 'package:enough_mail/codecs.dart';
+// import 'package:enough_mail/codecs.dart';
 import 'package:flutter/material.dart';
 // import 'package:enough_mail/enough_mail.dart';
+import '../mail-client/enough_mail.dart';
 
-import '../services/mail-client.dart';
+import '../services/mail-service.dart';
 import '../widgets/vertical-split.dart';
 import '../widgets/message-list.dart';
 
