@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../mail-client/enough_mail.dart';
 
 import '../services/mail-service.dart';
+import '../services/inbox-service.dart';
 import '../widgets/vertical-split.dart';
 import '../widgets/message-list.dart';
 
@@ -17,7 +18,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final CustomMailClient _mailClient = CustomMailClient();
+  // final CustomMailClient _mailClient = CustomMailClient();
+  final InboxService _inboxService = InboxService();
   final String email = 'test1928346534@gmail.com';
   final String password = 'xsccljyfbfrgvtjw';
 
@@ -28,8 +30,11 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
 
-    _mailClient.connect(email, password);
-    _updateMailList(0);
+    // _mailClient.connect(email, password);
+    _inboxService.newClient(
+        email, password, 'imap.gmail.com', 993, 'smtp.gmail.com', 993);
+    // _updateMailList(0);
+    updateInbox();
   }
 
   _updateActiveID(int idx) {
@@ -39,7 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   _setMessages() {
-    final List<MimeMessage> messages = _mailClient.getMessages();
+    final List<MimeMessage> messages = _inboxService.getMessages();
 
     messages.sort((a, b) => b
         .decodeDate()!
@@ -51,72 +56,64 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  _updateMailList(int mailboxIdx) async {
-    await _mailClient.connected();
+  updateInbox() async {
+    await _inboxService.clientsConnected();
+    _inboxService.updateInbox();
+  }
 
-    _mailClient.selectLocalMailbox(mailboxIdx);
+  updateMessageList(String email, String mailboxPath) async {
+    _inboxService.updateLocalMailbox(email, mailboxPath);
 
     _setMessages();
 
-    await _mailClient.selectMailbox(mailboxIdx);
-    await _mailClient.updateMailboxMessages();
+    await _inboxService.updateMailList(email, mailboxPath);
 
     _setMessages();
   }
 
   Widget _makeMessage(int idx) {
-    final MimeMessage message = _mailClient.getMessageFromIdx(idx);
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, top: 8, left: 16, right: 16),
       child: SingleChildScrollView(
         child: Text(
-          message.decodeTextPlainPart() ?? '',
+          _messages.length > idx
+              ? _messages[idx].decodeTextPlainPart() ?? ''
+              : '',
           style: const TextStyle(color: Colors.white60),
         ),
       ),
     );
   }
 
-  Widget _makeAccountTree() {
-    final inboxes = _mailClient.getMailBoxes();
+  Widget _makeAccountsTree() {
+    final accountsTree = _inboxService.accountsTree();
+    List<Widget> accountsTreeWidgets = [];
+
+    accountsTree.forEach((email, account) {
+      for (var inboxInfo in account) {
+        accountsTreeWidgets.add(GestureDetector(
+          onTap: () => {
+            updateMessageList(email, inboxInfo.path),
+          },
+          child: Padding(
+            padding: inboxInfo.indent
+                ? const EdgeInsets.only(left: 10)
+                : EdgeInsets.zero,
+            child: Text(
+              inboxInfo.display,
+              style: const TextStyle(color: Colors.white60),
+              overflow: TextOverflow.clip,
+              softWrap: false,
+            ),
+          ),
+        ));
+      }
+    });
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10, top: 10, left: 10, right: 10),
-      child: ListView.builder(
-        itemBuilder: (_, idx) {
-          String displayValue = inboxes[idx].encodedName;
-          bool indent = false;
-
-          if (displayValue == 'INBOX') {
-            displayValue = email;
-          }
-
-          if (RegExp(r'\[.*\]').hasMatch(displayValue)) {
-            return Container();
-          }
-
-          if (RegExp(r'\[.*\]').hasMatch(inboxes[idx].encodedPath)) {
-            indent = true;
-          }
-
-          return GestureDetector(
-            onTap: () => {
-              _updateMailList(idx),
-            },
-            child: Padding(
-              padding:
-                  indent ? const EdgeInsets.only(left: 10) : EdgeInsets.zero,
-              child: Text(
-                displayValue,
-                style: const TextStyle(color: Colors.white60),
-                overflow: TextOverflow.clip,
-                softWrap: false,
-              ),
-            ),
-          );
-        },
-        itemCount: inboxes.length,
+      child: ListView(
+        children: accountsTreeWidgets,
       ),
     );
   }
@@ -135,12 +132,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 border: Border(right: BorderSide(color: Colors.black)),
               ),
               height: double.infinity,
-              child: FutureBuilder<bool>(
-                future: _mailClient.connected(),
+              child: FutureBuilder<List<bool>>(
+                future: _inboxService.clientsConnected(),
+                // future: _mailClient.connected(),
                 builder: (context, snapshot) {
                   switch (snapshot.connectionState) {
                     case ConnectionState.done:
-                      return _makeAccountTree();
+                      return _makeAccountsTree();
                     default:
                       return Container();
                   }
@@ -160,8 +158,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 border: Border(left: BorderSide(color: Colors.black)),
               ),
               height: double.infinity,
-              child: FutureBuilder<bool>(
-                future: _mailClient.connected(),
+              child: FutureBuilder<List<bool>>(
+                future: _inboxService.clientsConnected(),
                 builder: (context, snapshot) {
                   switch (snapshot.connectionState) {
                     case ConnectionState.done:

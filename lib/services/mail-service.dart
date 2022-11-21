@@ -1,6 +1,7 @@
 import 'dart:async';
 
 // import 'package:enough_mail/enough_mail.dart';
+
 import '../mail-client/enough_mail.dart';
 import 'package:mail_app/utils/wait-until.dart';
 
@@ -10,6 +11,7 @@ class CustomMailClient {
   final Map<String, List<MimeMessage>> _messages = {};
   late List<Mailbox> _mailBoxes;
   late Mailbox _currentMailbox;
+  late String _email;
 
   bool _connected = false;
 
@@ -30,8 +32,18 @@ class CustomMailClient {
     return await waitUntil(() => _connected);
   }
 
+  bool isConnected() {
+    return _connected;
+  }
+
+  String getEmail() {
+    return _email;
+  }
+
   Future<bool> connect(String email, String password) async {
     try {
+      _email = email;
+
       await _client.connectToServer('imap.gmail.com', 993, isSecure: true);
       await _client.login(email, password);
       _currentMailbox = await _client.selectInbox();
@@ -59,31 +71,24 @@ class CustomMailClient {
     return _connected;
   }
 
-  selectLocalMailbox(int idx) {
-    _currentMailbox = _mailBoxes[idx];
+  void selectLocalMailbox(String mailboxPath) {
+    _currentMailbox = getMailboxFromPath(mailboxPath);
+
+    print(_currentMailbox);
   }
 
-  Future<bool> selectMailbox(int idx) async {
+  Future<void> selectMailbox(String mailboxPath) async {
     try {
-      await _client.selectMailbox(_mailBoxes[idx]);
-
-      return true;
+      await _client.selectMailbox(getMailboxFromPath(mailboxPath));
     } on ImapException catch (e) {
       print(e);
     }
-
-    return false;
   }
 
-  Future<bool> updateMailboxMessages() async {
+  Future<void> updateMailboxFromPath(String mailboxPath) async {
     try {
-      await _client.selectMailbox(_currentMailbox);
-      // fetch 10 most recent messages:
-      // final fetchResult = await _client.fetchRecentMessages(
-      //     messageCount: 10, criteria: 'BODY.PEEK[]');
+      await _client.selectMailbox(getMailboxFromPath(mailboxPath));
 
-      // final test =
-      //     await _client.fetchRecentMessages(messageCount: 10, criteria: 'FULL');
       final SearchImapResult sequenceFetch =
           await _client.searchMessages(searchCriteria: 'ALL');
 
@@ -94,25 +99,50 @@ class CustomMailClient {
 
         _messages[_currentMailbox.encodedPath] = fetchResult.messages;
       }
-
-      return true;
     } on ImapException catch (e) {
       print(e);
     }
-
-    return false;
   }
 
-  Future<List<Mailbox>> updateMailBoxes() async {
+  Future<void> updateMailbox(Mailbox? mailbox) async {
+    try {
+      if (mailbox != null) {
+        _client.selectMailbox(mailbox);
+      } else {
+        await _client.selectMailbox(_currentMailbox);
+      }
+
+      final SearchImapResult sequenceFetch =
+          await _client.searchMessages(searchCriteria: 'ALL');
+
+      if (sequenceFetch.matchingSequence != null &&
+          sequenceFetch.matchingSequence!.isNotEmpty) {
+        final FetchImapResult fetchResult = await _client.fetchMessages(
+            sequenceFetch.matchingSequence!, 'BODY.PEEK[]');
+
+        _messages[_currentMailbox.encodedPath] = fetchResult.messages;
+      }
+    } on ImapException catch (e) {
+      print(e);
+    }
+  }
+
+  Future<void> updateMailBoxes() async {
     _mailBoxes = await _client.listMailboxes(recursive: true);
 
     for (var mailbox in _mailBoxes) {
+      if (mailbox.encodedName.endsWith(']')) {
+        continue;
+      }
+
       if (!_messages.containsKey(mailbox.encodedPath)) {
         _messages[mailbox.encodedPath] = [];
       }
-    }
 
-    return _mailBoxes;
+      await updateMailbox(mailbox);
+
+      _client.selectMailbox(_currentMailbox);
+    }
   }
 
   List<Mailbox> getMailBoxes() {
@@ -120,7 +150,13 @@ class CustomMailClient {
   }
 
   List<String> getMailBoxNames() {
-    return _mailBoxes.map((box) => box.encodedPath).toList();
+    return _mailBoxes.map((box) => box.encodedPath).toList(growable: false);
+  }
+
+  Mailbox getMailboxFromPath(String mailboxPath) {
+    return _mailBoxes
+        .where((mailbox) => mailbox.encodedPath == mailboxPath)
+        .first;
   }
 
   // Future<void> discoverExample() async {
