@@ -1,6 +1,7 @@
 import '../mail-client/enough_mail.dart';
 
-import './mail-service.dart';
+import 'mail_service.dart';
+import 'package:mail_app/types/mailbox_info.dart';
 
 class InboxService {
   final Map<String, CustomMailClient> _mailClients = {};
@@ -95,12 +96,4 @@ class InboxService {
 
     return accountsTree;
   }
-}
-
-class MailboxInfo {
-  final String display;
-  final String path;
-  final bool indent;
-
-  MailboxInfo(this.display, this.path, this.indent);
 }

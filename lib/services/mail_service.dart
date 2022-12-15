@@ -1,9 +1,7 @@
 import 'dart:async';
 
-// import 'package:enough_mail/enough_mail.dart';
-
 import '../mail-client/enough_mail.dart';
-import 'package:mail_app/utils/wait-until.dart';
+import 'package:mail_app/utils/wait_until.dart';
 
 class CustomMailClient {
   final ImapClient _client = ImapClient(isLogEnabled: false);
@@ -73,8 +71,6 @@ class CustomMailClient {
 
   void selectLocalMailbox(String mailboxPath) {
     _currentMailbox = getMailboxFromPath(mailboxPath);
-
-    print(_currentMailbox);
   }
 
   Future<void> selectMailbox(String mailboxPath) async {
@@ -97,7 +93,7 @@ class CustomMailClient {
         final FetchImapResult fetchResult = await _client.fetchMessages(
             sequenceFetch.matchingSequence!, 'BODY.PEEK[]');
 
-        _messages[_currentMailbox.encodedPath] = fetchResult.messages;
+        _messages[mailboxPath] = fetchResult.messages;
       }
     } on ImapException catch (e) {
       print(e);
@@ -106,11 +102,9 @@ class CustomMailClient {
 
   Future<void> updateMailbox(Mailbox? mailbox) async {
     try {
-      if (mailbox != null) {
-        _client.selectMailbox(mailbox);
-      } else {
-        await _client.selectMailbox(_currentMailbox);
-      }
+      if (mailbox == null) return;
+
+      _client.selectMailbox(mailbox);
 
       final SearchImapResult sequenceFetch =
           await _client.searchMessages(searchCriteria: 'ALL');
@@ -120,7 +114,7 @@ class CustomMailClient {
         final FetchImapResult fetchResult = await _client.fetchMessages(
             sequenceFetch.matchingSequence!, 'BODY.PEEK[]');
 
-        _messages[_currentMailbox.encodedPath] = fetchResult.messages;
+        _messages[mailbox.encodedPath] = fetchResult.messages;
       }
     } on ImapException catch (e) {
       print(e);

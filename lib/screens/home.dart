@@ -1,45 +1,58 @@
-// import 'package:enough_mail/codecs.dart';
 import 'package:flutter/material.dart';
-// import 'package:enough_mail/enough_mail.dart';
-import '../mail-client/enough_mail.dart';
+import 'package:mail_app/types/mailbox_info.dart';
+import 'package:mail_app/types/project_colors.dart';
+import 'package:mail_app/widgets/control_bar.dart';
+import 'package:mail_app/widgets/inbox_list.dart';
+import 'package:mail_app/widgets/mailbox_header.dart';
+import 'package:mail_app/widgets/message_view.dart';
 
-import '../services/mail-service.dart';
-import '../services/inbox-service.dart';
-import '../widgets/vertical-split.dart';
-import '../widgets/message-list.dart';
+import '../mail-client/enough_mail.dart';
+import '../services/inbox_service.dart';
+import '../widgets/vertical_split.dart';
+import '../widgets/message_list.dart';
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
+  const MyHomePage({super.key});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  // final CustomMailClient _mailClient = CustomMailClient();
   final InboxService _inboxService = InboxService();
   final String email = 'test1928346534@gmail.com';
   final String password = 'xsccljyfbfrgvtjw';
 
-  late List<MimeMessage> _messages = [];
-  late int _activeID = 0;
+  List<MimeMessage> _messages = [];
+  Map<String, List<MailboxInfo>> _accountsTree = {};
+  int _activeID = 0;
+  String _mailboxTitle = '';
+  Map<String, String> _activeMailbox = {
+    'email': 'email',
+    'path': 'path',
+  };
 
   @override
   void initState() {
     super.initState();
 
-    // _mailClient.connect(email, password);
     _inboxService.newClient(
         email, password, 'imap.gmail.com', 993, 'smtp.gmail.com', 993);
-    // _updateMailList(0);
-    updateInbox();
+    _updateInbox();
   }
 
   _updateActiveID(int idx) {
     setState(() {
       _activeID = idx;
+    });
+  }
+
+  _updateActiveMailbox(String email, String path) {
+    setState(() {
+      _activeMailbox = {
+        'email': email,
+        'path': path,
+      };
     });
   }
 
@@ -56,12 +69,22 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  updateInbox() async {
-    await _inboxService.clientsConnected();
-    _inboxService.updateInbox();
+  _setAccountTree() {
+    setState(() {
+      _accountsTree = _inboxService.accountsTree();
+    });
   }
 
-  updateMessageList(String email, String mailboxPath) async {
+  _updateInbox() async {
+    await _inboxService.clientsConnected();
+    _inboxService.updateInbox();
+    _setAccountTree();
+  }
+
+  _updateMessageList(
+      String email, String mailboxPath, String mailboxTitle) async {
+    _activeID = 0;
+    _mailboxTitle = mailboxTitle;
     _inboxService.updateLocalMailbox(email, mailboxPath);
 
     _setMessages();
@@ -71,51 +94,40 @@ class _MyHomePageState extends State<MyHomePage> {
     _setMessages();
   }
 
-  Widget _makeMessage(int idx) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12, top: 8, left: 16, right: 16),
-      child: SingleChildScrollView(
-        child: Text(
-          _messages.length > idx
-              ? _messages[idx].decodeTextPlainPart() ?? ''
-              : '',
-          style: const TextStyle(color: Colors.white60),
-        ),
-      ),
-    );
+  _refreshAll() {
+    print('refreshing');
   }
 
-  Widget _makeAccountsTree() {
-    final accountsTree = _inboxService.accountsTree();
-    List<Widget> accountsTreeWidgets = [];
+  _composeMessage() {
+    print('composing a message');
+  }
 
-    accountsTree.forEach((email, account) {
-      for (var inboxInfo in account) {
-        accountsTreeWidgets.add(GestureDetector(
-          onTap: () => {
-            updateMessageList(email, inboxInfo.path),
-          },
-          child: Padding(
-            padding: inboxInfo.indent
-                ? const EdgeInsets.only(left: 10)
-                : EdgeInsets.zero,
-            child: Text(
-              inboxInfo.display,
-              style: const TextStyle(color: Colors.white60),
-              overflow: TextOverflow.clip,
-              softWrap: false,
-            ),
-          ),
-        ));
-      }
-    });
+  _archive() {
+    print('archive a message');
+  }
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10, top: 10, left: 10, right: 10),
-      child: ListView(
-        children: accountsTreeWidgets,
-      ),
-    );
+  _markImportant() {
+    print('mark as important');
+  }
+
+  _markDeleted() {
+    print('mark as deleted');
+  }
+
+  _markUnread() {
+    print('mark as unread');
+  }
+
+  _reply() {
+    print('reply to message');
+  }
+
+  _replyAll() {
+    print('reply to all message');
+  }
+
+  _share() {
+    print('share message');
   }
 
   @override
@@ -128,52 +140,57 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Center(
           child: VerticalSplitView(
             left: Container(
-              decoration: const BoxDecoration(
-                border: Border(right: BorderSide(color: Colors.black)),
+              decoration: BoxDecoration(
+                border: Border(
+                    right: BorderSide(color: ProjectColors.secondary(false))),
               ),
               height: double.infinity,
-              child: FutureBuilder<List<bool>>(
-                future: _inboxService.clientsConnected(),
-                // future: _mailClient.connected(),
-                builder: (context, snapshot) {
-                  switch (snapshot.connectionState) {
-                    case ConnectionState.done:
-                      return _makeAccountsTree();
-                    default:
-                      return Container();
-                  }
-                },
-              ),
+              child: InboxList(
+                  accountsTree: _accountsTree,
+                  updateMessageList: _updateMessageList,
+                  activeMailbox: _activeMailbox,
+                  updateActiveMailbox: _updateActiveMailbox,
+                  header: MailboxHeader(
+                    composeMessage: _composeMessage,
+                  ),
+                  key: UniqueKey()),
             ),
             middle: SizedBox(
               height: double.infinity,
               child: MessageList(
                   messages: _messages,
+                  mailboxTitle: _mailboxTitle,
                   activeID: _activeID,
                   updateActiveID: _updateActiveID,
+                  refreshAll: _refreshAll,
                   key: UniqueKey()),
             ),
             right: Container(
-              decoration: const BoxDecoration(
-                border: Border(left: BorderSide(color: Colors.black)),
+              decoration: BoxDecoration(
+                border: Border(
+                    left: BorderSide(color: ProjectColors.secondary(false))),
               ),
               height: double.infinity,
-              child: FutureBuilder<List<bool>>(
-                future: _inboxService.clientsConnected(),
-                builder: (context, snapshot) {
-                  switch (snapshot.connectionState) {
-                    case ConnectionState.done:
-                      return _makeMessage(_activeID);
-                    default:
-                      return Container();
-                  }
-                },
+              child: MessageView(
+                controlBar: ControlBar(
+                  archive: _archive,
+                  markImportant: _markImportant,
+                  markDeleted: _markDeleted,
+                  markUnread: _markUnread,
+                  reply: _reply,
+                  replyAll: _replyAll,
+                  share: _share,
+                ),
+                message: _messages.length > _activeID
+                    ? _messages[_activeID]
+                    : MimeMessage(),
+                key: UniqueKey(),
               ),
             ),
-            ratio2: 0.3,
+            ratio2: 0.25,
             minRatio2: 0.1,
             maxRatio2: 0.45,
-            ratio1: 0.15,
+            ratio1: 0.2,
             minRatio1: 0.1,
             maxRatio1: 0.25,
           ),
@@ -183,23 +200,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-void printMessage(message) {
-  if (!message.isTextPlainMessage()) {
-  } else {
-    final plainText = message.decodeTextPlainPart();
-
-    if (plainText != null) {
-      final lines = plainText.split('\r\n');
-
-      for (final line in lines) {
-        if (line.startsWith('>')) {
-          // break when quoted text starts
-          break;
-        }
-      }
-    }
-  }
-}
 
 // [
 //   "INBOX" exists: 3, highestModeSequence: 1589, flags: [MailboxFlag.hasNoChildren, MailboxFlag.inbox],
