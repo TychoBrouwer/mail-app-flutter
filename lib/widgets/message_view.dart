@@ -33,10 +33,10 @@ class _MessageView extends State<MessageView> {
     return Column(
       children: [
         _controlBar,
-        Padding(
-          padding:
-              const EdgeInsets.only(bottom: 12, top: 8, left: 16, right: 16),
-          child: SingleChildScrollView(
+        Expanded(
+          child: Padding(
+            padding:
+                const EdgeInsets.only(bottom: 12, top: 8, left: 16, right: 16),
             child: Text(
               _message.decodeTextPlainPart() ?? '',
               style: const TextStyle(color: Colors.white60),

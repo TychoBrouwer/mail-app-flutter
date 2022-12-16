@@ -94,39 +94,44 @@ class _MyHomePageState extends State<MyHomePage> {
     _setMessages();
   }
 
-  _refreshAll() {
-    print('refreshing');
+  Future<void> _refreshAll() async {
+    print('refreshing all mailboxes');
+
+    await _inboxService.updateAllMail();
+
+    _setMessages();
+    return;
   }
 
-  _composeMessage() {
+  Future<void> _composeMessage() async {
     print('composing a message');
   }
 
-  _archive() {
+  Future<void> _archive() async {
     print('archive a message');
   }
 
-  _markImportant() {
+  Future<void> _markImportant() async {
     print('mark as important');
   }
 
-  _markDeleted() {
+  Future<void> _markDeleted() async {
     print('mark as deleted');
   }
 
-  _markUnread() {
+  Future<void> _markUnread() async {
     print('mark as unread');
   }
 
-  _reply() {
+  Future<void> _reply() async {
     print('reply to message');
   }
 
-  _replyAll() {
+  Future<void> _replyAll() async {
     print('reply to all message');
   }
 
-  _share() {
+  Future<void> _share() async {
     print('share message');
   }
 

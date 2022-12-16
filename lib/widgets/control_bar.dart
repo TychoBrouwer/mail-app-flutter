@@ -43,7 +43,7 @@ class _ControlBar extends State<ControlBar> {
     _markImportant = widget.markImportant;
     _markDeleted = widget.markDeleted;
     _markUnread = widget.markUnread;
-    _reply = widget.share;
+    _reply = widget.reply;
     _replyAll = widget.replyAll;
     _share = widget.share;
   }

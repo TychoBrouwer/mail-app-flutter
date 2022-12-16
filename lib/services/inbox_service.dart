@@ -56,6 +56,17 @@ class InboxService {
     await _mailClients[email]!.updateMailboxFromPath(mailboxPath);
   }
 
+  Future<void> updateAllMail() async {
+    await clientsConnected();
+    List<Future<void>> clientUpdates = [];
+
+    _mailClients.forEach((email, client) {
+      clientUpdates.add(client.updateAllMailboxes());
+    });
+
+    await Future.wait(clientUpdates);
+  }
+
   Map<String, CustomMailClient> connectedClients() {
     return Map.from(_mailClients)
       ..removeWhere((email, client) => client.isConnected() == false);

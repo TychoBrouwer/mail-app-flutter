@@ -10,7 +10,7 @@ class MessageList extends StatefulWidget {
   final String mailboxTitle;
   final int activeID;
   final Function updateActiveID;
-  final Function refreshAll;
+  final Future<void> Function() refreshAll;
 
   const MessageList({
     super.key,
@@ -30,7 +30,11 @@ class _MessageList extends State<MessageList> {
   late String _mailboxTitle;
   late int _activeID;
   late Function _updateActiveID;
-  late Function _refreshAll;
+  late Future<void> Function() _refreshAll;
+
+  double turns = 0;
+  bool rotatingFinished = true;
+  bool refreshFinished = false;
 
   @override
   void initState() {
@@ -41,6 +45,22 @@ class _MessageList extends State<MessageList> {
     _activeID = widget.activeID;
     _updateActiveID = widget.updateActiveID;
     _refreshAll = widget.refreshAll;
+  }
+
+  void _refreshRotate() async {
+    if (!rotatingFinished) return;
+
+    rotatingFinished = false;
+
+    setState(() {
+      turns += 1;
+    });
+
+    await Future.delayed(const Duration(seconds: 1), () {});
+
+    rotatingFinished = true;
+
+    if (!refreshFinished) _refreshRotate();
   }
 
   bool _getActive(int idx) => _activeID == idx;
@@ -67,12 +87,22 @@ class _MessageList extends State<MessageList> {
                 ),
               ),
               GestureDetector(
-                onTap: () => _refreshAll(),
-                child: SvgPicture.asset(
-                  'assets/icons/arrows-rotate.svg',
-                  color: ProjectColors.main(false),
-                  width: 20,
-                  height: 20,
+                onTap: () async => {
+                  refreshFinished = false,
+                  _refreshRotate(),
+                  await _refreshAll(),
+                  refreshFinished = true,
+                },
+                child: AnimatedRotation(
+                  alignment: Alignment.center,
+                  turns: turns,
+                  duration: const Duration(seconds: 1),
+                  child: SvgPicture.asset(
+                    'assets/icons/arrows-rotate.svg',
+                    color: ProjectColors.main(false),
+                    width: 20,
+                    height: 20,
+                  ),
                 ),
               ),
             ],

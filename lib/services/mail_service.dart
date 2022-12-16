@@ -121,6 +121,16 @@ class CustomMailClient {
     }
   }
 
+  Future<void> updateAllMailboxes() async {
+    Mailbox selectedMailbox = _currentMailbox;
+
+    for (var mailbox in _mailBoxes) {
+      await updateMailbox(mailbox);
+    }
+
+    _client.selectMailbox(selectedMailbox);
+  }
+
   Future<void> updateMailBoxes() async {
     _mailBoxes = await _client.listMailboxes(recursive: true);
 
