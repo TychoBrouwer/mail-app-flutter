@@ -63,7 +63,9 @@ class _MessageList extends State<MessageList> {
     if (!refreshFinished) _refreshRotate();
   }
 
-  bool _getActive(int idx) => _activeID == idx;
+  bool _getActive(int idx) {
+    return _activeID == idx;
+  }
 
   @override
   Widget build(BuildContext context) {

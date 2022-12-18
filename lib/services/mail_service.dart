@@ -38,6 +38,16 @@ class CustomMailClient {
     return _email;
   }
 
+  String getCurrentMailboxPath() {
+    return _currentMailbox.encodedPath;
+  }
+
+  String getCurrentMailboxTitle() {
+    return _currentMailbox.encodedName == 'INBOX'
+        ? _email
+        : _currentMailbox.encodedName;
+  }
+
   Future<bool> connect(String email, String password) async {
     try {
       _email = email;
@@ -45,9 +55,9 @@ class CustomMailClient {
       await _client.connectToServer('imap.gmail.com', 993, isSecure: true);
       await _client.login(email, password);
       _currentMailbox = await _client.selectInbox();
-      await updateMailBoxes();
 
-      // handle fetching cached/ saved messages
+      // handle fetching cached/ saved messages instead of next line
+      await updateMailBoxes();
 
       _connected = true;
     } on ImapException catch (e) {
@@ -119,16 +129,6 @@ class CustomMailClient {
     } on ImapException catch (e) {
       print(e);
     }
-  }
-
-  Future<void> updateAllMailboxes() async {
-    Mailbox selectedMailbox = _currentMailbox;
-
-    for (var mailbox in _mailBoxes) {
-      await updateMailbox(mailbox);
-    }
-
-    _client.selectMailbox(selectedMailbox);
   }
 
   Future<void> updateMailBoxes() async {

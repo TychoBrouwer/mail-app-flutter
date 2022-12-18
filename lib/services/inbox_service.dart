@@ -27,11 +27,11 @@ class InboxService {
   }
 
   CustomMailClient currentClient() {
-    return _mailClients[_currentEmail] ?? CustomMailClient();
+    return _mailClients[_currentEmail]!;
   }
 
   List<MimeMessage> getMessages() {
-    return _mailClients[_currentEmail]?.getMessages() ?? [];
+    return _mailClients[_currentEmail]!.getMessages();
   }
 
   Future<List<bool>> clientsConnected() {
@@ -56,28 +56,9 @@ class InboxService {
     await _mailClients[email]!.updateMailboxFromPath(mailboxPath);
   }
 
-  Future<void> updateAllMail() async {
-    await clientsConnected();
-    List<Future<void>> clientUpdates = [];
-
-    _mailClients.forEach((email, client) {
-      clientUpdates.add(client.updateAllMailboxes());
-    });
-
-    await Future.wait(clientUpdates);
-  }
-
   Map<String, CustomMailClient> connectedClients() {
     return Map.from(_mailClients)
       ..removeWhere((email, client) => client.isConnected() == false);
-  }
-
-  Map<String, CustomMailClient> clients() {
-    return _mailClients;
-  }
-
-  List<String> clientEmails() {
-    return _mailClients.keys.toList(growable: false);
   }
 
   Future<void> updateInbox() async {

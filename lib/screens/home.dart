@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mail_app/utils/local_file_store.dart';
+import 'package:mail_app/services/local_settings.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/control_bar.dart';
@@ -11,15 +13,27 @@ import '../services/inbox_service.dart';
 import '../widgets/vertical_split.dart';
 import '../widgets/message_list.dart';
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
+class HomePage extends StatefulWidget {
+  final LocalFileStore fileStore;
+  final LocalSettings localSettings;
+  final InboxService inboxService;
+
+  const HomePage(
+      {super.key,
+      required this.fileStore,
+      required this.localSettings,
+      required this.inboxService});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  final InboxService _inboxService = InboxService();
+class _HomePageState extends State<HomePage> {
+  late LocalFileStore _fileStore;
+  late LocalSettings _localSettings;
+  late InboxService _inboxService;
+  late Map<String, String> _activeMailbox;
+  // final InboxService _inboxService = InboxService();
   final String email = 'test1928346534@gmail.com';
   final String password = 'xsccljyfbfrgvtjw';
 
@@ -27,27 +41,31 @@ class _MyHomePageState extends State<MyHomePage> {
   Map<String, List<MailboxInfo>> _accountsTree = {};
   int _activeID = 0;
   String _mailboxTitle = '';
-  Map<String, String> _activeMailbox = {
-    'email': 'email',
-    'path': 'path',
-  };
 
   @override
   void initState() {
     super.initState();
 
-    _inboxService.newClient(
-        email, password, 'imap.gmail.com', 993, 'smtp.gmail.com', 993);
+    _fileStore = widget.fileStore;
+    _localSettings = widget.localSettings;
+    _inboxService = widget.inboxService;
+    _activeMailbox = {
+      'email': _inboxService.currentClient().getEmail(),
+      'path': _inboxService.currentClient().getCurrentMailboxPath(),
+    };
+    _mailboxTitle = _inboxService.currentClient().getCurrentMailboxTitle();
+
+    _setMessages();
     _updateInbox();
   }
 
-  _updateActiveID(int idx) {
+  void _updateActiveID(int idx) {
     setState(() {
       _activeID = idx;
     });
   }
 
-  _updateActiveMailbox(String email, String path) {
+  void _updateActiveMailbox(String email, String path) {
     setState(() {
       _activeMailbox = {
         'email': email,
@@ -56,7 +74,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  _setMessages() {
+  void _setMessages() {
     final List<MimeMessage> messages = _inboxService.getMessages();
 
     messages.sort((a, b) => b
@@ -69,38 +87,27 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  _setAccountTree() {
+  void _updateInbox() async {
+    _inboxService.updateInbox();
+
     setState(() {
       _accountsTree = _inboxService.accountsTree();
     });
   }
 
-  _updateInbox() async {
-    await _inboxService.clientsConnected();
-    _inboxService.updateInbox();
-    _setAccountTree();
-  }
-
-  _updateMessageList(
+  void _updateMessageList(
       String email, String mailboxPath, String mailboxTitle) async {
     _activeID = 0;
     _mailboxTitle = mailboxTitle;
     _inboxService.updateLocalMailbox(email, mailboxPath);
 
     _setMessages();
-
-    await _inboxService.updateMailList(email, mailboxPath);
-
-    _setMessages();
   }
 
   Future<void> _refreshAll() async {
-    print('refreshing all mailboxes');
-
-    await _inboxService.updateAllMail();
+    await _inboxService.updateInbox();
 
     _setMessages();
-    return;
   }
 
   Future<void> _composeMessage() async {
@@ -139,8 +146,8 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          color: Colors.black87,
+        decoration: BoxDecoration(
+          color: ProjectColors.secondary(true),
         ),
         child: Center(
           child: VerticalSplitView(

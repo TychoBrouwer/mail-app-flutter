@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-// import 'dart:io';
-// import 'package:enough_mail/enough_mail.dart';
-
-import 'screens/home.dart';
+import 'package:mail_app/screens/splash.dart';
+// import 'package:mail_app/screens/home.dart';
 
 void main() {
   runApp(const MailApp());
@@ -19,7 +17,7 @@ class MailApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(),
+      home: const SplashPage(),
     );
   }
 }
