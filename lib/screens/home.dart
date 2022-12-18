@@ -33,7 +33,6 @@ class _HomePageState extends State<HomePage> {
   late LocalSettings _localSettings;
   late InboxService _inboxService;
   late Map<String, String> _activeMailbox;
-  // final InboxService _inboxService = InboxService();
   final String email = 'test1928346534@gmail.com';
   final String password = 'xsccljyfbfrgvtjw';
 

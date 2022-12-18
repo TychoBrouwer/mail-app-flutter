@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 class MailPreview extends StatefulWidget {
   final MimeMessage email;
   final int idx;
-  final DateTime? date;
   final Function getActive;
   final Function updateMessageID;
 
@@ -15,7 +14,6 @@ class MailPreview extends StatefulWidget {
     super.key,
     required this.email,
     required this.idx,
-    required this.date,
     required this.getActive,
     required this.updateMessageID,
   });
@@ -27,7 +25,6 @@ class MailPreview extends StatefulWidget {
 class _MailPreview extends State<MailPreview> {
   late MimeMessage _email;
   late int _idx;
-  late DateTime? _date;
   late Function _getActive;
   late Function _updateMessageID;
 
@@ -41,18 +38,19 @@ class _MailPreview extends State<MailPreview> {
 
     _email = widget.email;
     _idx = widget.idx;
-    _date = widget.date;
     _getActive = widget.getActive;
     _updateMessageID = widget.updateMessageID;
 
-    if (_date == null) {
+    DateTime? date = _email.decodeDate();
+
+    if (date == null) {
       _dateText = '';
     } else {
-      _dateText = DateTime.now().difference(_date!).inDays == 0
-          ? DateFormat('HH:mm').format(_date!)
-          : DateTime.now().difference(_date!).inDays == -1
+      _dateText = DateTime.now().difference(date).inDays == 0
+          ? DateFormat('HH:mm').format(date)
+          : DateTime.now().difference(date).inDays == -1
               ? 'Yesterday'
-              : DateFormat('dd/MM/yy').format(_date!);
+              : DateFormat('dd/MM/yy').format(date);
     }
 
     _from = _email.from![0].personalName ?? _email.from![0].email;
@@ -95,13 +93,17 @@ class _MailPreview extends State<MailPreview> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            _from,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: ProjectColors.main(_getActive(_idx)),
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 10),
+                            child: Text(
+                              _from,
+                              overflow: TextOverflow.fade,
+                              softWrap: false,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: ProjectColors.main(_getActive(_idx)),
+                              ),
                             ),
                           ),
                         ),
@@ -119,10 +121,11 @@ class _MailPreview extends State<MailPreview> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       _email.decodeSubject() ?? '',
-                      overflow: TextOverflow.ellipsis,
+                      overflow: TextOverflow.fade,
+                      softWrap: false,
                       style: TextStyle(
                         fontSize: 13,
-                        color: ProjectColors.secondary(_getActive(_idx)),
+                        color: ProjectColors.main(_getActive(_idx)),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -131,7 +134,8 @@ class _MailPreview extends State<MailPreview> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       _previewStr,
-                      overflow: TextOverflow.ellipsis,
+                      overflow: TextOverflow.fade,
+                      softWrap: false,
                       style: TextStyle(
                         fontSize: 13,
                         color: ProjectColors.secondary(_getActive(_idx)),

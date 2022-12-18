@@ -18,9 +18,9 @@ class LocalSettings {
   }
 
   Future<void> _loadIni() async {
-    final settingsFile = await _fileStore.readLocalFile('settings.json');
+    var settingsFile = await _fileStore.readLocalFile('settings.json');
 
-    if (settingsFile.isEmpty) await createSettingsFile();
+    if (settingsFile.isEmpty) settingsFile = await createSettingsFile();
 
     final dimensions = Dimensions(settingsFile['dimensions']['width'],
         settingsFile['dimensions']['height']);
@@ -38,7 +38,6 @@ class LocalSettings {
 
     _settings =
         Settings(dimensions, accounts: accounts, theme: settingsFile['theme']);
-
     _loaded = true;
   }
 
@@ -46,12 +45,11 @@ class LocalSettings {
     return await waitUntil(() => _loaded);
   }
 
-  Future<void> createSettingsFile() async {
+  Future<Map<String, dynamic>> createSettingsFile() async {
     Dimensions dimensions = Dimensions(600, 400);
     List<MailAccount> accounts = [
       MailAccount('test1928346534@gmail.com', 'xsccljyfbfrgvtjw',
-              'imap.gmail.com', 993, 'smtp.gmail.com', 993)
-          .accountJson(),
+          'imap.gmail.com', 993, 'smtp.gmail.com', 993),
     ];
     const theme = 'dark';
 
@@ -59,7 +57,7 @@ class LocalSettings {
 
     saveSettings();
 
-    return;
+    return _settings.settingsMap();
   }
 
   Settings getSettings() {
@@ -83,15 +81,16 @@ class Settings {
   final List<MailAccount> _accounts;
   late String _theme;
 
-  Settings(dimensions, {accounts = const [], theme = 'dark'})
+  Settings(Dimensions dimensions,
+      {List<MailAccount> accounts = const [], String theme = 'dark'})
       : _dimensions = dimensions,
         _accounts = accounts,
         _theme = theme;
 
   Map<String, dynamic> settingsMap() {
     return {
-      'dimensions': _dimensions,
-      'accounts': _accounts,
+      'dimensions': {'width': _dimensions.width, 'height': _dimensions.height},
+      'accounts': _accounts.map((account) => account.accountJson()).toList(),
       'theme': _theme,
     };
   }

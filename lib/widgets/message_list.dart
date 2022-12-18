@@ -117,7 +117,6 @@ class _MessageList extends State<MessageList> {
               itemBuilder: (_, idx) {
                 return MailPreview(
                     email: _messages[idx],
-                    date: _messages[idx].decodeDate(),
                     idx: idx,
                     getActive: _getActive,
                     updateMessageID: _updateActiveID);
