@@ -1,8 +1,9 @@
+// import 'package:html/parser.dart' as htmlparser;
+// import 'package:html/dom.dart' as dom;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:mail_app/widgets/message_header.dart';
-import 'package:html/parser.dart' as htmlParser;
-import 'package:html/dom.dart' as dom;
 
 import '../mail-client/enough_mail.dart';
 
@@ -27,8 +28,8 @@ class _MessageView extends State<MessageView> {
   late String _from;
   late String _to;
   late String _subject;
-  // late String _htmlBody;
-  // late dom.Document _htmlDoc;
+  late Widget _emailWidget;
+  late bool plainText;
 
   @override
   void initState() {
@@ -46,28 +47,43 @@ class _MessageView extends State<MessageView> {
     _to = _message.to![0].email;
     _subject = _message.decodeSubject() ?? '';
 
-    // if (_message.decodeTextHtmlPart() != null) {
-    //   final body = RegExp(r'<body.*?</body>', multiLine: true, dotAll: true)
-    //       .firstMatch(_message.decodeTextHtmlPart()!);
-    //   if (body != null) {
-    //     _htmlBody = body[0]!;
-    //     dom.Document _htmlDoc = htmlParser.parse(body[0]!);
+    if (_message.decodeTextHtmlPart() != null) {
+      _emailWidget = loadHtml();
 
-    //     print(body[0]!);
-    //   } else {
-    //     print('failed');
-    //     _htmlBody = _message.decodeTextHtmlPart()!;
-    //   }
+      plainText = false;
+    } else {
+      _emailWidget = loadPlainText();
 
-    //   // _htmlBody = RegExp(r'<body.*?</body>')
-    //   //     .firstMatch(_message.decodeTextHtmlPart()!)![0]!;
-    //   // print(RegExp(r'<body.*?</body>')
-    //   //     .firstMatch(_message.decodeTextHtmlPart()!));
-    // } else {
-    //   print('failed!');
-    //   _htmlBody = _message.decodeTextPlainPart()!;
-    // }
-    // _htmlBody = _message.decodeTextPlainPart()!;
+      plainText = true;
+    }
+  }
+
+  loadHtml() {
+    final htmlBody = _message.decodeTextHtmlPart()!;
+    final body =
+        RegExp(r'<body.*?>(.*?)<\/body>', multiLine: true, dotAll: true)
+            .firstMatch(htmlBody);
+
+    if (body != null) {
+      print(body[1]);
+      return Html(
+        data: body[1],
+        shrinkWrap: true,
+      );
+    } else {
+      print(htmlBody);
+      return Html(
+        data: htmlBody,
+        shrinkWrap: true,
+      );
+    }
+  }
+
+  Widget loadPlainText() {
+    return Text(
+      _message.decodeTextPlainPart() ?? '',
+      style: const TextStyle(color: Colors.white60),
+    );
   }
 
   @override
@@ -85,7 +101,7 @@ class _MessageView extends State<MessageView> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.max,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Padding(
                       padding: const EdgeInsets.only(bottom: 15),
@@ -96,12 +112,15 @@ class _MessageView extends State<MessageView> {
                         date: _message.decodeDate(),
                       ),
                     ),
-                    Text(
-                      _message.decodeTextPlainPart() ?? '',
-                      style: const TextStyle(color: Colors.white60),
-                    ),
+                    Flexible(child: _emailWidget),
                   ],
                 ),
+                // Text(
+                //   _message.decodeTextPlainPart() ?? '',
+                //   style: const TextStyle(color: Colors.white60),
+                // ),
+                //       ],
+                //     ),
               ),
             ),
           ),
