@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mail_app/types/project_colors.dart';
 import '../mail-client/enough_mail.dart';
 import 'package:mail_app/widgets/message_header.dart';
 import 'package:mail_app/utils/to_rgba.dart';
