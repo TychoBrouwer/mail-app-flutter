@@ -37,16 +37,16 @@ dependencies:
   enough_convert: ^1.5.0
   enough_serialization: ^1.4.0
   event_bus: ^2.0.0
-  intl: ^0.17.0
+  intl: ^0.18.0
   pointycastle: ^3.6.0
   xml: '>=5.0.0 <7.0.0'
 
   flutter:
     sdk: flutter
 
-  flutter_svg: ^0.23.0
+  flutter_svg: ^0.22.0
   path_provider: ^2.0.11
-  flutter_html: ^3.0.0-alpha.6
+  webview_windows: ^0.2.2
 
 dev_dependencies:
   flutter_test:
