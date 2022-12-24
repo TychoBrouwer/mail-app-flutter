@@ -1,5 +1,7 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:mail_app/screens/splash.dart';
+import 'package:mail_app/types/project_colors.dart';
 // import 'package:mail_app/screens/home.dart';
 
 void main() {
@@ -16,6 +18,16 @@ class MailApp extends StatelessWidget {
       title: 'Mail App',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        scrollbarTheme: ScrollbarThemeData(
+          thumbColor: MaterialStateProperty.all(ProjectColors.main(false)),
+          thickness: MaterialStateProperty.all(6),
+        ),
+      ),
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        dragDevices: {
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.trackpad,
+        },
       ),
       home: const SplashPage(),
     );

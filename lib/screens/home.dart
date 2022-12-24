@@ -7,6 +7,7 @@ import 'package:mail_app/widgets/control_bar.dart';
 import 'package:mail_app/widgets/inbox_list.dart';
 import 'package:mail_app/widgets/mailbox_header.dart';
 import 'package:mail_app/widgets/message_view.dart';
+import 'package:webview_windows/webview_windows.dart';
 
 import '../mail-client/enough_mail.dart';
 import '../services/inbox_service.dart';
@@ -17,12 +18,14 @@ class HomePage extends StatefulWidget {
   final LocalFileStore fileStore;
   final LocalSettings localSettings;
   final InboxService inboxService;
+  final WebviewController messageWebviewController;
 
   const HomePage(
       {super.key,
       required this.fileStore,
       required this.localSettings,
-      required this.inboxService});
+      required this.inboxService,
+      required this.messageWebviewController});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -33,8 +36,7 @@ class _HomePageState extends State<HomePage> {
   late LocalSettings _localSettings;
   late InboxService _inboxService;
   late Map<String, String> _activeMailbox;
-  final String email = 'test1928346534@gmail.com';
-  final String password = 'xsccljyfbfrgvtjw';
+  late WebviewController _messageWebviewController;
 
   List<MimeMessage> _messages = [];
   Map<String, List<MailboxInfo>> _accountsTree = {};
@@ -48,6 +50,7 @@ class _HomePageState extends State<HomePage> {
     _fileStore = widget.fileStore;
     _localSettings = widget.localSettings;
     _inboxService = widget.inboxService;
+    _messageWebviewController = widget.messageWebviewController;
     _activeMailbox = {
       'email': _inboxService.currentClient().getEmail(),
       'path': _inboxService.currentClient().getCurrentMailboxPath(),
@@ -59,17 +62,23 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _updateActiveID(int idx) {
+    if (_activeID == idx) return;
+
     setState(() {
       _activeID = idx;
     });
   }
 
   void _updateActiveMailbox(String email, String path) {
+    final newActive = {
+      'email': email,
+      'path': path,
+    };
+
+    if (_activeMailbox == newActive) return;
+
     setState(() {
-      _activeMailbox = {
-        'email': email,
-        'path': path,
-      };
+      _activeMailbox = newActive;
     });
   }
 
@@ -169,12 +178,13 @@ class _HomePageState extends State<HomePage> {
             middle: SizedBox(
               height: double.infinity,
               child: MessageList(
-                  messages: _messages,
-                  mailboxTitle: _mailboxTitle,
-                  activeID: _activeID,
-                  updateActiveID: _updateActiveID,
-                  refreshAll: _refreshAll,
-                  key: UniqueKey()),
+                messages: _messages,
+                mailboxTitle: _mailboxTitle,
+                activeID: _activeID,
+                updateActiveID: _updateActiveID,
+                refreshAll: _refreshAll,
+                key: UniqueKey(),
+              ),
             ),
             right: Container(
               decoration: BoxDecoration(
@@ -195,6 +205,7 @@ class _HomePageState extends State<HomePage> {
                 message: _messages.length > _activeID
                     ? _messages[_activeID]
                     : MimeMessage(),
+                controller: _messageWebviewController,
                 key: UniqueKey(),
               ),
             ),

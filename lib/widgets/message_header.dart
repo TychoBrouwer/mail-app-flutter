@@ -55,8 +55,8 @@ class _MessageHeader extends State<MessageHeader> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 50,
-          height: 50,
+          width: 80,
+          height: 80,
           margin: const EdgeInsets.only(right: 15),
           decoration: const BoxDecoration(color: Colors.black),
         ),
@@ -77,7 +77,7 @@ class _MessageHeader extends State<MessageHeader> {
                         overflow: TextOverflow.fade,
                         softWrap: false,
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
                           color: ProjectColors.main(false),
                         ),
@@ -96,7 +96,7 @@ class _MessageHeader extends State<MessageHeader> {
               RichText(
                 text: TextSpan(
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 14,
                     color: ProjectColors.main(false),
                   ),
                   children: [
@@ -113,7 +113,7 @@ class _MessageHeader extends State<MessageHeader> {
               RichText(
                 text: TextSpan(
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 14,
                     color: ProjectColors.main(false),
                   ),
                   children: [

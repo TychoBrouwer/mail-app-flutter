@@ -5,6 +5,7 @@ import 'package:mail_app/services/inbox_service.dart';
 import 'package:mail_app/services/local_settings.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/utils/local_file_store.dart';
+import 'package:webview_windows/webview_windows.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -30,10 +31,14 @@ class _SplashPageState extends State<SplashPage> {
 
   void _loadHomePage() async {
     setState(() => _status = 'Loading application settings');
+    setState(() => _turns += 100);
     await _loadSettings();
     setState(() => _status = 'Loading inboxes');
     setState(() => _turns += 100);
     await _loadInboxService();
+    setState(() => _status = 'Loading webview');
+    setState(() => _turns += 100);
+    final messageWebviewController = await loadWebview();
 
     if (!mounted) return;
     Navigator.pushReplacement(
@@ -43,9 +48,21 @@ class _SplashPageState extends State<SplashPage> {
           fileStore: _fileStore,
           localSettings: _localSettings,
           inboxService: _inboxService,
+          messageWebviewController: messageWebviewController,
         ),
       ),
     );
+  }
+
+  Future<WebviewController> loadWebview() async {
+    final controller = WebviewController();
+
+    await controller.initialize();
+    await controller.setBackgroundColor(Colors.transparent);
+    await controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
+    await controller.openDevTools();
+
+    return controller;
   }
 
   Future<void> _loadSettings() async {

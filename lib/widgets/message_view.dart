@@ -1,27 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:mail_app/widgets/message_content.dart';
+import 'package:webview_windows/webview_windows.dart';
 
 import '../mail-client/enough_mail.dart';
 
 class MessageView extends StatefulWidget {
   final MimeMessage message;
   final Widget controlBar;
+  final WebviewController controller;
 
   const MessageView({
     super.key,
     required this.message,
     required this.controlBar,
+    required this.controller,
   });
 
   @override
-  _MessageView createState() => _MessageView();
+  MessageViewState createState() => MessageViewState();
 }
 
-class _MessageView extends State<MessageView> {
+class MessageViewState extends State<MessageView> {
   late MimeMessage _message;
+  late WebviewController _controller;
   late Widget _controlBar;
 
   late bool plainText;
+
+  final messageContentKey = GlobalKey<MessageContentState>();
 
   @override
   void initState() {
@@ -29,6 +35,7 @@ class _MessageView extends State<MessageView> {
 
     _message = widget.message;
     _controlBar = widget.controlBar;
+    _controller = widget.controller;
   }
 
   @override
@@ -38,7 +45,9 @@ class _MessageView extends State<MessageView> {
       mainAxisSize: MainAxisSize.min,
       children: [
         _controlBar,
-        MessageContent(message: _message),
+        Expanded(
+          child: MessageContent(message: _message, controller: _controller),
+        ),
       ],
     );
   }

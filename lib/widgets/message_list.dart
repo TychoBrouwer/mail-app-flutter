@@ -22,10 +22,10 @@ class MessageList extends StatefulWidget {
   });
 
   @override
-  _MessageList createState() => _MessageList();
+  MessageListState createState() => MessageListState();
 }
 
-class _MessageList extends State<MessageList> {
+class MessageListState extends State<MessageList> {
   late List<MimeMessage> _messages;
   late String _mailboxTitle;
   late int _activeID;
