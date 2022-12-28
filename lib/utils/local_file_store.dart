@@ -12,7 +12,8 @@ class LocalFileStore {
     return _localPath;
   }
 
-  Future<File> _getLocalFile(String filename, {directory = '\\'}) async {
+  Future<File> _getLocalFile(String filename,
+      {final String directory = '\\'}) async {
     if (_localPath.isEmpty) await _getLocalPath();
 
     final file = File('$_localPath$directory$filename');
@@ -21,7 +22,7 @@ class LocalFileStore {
   }
 
   Future<File> writeLocalFile(Map<String, dynamic> content, String filename,
-      {directory = '\\'}) async {
+      {final String directory = '\\'}) async {
     final file = await _getLocalFile(filename, directory: directory);
 
     String jsonData = const JsonEncoder.withIndent("  ").convert(content);

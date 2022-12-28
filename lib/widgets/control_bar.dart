@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mail_app/types/project_colors.dart';
+import 'package:mail_app/widgets/custom_button.dart';
 
 class ControlBar extends StatefulWidget {
   final Function archive;
@@ -23,10 +24,10 @@ class ControlBar extends StatefulWidget {
   });
 
   @override
-  _ControlBar createState() => _ControlBar();
+  ControlBarState createState() => ControlBarState();
 }
 
-class _ControlBar extends State<ControlBar> {
+class ControlBarState extends State<ControlBar> {
   late Function _archive;
   late Function _markImportant;
   late Function _markDeleted;
@@ -61,16 +62,19 @@ class _ControlBar extends State<ControlBar> {
 
     return controls
         .map(
-          (control) => GestureDetector(
-            onTap: () => control.function(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15),
-              child: SvgPicture.asset(
-                'assets/icons/${control.icon}.svg',
-                color: ProjectColors.main(false),
-                alignment: Alignment.centerRight,
-                height: 20,
-                width: 20,
+          (control) => Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 5),
+            child: CustomButton(
+              onTap: () => control.function(),
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: SvgPicture.asset(
+                  'assets/icons/${control.icon}.svg',
+                  color: ProjectColors.main(false),
+                  alignment: Alignment.centerRight,
+                  height: 20,
+                  width: 20,
+                ),
               ),
             ),
           ),
@@ -81,7 +85,7 @@ class _ControlBar extends State<ControlBar> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(top: 20, bottom: 25, left: 50),
+      margin: const EdgeInsets.only(top: 10, bottom: 15, left: 50),
       alignment: Alignment.center,
       child: Row(
         children: buildControls(),

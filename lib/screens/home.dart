@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:mail_app/services/overlay_builder.dart';
 import 'package:mail_app/utils/local_file_store.dart';
 import 'package:mail_app/services/local_settings.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/project_colors.dart';
+import 'package:mail_app/widgets/add_account.dart';
 import 'package:mail_app/widgets/control_bar.dart';
-import 'package:mail_app/widgets/inbox_list.dart';
+import 'package:mail_app/widgets/mailbox_list.dart';
 import 'package:mail_app/widgets/mailbox_header.dart';
-import 'package:mail_app/widgets/message_view.dart';
+import 'package:mail_app/widgets/message_content.dart';
 import 'package:webview_windows/webview_windows.dart';
 
 import '../mail-client/enough_mail.dart';
@@ -28,20 +30,22 @@ class HomePage extends StatefulWidget {
       required this.messageWebviewController});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  HomePageState createState() => HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class HomePageState extends State<HomePage> {
   late LocalFileStore _fileStore;
   late LocalSettings _localSettings;
   late InboxService _inboxService;
   late Map<String, String> _activeMailbox;
   late WebviewController _messageWebviewController;
+  late OverlayBuilder _overlayBuilder;
 
   List<MimeMessage> _messages = [];
-  Map<String, List<MailboxInfo>> _accountsTree = {};
+  Map<String, List<MailboxInfo>> _mailboxTree = {};
   int _activeID = 0;
   String _mailboxTitle = '';
+  double _messageListPosition = 0;
 
   @override
   void initState() {
@@ -82,6 +86,10 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _updateMessageListPosition(double position) {
+    _messageListPosition = position;
+  }
+
   void _setMessages() {
     final List<MimeMessage> messages = _inboxService.getMessages();
 
@@ -95,16 +103,16 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void _updateInbox() async {
+  void _updateInbox() {
     _inboxService.updateInbox();
 
     setState(() {
-      _accountsTree = _inboxService.accountsTree();
+      _mailboxTree = _inboxService.mailboxTree();
     });
   }
 
   void _updateMessageList(
-      String email, String mailboxPath, String mailboxTitle) async {
+      String email, String mailboxPath, String mailboxTitle) {
     _activeID = 0;
     _mailboxTitle = mailboxTitle;
     _inboxService.updateLocalMailbox(email, mailboxPath);
@@ -116,6 +124,14 @@ class _HomePageState extends State<HomePage> {
     await _inboxService.updateInbox();
 
     _setMessages();
+  }
+
+  void _addMailAccount() {
+    _overlayBuilder.insertOverlay(AddAccount(
+      inboxService: _inboxService,
+      overlayBuilder: _overlayBuilder,
+      localSettings: _localSettings,
+    ));
   }
 
   Future<void> _composeMessage() async {
@@ -152,6 +168,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    _overlayBuilder = OverlayBuilder(context);
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -166,12 +184,13 @@ class _HomePageState extends State<HomePage> {
               ),
               height: double.infinity,
               child: InboxList(
-                  accountsTree: _accountsTree,
+                  mailboxTree: _mailboxTree,
                   updateMessageList: _updateMessageList,
                   activeMailbox: _activeMailbox,
                   updateActiveMailbox: _updateActiveMailbox,
                   header: MailboxHeader(
                     composeMessage: _composeMessage,
+                    addMailAccount: _addMailAccount,
                   ),
                   key: UniqueKey()),
             ),
@@ -183,6 +202,8 @@ class _HomePageState extends State<HomePage> {
                 activeID: _activeID,
                 updateActiveID: _updateActiveID,
                 refreshAll: _refreshAll,
+                listPosition: _messageListPosition,
+                updatePosition: _updateMessageListPosition,
                 key: UniqueKey(),
               ),
             ),
@@ -192,21 +213,30 @@ class _HomePageState extends State<HomePage> {
                     left: BorderSide(color: ProjectColors.secondary(false))),
               ),
               height: double.infinity,
-              child: MessageView(
-                controlBar: ControlBar(
-                  archive: _archive,
-                  markImportant: _markImportant,
-                  markDeleted: _markDeleted,
-                  markUnread: _markUnread,
-                  reply: _reply,
-                  replyAll: _replyAll,
-                  share: _share,
-                ),
-                message: _messages.length > _activeID
-                    ? _messages[_activeID]
-                    : MimeMessage(),
-                controller: _messageWebviewController,
-                key: UniqueKey(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ControlBar(
+                    archive: _archive,
+                    markImportant: _markImportant,
+                    markDeleted: _markDeleted,
+                    markUnread: _markUnread,
+                    reply: _reply,
+                    replyAll: _replyAll,
+                    share: _share,
+                    key: UniqueKey(),
+                  ),
+                  Expanded(
+                    child: MessageContent(
+                      key: UniqueKey(),
+                      message: _messages.length > _activeID
+                          ? _messages[_activeID]
+                          : MimeMessage(),
+                      controller: _messageWebviewController,
+                    ),
+                  ),
+                ],
               ),
             ),
             ratio2: 0.25,

@@ -11,14 +11,15 @@ class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 
   @override
-  State<SplashPage> createState() => _SplashPageState();
+  SplashPageState createState() => SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage> {
-  late LocalFileStore _fileStore;
+class SplashPageState extends State<SplashPage> {
   late LocalSettings _localSettings;
 
+  final LocalFileStore _fileStore = LocalFileStore();
   final InboxService _inboxService = InboxService();
+
   double _turns = 0;
   String _status = '';
 
@@ -66,7 +67,6 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _loadSettings() async {
-    _fileStore = LocalFileStore();
     _localSettings = LocalSettings(_fileStore);
 
     await _localSettings.loaded();
@@ -77,12 +77,13 @@ class _SplashPageState extends State<SplashPage> {
 
     for (var account in accounts) {
       _inboxService.newClient(
-          account.email,
-          account.password,
-          account.imapAddress,
-          account.imapPort,
-          account.smtpAddress,
-          account.smtpPort);
+        account.email,
+        account.password,
+        account.imapAddress,
+        account.imapPort,
+        account.smtpAddress,
+        account.smtpPort,
+      );
     }
 
     await _inboxService.clientsConnected();

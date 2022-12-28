@@ -23,12 +23,12 @@ class MailApp extends StatelessWidget {
           thickness: MaterialStateProperty.all(6),
         ),
       ),
-      scrollBehavior: const MaterialScrollBehavior().copyWith(
-        dragDevices: {
-          PointerDeviceKind.mouse,
-          PointerDeviceKind.trackpad,
-        },
-      ),
+      // scrollBehavior: const MaterialScrollBehavior().copyWith(
+      //   dragDevices: {
+      //     PointerDeviceKind.mouse,
+      //     PointerDeviceKind.trackpad,
+      //   },
+      // ),
       home: const SplashPage(),
     );
   }

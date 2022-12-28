@@ -8,18 +8,29 @@ class InboxService {
 
   late String _currentEmail;
 
-  CustomMailClient newClient(
+  Future<CustomMailClient?> newClient(
     String email,
     String password,
-    String imapServer,
+    String imapAddress,
     int imapPort,
     String smtpServer,
     int smtpPort,
-  ) {
-    _mailClients[email] = CustomMailClient()..connect(email, password);
-    _currentEmail = email;
+  ) async {
+    if (_mailClients.containsKey(email)) return null;
 
-    return _mailClients[email]!;
+    _mailClients[email] = CustomMailClient();
+    final result = await _mailClients[email]!
+        .connect(email, password, imapAddress, imapPort);
+
+    if (result) {
+      _currentEmail = email;
+
+      return _mailClients[email]!;
+    } else {
+      _mailClients.remove(email);
+
+      return null;
+    }
   }
 
   CustomMailClient clientFromEmail(String email) {
@@ -45,6 +56,7 @@ class InboxService {
   }
 
   void updateLocalMailbox(String email, String mailboxPath) {
+    _currentEmail = email;
     _mailClients[email]!.selectLocalMailbox(mailboxPath);
   }
 
@@ -71,21 +83,21 @@ class InboxService {
     await Future.wait(clientUpdates);
   }
 
-  Map<String, List<MailboxInfo>> accountsTree() {
-    Map<String, List<MailboxInfo>> accountsTree = {};
+  Map<String, List<MailboxInfo>> mailboxTree() {
+    Map<String, List<MailboxInfo>> mailboxTree = {};
 
     _mailClients.forEach((email, client) {
-      accountsTree[email] = client
+      mailboxTree[email] = client
           .getMailBoxes()
           .where((mailbox) => !RegExp(r'\[.*\]').hasMatch(mailbox.encodedName))
           .map((mailbox) => MailboxInfo(
                 mailbox.encodedName == 'INBOX' ? email : mailbox.encodedName,
                 mailbox.encodedPath,
-                RegExp(r'\[.*\]').hasMatch(mailbox.encodedPath),
+                RegExp(r'\/').hasMatch(mailbox.encodedPath),
               ))
           .toList(growable: false);
     });
 
-    return accountsTree;
+    return mailboxTree;
   }
 }

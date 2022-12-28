@@ -3,7 +3,7 @@ import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/project_colors.dart';
 
 class InboxList extends StatefulWidget {
-  final Map<String, List<MailboxInfo>> accountsTree;
+  final Map<String, List<MailboxInfo>> mailboxTree;
   final Function updateMessageList;
   final Map<String, String> activeMailbox;
   final Function updateActiveMailbox;
@@ -11,7 +11,7 @@ class InboxList extends StatefulWidget {
 
   const InboxList({
     super.key,
-    required this.accountsTree,
+    required this.mailboxTree,
     required this.updateMessageList,
     required this.activeMailbox,
     required this.updateActiveMailbox,
@@ -19,11 +19,11 @@ class InboxList extends StatefulWidget {
   });
 
   @override
-  _InboxList createState() => _InboxList();
+  InboxListState createState() => InboxListState();
 }
 
-class _InboxList extends State<InboxList> {
-  late Map<String, List<MailboxInfo>> _accountsTree;
+class InboxListState extends State<InboxList> {
+  late Map<String, List<MailboxInfo>> _mailboxTree;
   late Function _updateMessageList;
   late Map<String, String> _activeMailbox;
   late Function _updateActiveMailbox;
@@ -33,26 +33,26 @@ class _InboxList extends State<InboxList> {
   void initState() {
     super.initState();
 
-    _accountsTree = widget.accountsTree;
+    _mailboxTree = widget.mailboxTree;
     _updateMessageList = widget.updateMessageList;
     _activeMailbox = widget.activeMailbox;
     _updateActiveMailbox = widget.updateActiveMailbox;
     _header = widget.header;
   }
 
-  List<Widget> accountsTreeBuilder() {
-    List<Widget> accountsTreeWidgets = [];
+  List<Widget> mailboxTreeBuilder() {
+    List<Widget> mailboxTreeWidgets = [];
 
-    _accountsTree.forEach((email, account) {
-      for (var inboxInfo in account) {
-        accountsTreeWidgets.add(
+    _mailboxTree.forEach((String email, List<MailboxInfo> account) {
+      for (MailboxInfo inboxInfo in account) {
+        // print({inboxInfo.display, inboxInfo.path, inboxInfo.indent});
+        mailboxTreeWidgets.add(
           GestureDetector(
             onTap: () => {
               _updateActiveMailbox(email, inboxInfo.path),
               _updateMessageList(email, inboxInfo.path, inboxInfo.display),
             },
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8),
               padding: inboxInfo.indent
                   ? const EdgeInsets.only(
                       left: 30,
@@ -66,7 +66,7 @@ class _InboxList extends State<InboxList> {
                 ),
                 color: _activeMailbox['email'] == email &&
                         _activeMailbox['path'] == inboxInfo.path
-                    ? ProjectColors.secondary(false)
+                    ? ProjectColors.secondary(true)
                     : Colors.transparent,
               ),
               child: Text(
@@ -84,15 +84,15 @@ class _InboxList extends State<InboxList> {
       }
     });
 
-    return accountsTreeWidgets;
+    return mailboxTreeWidgets;
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10, top: 10, left: 10, right: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
       child: ListView(
-        children: [_header, ...accountsTreeBuilder()],
+        children: [_header, ...mailboxTreeBuilder()],
       ),
     );
   }

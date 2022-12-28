@@ -19,10 +19,10 @@ class MailPreview extends StatefulWidget {
   });
 
   @override
-  _MailPreview createState() => _MailPreview();
+  MailPreviewState createState() => MailPreviewState();
 }
 
-class _MailPreview extends State<MailPreview> {
+class MailPreviewState extends State<MailPreview> {
   late MimeMessage _email;
   late int _idx;
   late Function _getActive;
@@ -55,11 +55,42 @@ class _MailPreview extends State<MailPreview> {
 
     _from = _email.from![0].personalName ?? _email.from![0].email;
 
-    if (_email.decodeTextHtmlPart() != null) {
-      _previewStr = RegExp(r'(?<=>)([\w\s]{5,})(?=<\/)')
-          .firstMatch(_email.decodeTextHtmlPart() ?? '')![0]!;
+    _previewStr = _textPreview();
+  }
+
+  String _textPreview() {
+    try {
+      if (_email.decodeTextHtmlPart() != null) {
+        return _htmlPreview() ?? _plainTextPreview();
+      } else {
+        return _plainTextPreview();
+      }
+    } catch (e) {
+      return _plainTextPreview();
+    }
+  }
+
+  String? _htmlPreview() {
+    final html = _email.decodeTextHtmlPart()!;
+    final decoded = html
+        .replaceAll(RegExp(r"\n|\r"), "")
+        .replaceAll(RegExp(r"( +|&nbsp;)"), " ")
+        .replaceAll(RegExp(r"&amp;"), "&");
+    final previewRegex =
+        RegExp(r'(?<=>)([^\/<>}\n]{5,})(?=<)').firstMatch(decoded);
+
+    if (previewRegex == null) {
+      return null;
     } else {
-      _previewStr = _email.decodeTextPlainPart()!.split(RegExp(r"\n"))[0];
+      return previewRegex[0]!.trim();
+    }
+  }
+
+  String _plainTextPreview() {
+    if (_email.decodeTextPlainPart() != null) {
+      return _email.decodeTextPlainPart()!.split(RegExp(r"\n"))[0];
+    } else {
+      return '';
     }
   }
 
@@ -72,20 +103,21 @@ class _MailPreview extends State<MailPreview> {
             borderRadius: const BorderRadius.all(
               Radius.circular(10),
             ),
-            color: _getActive(_idx) ? Colors.blue : Colors.transparent,
+            color: _getActive(_idx) ? ProjectColors.accent : Colors.transparent,
           ),
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 30),
             decoration: BoxDecoration(
-              border: !_getActive(_idx)
-                  ? Border(
-                      bottom: BorderSide(
-                          color: ProjectColors.secondary(_getActive(_idx))),
-                    )
-                  : const Border(),
+              border: Border(
+                bottom: BorderSide(
+                  color: !_getActive(_idx)
+                      ? ProjectColors.secondary(_getActive(_idx))
+                      : Colors.transparent,
+                ),
+              ),
             ),
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 10, top: 6),
+              padding: const EdgeInsets.only(bottom: 10, top: 8),
               child: Column(
                 children: [
                   Align(

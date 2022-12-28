@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import '../mail-client/enough_mail.dart';
 import 'package:mail_app/utils/wait_until.dart';
@@ -48,11 +49,12 @@ class CustomMailClient {
         : _currentMailbox.encodedName;
   }
 
-  Future<bool> connect(String email, String password) async {
+  Future<bool> connect(
+      String email, String password, String imapAddress, int imapPort) async {
     try {
       _email = email;
 
-      await _client.connectToServer('imap.gmail.com', 993, isSecure: true);
+      await _client.connectToServer(imapAddress, imapPort, isSecure: true);
       await _client.login(email, password);
       _currentMailbox = await _client.selectInbox();
 

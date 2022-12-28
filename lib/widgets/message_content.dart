@@ -28,11 +28,13 @@ class MessageContentState extends State<MessageContent> {
   late String _to;
   late String _subject;
   late WebviewController _controller;
-  // final _controller = WebviewController();
 
   double _webviewHeight = 100;
   bool _showHtml = false;
-  Widget _emailWidget = const SizedBox();
+  Widget _emailWidget = const SizedBox(
+    height: 10,
+  );
+  bool _displayEmpty = false;
 
   @override
   void initState() {
@@ -40,6 +42,12 @@ class MessageContentState extends State<MessageContent> {
 
     _message = widget.message;
     _controller = widget.controller;
+
+    if (_message.from!.isEmpty) {
+      _displayEmpty = true;
+
+      return;
+    }
 
     if (_message.from![0].personalName == null) {
       _from = _message.from![0].email;
@@ -80,18 +88,19 @@ class MessageContentState extends State<MessageContent> {
     document.body!.attributes['bgcolor'] = '';
     document.body?.nodes.add(parseFragment(
         '<style>body::-webkit-scrollbar { width: 0;height: 0;}</style>'));
-    // document.body!.attributes['onload'] =
-    //     '(function() {document.body.setAttribute("height", document.body.offsetHeight);}).call(this)';
-    // print(viewKey.currentContext?.size?.width);
 
     final styledHtml = styleHtml(document.outerHtml);
     await _controller.loadStringContent(styledHtml);
-    await _controller.stop();
 
     // fixHeight();
 
     await Future.delayed(const Duration(milliseconds: 100));
-    await fixHeight();
+
+    int height = await _controller.executeScript('document.body.offsetHeight;');
+    setState(() {
+      _webviewHeight = height.toDouble() + 80;
+    });
+
     _emailWidget = SizedBox(
       height: _webviewHeight,
       child: Webview(
@@ -100,16 +109,12 @@ class MessageContentState extends State<MessageContent> {
     );
 
     await Future.delayed(const Duration(milliseconds: 40));
+
     setState(() {
       _showHtml = true;
     });
-  }
 
-  Future<void> fixHeight() async {
-    int height = await _controller.executeScript('document.body.offsetHeight;');
-    setState(() {
-      _webviewHeight = height.toDouble() + 80;
-    });
+    // await _controller.stop();
   }
 
   styleHtml(String input) {
@@ -149,55 +154,39 @@ class MessageContentState extends State<MessageContent> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20, left: 6, right: 6),
-      child: LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-          return SizedBox(
-            height: constraints.maxHeight,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              physics: const PageScrollPhysics(),
-              // dragStartBehavior: DragStartBehavior.down,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 16, right: 16),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 15),
-                      child: MessageHeader(
-                        from: _from,
-                        to: _to,
-                        subject: _subject,
-                        date: _message.decodeDate(),
+    return (_displayEmpty)
+        ? const SizedBox()
+        : Padding(
+            padding: const EdgeInsets.only(bottom: 20, left: 15, right: 6),
+            child: LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                return SizedBox(
+                  height: constraints.maxHeight,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 14),
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 15),
+                            child: MessageHeader(
+                              from: _from,
+                              to: _to,
+                              subject: _subject,
+                              date: _message.decodeDate(),
+                            ),
+                          ),
+                          Opacity(
+                              opacity: _showHtml ? 1.0 : 0,
+                              child: _emailWidget),
+                        ],
                       ),
                     ),
-                    Opacity(opacity: _showHtml ? 1.0 : 0, child: _emailWidget),
-                    // FutureBuilder(
-                    //   future: waitUntil(isHtmlVisible),
-                    //   builder: (BuildContext context, snapshot) {
-                    //     if (snapshot.connectionState == ConnectionState.done) {
-                    //       return _emailWidget;
-                    //     } else {
-                    //       return const SizedBox();
-                    //     }
-                    //   },
-                    // ),
-                    // _emailWidget,
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
           );
-        },
-      ),
-    );
   }
 }
-
-// Text(
-//   _message.decodeTextPlainPart() ?? '',
-//   style: const TextStyle(color: Colors.white60),
-// ),
-//       ],
-//     ),

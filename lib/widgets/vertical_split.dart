@@ -33,10 +33,10 @@ class VerticalSplitView extends StatefulWidget {
         assert(maxRatio1 + maxRatio2 <= 1);
 
   @override
-  _VerticalSplitViewState createState() => _VerticalSplitViewState();
+  VerticalSplitViewStateState createState() => VerticalSplitViewStateState();
 }
 
-class _VerticalSplitViewState extends State<VerticalSplitView> {
+class VerticalSplitViewStateState extends State<VerticalSplitView> {
   final _dividerWidth = 15.0;
 
   late double _ratio1;

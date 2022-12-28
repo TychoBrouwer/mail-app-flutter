@@ -73,7 +73,9 @@ class LocalSettings {
     return await _fileStore.writeLocalFile(newIni, 'settings.json');
   }
 
-  void addAccount(MailAccount accountToAdd) {}
+  void addAccount(MailAccount accountToAdd) {
+    _settings.addAccount(accountToAdd);
+  }
 }
 
 class Settings {

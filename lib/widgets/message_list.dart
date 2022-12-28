@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mail_app/types/project_colors.dart';
+import 'package:mail_app/widgets/custom_button.dart';
 import '../mail-client/enough_mail.dart';
 
 import 'message_preview.dart';
@@ -11,6 +12,8 @@ class MessageList extends StatefulWidget {
   final int activeID;
   final Function updateActiveID;
   final Future<void> Function() refreshAll;
+  final double listPosition;
+  final Function updatePosition;
 
   const MessageList({
     super.key,
@@ -19,6 +22,8 @@ class MessageList extends StatefulWidget {
     required this.messages,
     required this.activeID,
     required this.refreshAll,
+    required this.listPosition,
+    required this.updatePosition,
   });
 
   @override
@@ -31,6 +36,8 @@ class MessageListState extends State<MessageList> {
   late int _activeID;
   late Function _updateActiveID;
   late Future<void> Function() _refreshAll;
+  late ScrollController _listController;
+  late Function _updatePosition;
 
   double turns = 0;
   bool rotatingFinished = true;
@@ -45,6 +52,9 @@ class MessageListState extends State<MessageList> {
     _activeID = widget.activeID;
     _updateActiveID = widget.updateActiveID;
     _refreshAll = widget.refreshAll;
+    _listController =
+        ScrollController(initialScrollOffset: widget.listPosition);
+    _updatePosition = widget.updatePosition;
   }
 
   void _refreshRotate() async {
@@ -72,7 +82,7 @@ class MessageListState extends State<MessageList> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 15, right: 15, top: 20),
+          padding: const EdgeInsets.only(left: 15, right: 15, top: 10),
           child: Row(
             children: [
               Expanded(
@@ -88,7 +98,7 @@ class MessageListState extends State<MessageList> {
                   ),
                 ),
               ),
-              GestureDetector(
+              CustomButton(
                 onTap: () async => {
                   refreshFinished = false,
                   _refreshRotate(),
@@ -99,11 +109,14 @@ class MessageListState extends State<MessageList> {
                   alignment: Alignment.center,
                   turns: turns,
                   duration: const Duration(seconds: 1),
-                  child: SvgPicture.asset(
-                    'assets/icons/arrows-rotate.svg',
-                    color: ProjectColors.main(false),
-                    width: 20,
-                    height: 20,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: SvgPicture.asset(
+                      'assets/icons/arrows-rotate.svg',
+                      color: ProjectColors.main(false),
+                      width: 20,
+                      height: 20,
+                    ),
                   ),
                 ),
               ),
@@ -112,16 +125,26 @@ class MessageListState extends State<MessageList> {
         ),
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.only(left: 6, right: 6, top: 35),
-            child: ListView.builder(
-              itemBuilder: (_, idx) {
-                return MailPreview(
+            padding: const EdgeInsets.only(left: 6, right: 6, top: 15),
+            child: NotificationListener<ScrollUpdateNotification>(
+              onNotification: (notification) {
+                _updatePosition(notification.metrics.pixels);
+
+                return true;
+              },
+              child: ListView.builder(
+                controller: _listController,
+                itemBuilder: (_, idx) {
+                  return MailPreview(
                     email: _messages[idx],
                     idx: idx,
                     getActive: _getActive,
-                    updateMessageID: _updateActiveID);
-              },
-              itemCount: _messages.length,
+                    updateMessageID: _updateActiveID,
+                    key: UniqueKey(),
+                  );
+                },
+                itemCount: _messages.length,
+              ),
             ),
           ),
         )

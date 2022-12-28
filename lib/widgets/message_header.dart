@@ -17,10 +17,10 @@ class MessageHeader extends StatefulWidget {
   });
 
   @override
-  _MessageHeader createState() => _MessageHeader();
+  MessageHeaderState createState() => MessageHeaderState();
 }
 
-class _MessageHeader extends State<MessageHeader> {
+class MessageHeaderState extends State<MessageHeader> {
   late String _from;
   late String _to;
   late String _subject;
@@ -94,6 +94,8 @@ class _MessageHeader extends State<MessageHeader> {
                 ],
               ),
               RichText(
+                overflow: TextOverflow.fade,
+                softWrap: false,
                 text: TextSpan(
                   style: TextStyle(
                     fontSize: 14,
@@ -111,6 +113,8 @@ class _MessageHeader extends State<MessageHeader> {
                 ),
               ),
               RichText(
+                overflow: TextOverflow.fade,
+                softWrap: false,
                 text: TextSpan(
                   style: TextStyle(
                     fontSize: 14,
