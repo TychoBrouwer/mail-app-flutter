@@ -8,4 +8,4 @@ The project uses the [enough mail client](https://github.com/Enough-Software/eno
 
 In general I want support for multiple email addresses, options for showing unread at the top of the inbox, a shared inbox which combines the inboxes of all emails addresses, customization of the color pallet, and OAuth support for logging in.
 
-PS. please don't spam my test email :laughing:.
+Run with ```flutter run -d windows```
