@@ -1,6 +1,4 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:mail_app/utils/wait_until.dart';
 import '../mail-client/enough_mail.dart';
 import 'package:mail_app/widgets/message_header.dart';
 import 'package:mail_app/utils/to_rgba.dart';
@@ -28,6 +26,8 @@ class MessageContentState extends State<MessageContent> {
   late String _to;
   late String _subject;
   late WebviewController _controller;
+
+  final GlobalKey _widgetKey = GlobalKey();
 
   double _webviewHeight = 100;
   bool _showHtml = false;
@@ -73,8 +73,6 @@ class MessageContentState extends State<MessageContent> {
 
     final defaultStyle = '''
       color: ${ProjectColors.main(true).toRgba()};
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 13;
       height: min-content;
       background-color: transparent;
     ''';
@@ -86,20 +84,29 @@ class MessageContentState extends State<MessageContent> {
           '${document.body!.attributes['style']} $defaultStyle';
     }
     document.body!.attributes['bgcolor'] = '';
-    document.body?.nodes.add(parseFragment(
-        '<style>body::-webkit-scrollbar { width: 0;height: 0;}</style>'));
 
     final styledHtml = styleHtml(document.outerHtml);
     await _controller.loadStringContent(styledHtml);
 
-    // fixHeight();
-
     await Future.delayed(const Duration(milliseconds: 100));
 
-    int height = await _controller.executeScript('document.body.offsetHeight;');
+    final int height =
+        await _controller.executeScript('document.body.offsetHeight;');
+    _controller.executeScript('''
+      const maxWidth = document.body.offsetWidth;
+      const styles = '*{max-width:' + maxWidth + 'px !important;min-width: 0 !important;};';
+
+      const styling = document.createElement('style');
+      styling.type = 'text/css';
+      styling.appendChild(document.createTextNode(styles));
+
+      document.head.appendChild(styling);''');
+
     setState(() {
       _webviewHeight = height.toDouble() + 80;
     });
+
+    // _controller.openDevTools();
 
     _emailWidget = SizedBox(
       height: _webviewHeight,
@@ -113,8 +120,6 @@ class MessageContentState extends State<MessageContent> {
     setState(() {
       _showHtml = true;
     });
-
-    // await _controller.stop();
   }
 
   styleHtml(String input) {
@@ -145,6 +150,12 @@ class MessageContentState extends State<MessageContent> {
     return output;
   }
 
+  double getWidgetWidth() {
+    final Size? size = _widgetKey.currentContext?.size;
+
+    return size?.width ?? 0;
+  }
+
   Widget loadPlainText() {
     return Text(
       _message.decodeTextPlainPart() ?? '',
@@ -162,6 +173,7 @@ class MessageContentState extends State<MessageContent> {
               builder: (BuildContext context, BoxConstraints constraints) {
                 return SizedBox(
                   height: constraints.maxHeight,
+                  key: _widgetKey,
                   child: SingleChildScrollView(
                     scrollDirection: Axis.vertical,
                     child: Padding(

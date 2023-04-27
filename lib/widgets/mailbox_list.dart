@@ -29,6 +29,7 @@ class InboxListState extends State<InboxList> {
   late Function _updateActiveMailbox;
   late Widget _header;
 
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +39,7 @@ class InboxListState extends State<InboxList> {
     _activeMailbox = widget.activeMailbox;
     _updateActiveMailbox = widget.updateActiveMailbox;
     _header = widget.header;
+
   }
 
   List<Widget> mailboxTreeBuilder() {

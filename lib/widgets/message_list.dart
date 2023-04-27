@@ -125,7 +125,7 @@ class MessageListState extends State<MessageList> {
         ),
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.only(left: 6, right: 6, top: 15),
+            padding: const EdgeInsets.only(left: 6, right: 6, top: 15, bottom: 15),
             child: NotificationListener<ScrollUpdateNotification>(
               onNotification: (notification) {
                 _updatePosition(notification.metrics.pixels);
@@ -134,6 +134,7 @@ class MessageListState extends State<MessageList> {
               },
               child: ListView.builder(
                 controller: _listController,
+                padding: const EdgeInsets.only(bottom: 200),
                 itemBuilder: (_, idx) {
                   return MailPreview(
                     email: _messages[idx],
@@ -147,7 +148,7 @@ class MessageListState extends State<MessageList> {
               ),
             ),
           ),
-        )
+        ),
       ],
     );
   }
