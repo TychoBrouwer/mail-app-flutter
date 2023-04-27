@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mail_app/types/project_colors.dart';
-import '../mail-client/enough_mail.dart';
-
 import 'package:intl/intl.dart';
+
+import 'package:mail_app/types/project_colors.dart';
+import 'package:mail_app/mail-client/enough_mail.dart';
 
 class MailPreview extends StatefulWidget {
   final MimeMessage email;

@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:mail_app/types/dimensions.dart';
 import 'package:mail_app/types/mail_account.dart';
 import 'package:mail_app/utils/wait_until.dart';
-import '../utils/local_file_store.dart';
+import 'package:mail_app/utils/local_file_store.dart';
 
 class LocalSettings {
   late LocalFileStore _fileStore;

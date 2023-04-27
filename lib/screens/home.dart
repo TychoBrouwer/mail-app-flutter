@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:webview_windows/webview_windows.dart';
+
+import 'package:mail_app/mail-client/enough_mail.dart';
 import 'package:mail_app/services/overlay_builder.dart';
-import 'package:mail_app/utils/local_file_store.dart';
 import 'package:mail_app/services/local_settings.dart';
+import 'package:mail_app/services/inbox_service.dart';
+import 'package:mail_app/utils/local_file_store.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/add_account.dart';
-import 'package:mail_app/widgets/control_bar.dart';
-import 'package:mail_app/widgets/mailbox_list.dart';
-import 'package:mail_app/widgets/mailbox_header.dart';
-import 'package:mail_app/widgets/message_content.dart';
-import 'package:webview_windows/webview_windows.dart';
-
-import '../mail-client/enough_mail.dart';
-import '../services/inbox_service.dart';
-import '../widgets/vertical_split.dart';
-import '../widgets/message_list.dart';
+import 'package:mail_app/widgets/vertical_split.dart';
+import 'package:mail_app/widgets/mailbox/mailbox_list.dart';
+import 'package:mail_app/widgets/mailbox/mailbox_header.dart';
+import 'package:mail_app/widgets/inbox/inbox_list.dart';
+import 'package:mail_app/widgets/message/message_content.dart';
+import 'package:mail_app/widgets/message/message_control_bar.dart';
 
 class HomePage extends StatefulWidget {
   final LocalFileStore fileStore;
@@ -183,7 +183,7 @@ class HomePageState extends State<HomePage> {
                     right: BorderSide(color: ProjectColors.secondary(false))),
               ),
               height: double.infinity,
-              child: InboxList(
+              child: MailboxList(
                   mailboxTree: _mailboxTree,
                   updateMessageList: _updateMessageList,
                   activeMailbox: _activeMailbox,

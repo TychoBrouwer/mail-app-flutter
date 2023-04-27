@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/project_colors.dart';
 
-class InboxList extends StatefulWidget {
+class MailboxList extends StatefulWidget {
   final Map<String, List<MailboxInfo>> mailboxTree;
   final Function updateMessageList;
   final Map<String, String> activeMailbox;
   final Function updateActiveMailbox;
   final Widget header;
 
-  const InboxList({
+  const MailboxList({
     super.key,
     required this.mailboxTree,
     required this.updateMessageList,
@@ -19,16 +20,15 @@ class InboxList extends StatefulWidget {
   });
 
   @override
-  InboxListState createState() => InboxListState();
+  MailboxListState createState() => MailboxListState();
 }
 
-class InboxListState extends State<InboxList> {
+class MailboxListState extends State<MailboxList> {
   late Map<String, List<MailboxInfo>> _mailboxTree;
   late Function _updateMessageList;
   late Map<String, String> _activeMailbox;
   late Function _updateActiveMailbox;
   late Widget _header;
-
 
   @override
   void initState() {
@@ -39,7 +39,6 @@ class InboxListState extends State<InboxList> {
     _activeMailbox = widget.activeMailbox;
     _updateActiveMailbox = widget.updateActiveMailbox;
     _header = widget.header;
-
   }
 
   List<Widget> mailboxTreeBuilder() {

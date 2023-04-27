@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:email_validator/email_validator.dart';
+
 import 'package:mail_app/services/inbox_service.dart';
 import 'package:mail_app/services/local_settings.dart';
 import 'package:mail_app/services/overlay_builder.dart';
@@ -7,7 +9,6 @@ import 'package:mail_app/types/mail_account.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/custom_button.dart';
 import 'package:mail_app/widgets/custom_form_field.dart';
-import 'package:email_validator/email_validator.dart';
 
 class AddAccount extends StatefulWidget {
   final InboxService inboxService;

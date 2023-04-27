@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:webview_windows/webview_windows.dart';
+
 import 'package:mail_app/screens/home.dart';
 import 'package:mail_app/services/inbox_service.dart';
 import 'package:mail_app/services/local_settings.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/utils/local_file_store.dart';
-import 'package:webview_windows/webview_windows.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});

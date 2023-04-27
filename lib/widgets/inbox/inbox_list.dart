@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+
+import 'package:mail_app/mail-client/enough_mail.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/custom_button.dart';
-import '../mail-client/enough_mail.dart';
-
-import 'message_preview.dart';
+import 'package:mail_app/widgets/inbox/inbox_preview.dart';
 
 class MessageList extends StatefulWidget {
   final List<MimeMessage> messages;
@@ -125,7 +125,8 @@ class MessageListState extends State<MessageList> {
         ),
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.only(left: 6, right: 6, top: 15, bottom: 15),
+            padding:
+                const EdgeInsets.only(left: 6, right: 6, top: 15, bottom: 15),
             child: NotificationListener<ScrollUpdateNotification>(
               onNotification: (notification) {
                 _updatePosition(notification.metrics.pixels);

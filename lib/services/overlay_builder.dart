@@ -18,6 +18,6 @@ class OverlayBuilder {
       builder: (context) => overlay,
     );
 
-    Overlay.of(_context)?.insert(_overlayEntry!);
+    Overlay.of(_context).insert(_overlayEntry!);
   }
 }

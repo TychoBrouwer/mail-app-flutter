@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mail_app/widgets/message_content.dart';
+import 'package:mail_app/widgets/message/message_content.dart';
 import 'package:webview_windows/webview_windows.dart';
 
-import '../mail-client/enough_mail.dart';
+import 'package:mail_app/mail-client/enough_mail.dart';
 
 class MessageView extends StatefulWidget {
   final MimeMessage message;

@@ -1,6 +1,6 @@
 import '../mail-client/enough_mail.dart';
 
-import 'mail_service.dart';
+import 'package:mail_app/services/mail_service.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 
 class InboxService {
