@@ -8,6 +8,7 @@ import 'package:mail_app/widgets/inbox/inbox_preview.dart';
 
 class MessageList extends StatefulWidget {
   final List<MimeMessage> messages;
+  final MessageSequence unseenMessages;
   final String mailboxTitle;
   final int activeID;
   final Function updateActiveID;
@@ -20,6 +21,7 @@ class MessageList extends StatefulWidget {
     required this.updateActiveID,
     required this.mailboxTitle,
     required this.messages,
+    required this.unseenMessages,
     required this.activeID,
     required this.refreshAll,
     required this.listPosition,
@@ -32,6 +34,7 @@ class MessageList extends StatefulWidget {
 
 class MessageListState extends State<MessageList> {
   late List<MimeMessage> _messages;
+  late MessageSequence _unseenMessages;
   late String _mailboxTitle;
   late int _activeID;
   late Function _updateActiveID;
@@ -48,6 +51,7 @@ class MessageListState extends State<MessageList> {
     super.initState();
 
     _messages = widget.messages;
+    _unseenMessages = widget.unseenMessages;
     _mailboxTitle = widget.mailboxTitle;
     _activeID = widget.activeID;
     _updateActiveID = widget.updateActiveID;
@@ -140,6 +144,10 @@ class MessageListState extends State<MessageList> {
                   return MailPreview(
                     email: _messages[idx],
                     idx: idx,
+                    unseen: _unseenMessages.toList().contains(
+                        MessageSequence.fromMessage(_messages[idx])
+                            .toList()
+                            .last),
                     getActive: _getActive,
                     updateMessageID: _updateActiveID,
                     key: UniqueKey(),

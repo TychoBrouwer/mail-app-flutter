@@ -45,6 +45,10 @@ class InboxService {
     return _mailClients[_currentEmail]!.getMessages();
   }
 
+  MessageSequence getUnseenMessages() {
+    return _mailClients[_currentEmail]!.getUnseenMesssages();
+  }
+
   Future<List<bool>> clientsConnected() {
     List<Future<bool>> clientConnections = [];
 
@@ -58,14 +62,6 @@ class InboxService {
   void updateLocalMailbox(String email, String mailboxPath) {
     _currentEmail = email;
     _mailClients[email]!.selectLocalMailbox(mailboxPath);
-  }
-
-  Future<void> updateMailList(String email, String mailboxPath) async {
-    await clientsConnected();
-
-    if (_mailClients[email] == null) return;
-
-    await _mailClients[email]!.updateMailboxFromPath(mailboxPath);
   }
 
   Map<String, CustomMailClient> connectedClients() {

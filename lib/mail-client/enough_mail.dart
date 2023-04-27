@@ -9,10 +9,10 @@
 library enough_mail;
 
 export 'codecs.dart';
-// export 'discover.dart';
-// export 'highlevel.dart';
+export 'discover.dart';
+export 'highlevel.dart';
 export 'imap.dart';
 export 'mime.dart';
-// export 'pop.dart';
+export 'pop.dart';
 export 'smtp.dart';
 export 'src/exception.dart';

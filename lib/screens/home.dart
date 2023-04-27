@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mail_app/types/message_update.dart';
 import 'package:webview_windows/webview_windows.dart';
 
 import 'package:mail_app/mail-client/enough_mail.dart';
@@ -42,6 +43,7 @@ class HomePageState extends State<HomePage> {
   late OverlayBuilder _overlayBuilder;
 
   List<MimeMessage> _messages = [];
+  late MessageSequence _unseenMessages = MessageSequence();
   Map<String, List<MailboxInfo>> _mailboxTree = {};
   int _activeID = 0;
   String _mailboxTitle = '';
@@ -100,6 +102,7 @@ class HomePageState extends State<HomePage> {
 
     setState(() {
       _messages = messages;
+      _unseenMessages = _inboxService.getUnseenMessages();
     });
   }
 
@@ -111,8 +114,8 @@ class HomePageState extends State<HomePage> {
     });
   }
 
-  void _updateMessageList(
-      String email, String mailboxPath, String mailboxTitle) {
+  Future<void> _updateMessageList(
+      String email, String mailboxPath, String mailboxTitle) async {
     _activeID = 0;
     _mailboxTitle = mailboxTitle;
     _inboxService.updateLocalMailbox(email, mailboxPath);
@@ -140,6 +143,18 @@ class HomePageState extends State<HomePage> {
 
   Future<void> _archive() async {
     print('archive a message');
+
+    print('archive $_activeID');
+    // _messages[_activeID].parse();
+    // print(_messages[_activeID].renderMessage());
+
+    // print(_messages[_activeID].);
+
+    // _inboxService
+    //     .currentClient()
+    //     .markMessage(messageSeq, MessageUpdate.archive);
+
+    // print(messageSeq);
   }
 
   Future<void> _markImportant() async {
@@ -198,6 +213,7 @@ class HomePageState extends State<HomePage> {
               height: double.infinity,
               child: MessageList(
                 messages: _messages,
+                unseenMessages: _unseenMessages,
                 mailboxTitle: _mailboxTitle,
                 activeID: _activeID,
                 updateActiveID: _updateActiveID,

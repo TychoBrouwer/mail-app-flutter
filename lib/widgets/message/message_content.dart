@@ -73,9 +73,11 @@ class MessageContentState extends State<MessageContent> {
     final document = parse(_message.decodeTextHtmlPart());
 
     final defaultStyle = '''
-      color: ${ProjectColors.main(true).toRgba()};
-      height: min-content;
-      background-color: transparent;
+      color: ${ProjectColors.main(true).toRgba()} !important;
+      height: min-content !important;
+      position: absolute !important;
+      background-color: transparent !important;
+      border: none !important;
     ''';
 
     if (document.body!.attributes['style'] == null) {
@@ -95,7 +97,9 @@ class MessageContentState extends State<MessageContent> {
         await _controller.executeScript('document.body.offsetHeight;');
     _controller.executeScript('''
       const maxWidth = document.body.offsetWidth;
-      const styles = '*{max-width:' + maxWidth + 'px !important;min-width: 0 !important;};';
+      const styles = 'body::-webkit-scrollbar{display:none}*{max-width:'+maxWidth+'px!important;min-width:0!important}';
+
+      document.body.style.marginLeft = Math.max(Math.floor(${getWidgetWidth()} - maxWidth) / 2, 0) + 'px';
 
       const styling = document.createElement('style');
       styling.type = 'text/css';
@@ -174,12 +178,12 @@ class MessageContentState extends State<MessageContent> {
               builder: (BuildContext context, BoxConstraints constraints) {
                 return SizedBox(
                   height: constraints.maxHeight,
-                  key: _widgetKey,
                   child: SingleChildScrollView(
                     scrollDirection: Axis.vertical,
                     child: Padding(
                       padding: const EdgeInsets.only(right: 14),
                       child: Column(
+                        key: _widgetKey,
                         children: [
                           Padding(
                             padding: const EdgeInsets.only(bottom: 15),

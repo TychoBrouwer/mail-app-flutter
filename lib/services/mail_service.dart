@@ -1,12 +1,14 @@
 import 'dart:async';
 
 import 'package:mail_app/mail-client/enough_mail.dart';
+import 'package:mail_app/types/message_update.dart';
 import 'package:mail_app/utils/wait_until.dart';
 
 class CustomMailClient {
   final ImapClient _client = ImapClient(isLogEnabled: false);
 
   final Map<String, List<MimeMessage>> _messages = {};
+  final Map<String, MessageSequence> _messagesUnseen = {};
   late List<Mailbox> _mailBoxes;
   late Mailbox _currentMailbox;
   late String _email;
@@ -15,6 +17,10 @@ class CustomMailClient {
 
   List<MimeMessage> getMessages() {
     return _messages[_currentMailbox.encodedPath]!;
+  }
+
+  MessageSequence getUnseenMesssages() {
+    return _messagesUnseen[_currentMailbox.encodedPath]!;
   }
 
   MimeMessage getMessageFromIdx(int idx) {
@@ -92,44 +98,59 @@ class CustomMailClient {
     }
   }
 
-  Future<void> updateMailboxFromPath(String mailboxPath) async {
-    try {
-      await _client.selectMailbox(getMailboxFromPath(mailboxPath));
+  // Future<void> updateMailboxFromPath(String mailboxPath) async {
+  //   try {
+  //     await _client.selectMailbox(getMailboxFromPath(mailboxPath));
 
-      final SearchImapResult sequenceFetch =
-          await _client.searchMessages(searchCriteria: 'ALL');
+  //     // final SearchImapResult sequenceFetch =
+  //     //     await _client.searchMessages(searchCriteria: 'ALL');
 
-      if (sequenceFetch.matchingSequence != null &&
-          sequenceFetch.matchingSequence!.isNotEmpty) {
-        final FetchImapResult fetchResult = await _client.fetchMessages(
-            sequenceFetch.matchingSequence!, 'BODY.PEEK[]');
+  //     // if (sequenceFetch.matchingSequence != null &&
+  //     //     sequenceFetch.matchingSequence!.isNotEmpty) {
+  //     final FetchImapResult fetchResult =
+  //         await _client.fetchMessages(MessageSequence.fromAll(), 'BODY.PEEK[]');
 
-        _messages[mailboxPath] = fetchResult.messages;
-      }
-    } on ImapException catch (e) {
-      print(e);
-    }
-  }
+  //     _messages[mailboxPath] = fetchResult.messages;
+  //     // }
+
+  //     final SearchImapResult sequenceUnseenFetch =
+  //         await _client.searchMessages(searchCriteria: 'UNSEEN');
+
+  //     _messagesUnseen =
+  //         sequenceUnseenFetch.matchingSequence ?? MessageSequence();
+
+  //     print(_messagesUnseen.toList());
+  //     print('test');
+  //   } on ImapException catch (e) {
+  //     print(e);
+  //   }
+  // }
 
   Future<void> updateMailbox(Mailbox? mailbox) async {
     try {
       if (mailbox == null) return;
 
       _client.selectMailbox(mailbox);
+      final FetchImapResult fetchResult =
+          await _client.fetchMessages(MessageSequence.fromAll(), 'BODY.PEEK[]');
 
-      final SearchImapResult sequenceFetch =
-          await _client.searchMessages(searchCriteria: 'ALL');
+      _messages[mailbox.encodedPath] = fetchResult.messages;
 
-      if (sequenceFetch.matchingSequence != null &&
-          sequenceFetch.matchingSequence!.isNotEmpty) {
-        final FetchImapResult fetchResult = await _client.fetchMessages(
-            sequenceFetch.matchingSequence!, 'BODY.PEEK[]');
+      final SearchImapResult sequenceUnseenFetch =
+          await _client.searchMessages(searchCriteria: 'UNSEEN');
 
-        _messages[mailbox.encodedPath] = fetchResult.messages;
-      }
+      _messagesUnseen[mailbox.encodedPath] =
+          sequenceUnseenFetch.matchingSequence ?? MessageSequence();
     } on ImapException catch (e) {
       print(e);
     }
+  }
+
+  Future<MessageSequence?> unseenMessages() async {
+    final sequenceFetch =
+        await _client.searchMessages(searchCriteria: 'UNSEEN');
+
+    return sequenceFetch.matchingSequence;
   }
 
   Future<void> updateMailBoxes() async {
@@ -162,6 +183,35 @@ class CustomMailClient {
     return _mailBoxes
         .where((mailbox) => mailbox.encodedPath == mailboxPath)
         .first;
+  }
+
+  void markMessage(MessageSequence messageSeq, MessageUpdate messageUpdate) {
+    switch (messageUpdate) {
+      case MessageUpdate.seen:
+        _client.markSeen(messageSeq);
+        break;
+      case MessageUpdate.unseen:
+        _client.markUnseen(messageSeq);
+        break;
+      case MessageUpdate.delete:
+        _client.markDeleted(messageSeq);
+        break;
+      case MessageUpdate.undelete:
+        _client.markUndeleted(messageSeq);
+        break;
+      case MessageUpdate.flag:
+        _client.markFlagged(messageSeq);
+        break;
+      case MessageUpdate.unflag:
+        _client.markUnflagged(messageSeq);
+        break;
+      case MessageUpdate.archive:
+        // _client.move(messageSeq, );
+        break;
+
+      default:
+        break;
+    }
   }
 
   // Future<void> discoverExample() async {
