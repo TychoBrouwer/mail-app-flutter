@@ -141,10 +141,13 @@ class HomePageState extends State<HomePage> {
     print('composing a message');
   }
 
-  void _markMessage(MessageUpdate messageUpdate) {
-    _inboxService
+  void _markMessage(MessageUpdate messageUpdate) async {
+    print(_activeID);
+    await _inboxService
         .currentClient()
         .markMessage(_messages[_activeID], messageUpdate);
+
+    _setMessages();
   }
 
   Future<void> _reply() async {

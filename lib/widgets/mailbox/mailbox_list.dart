@@ -67,13 +67,16 @@ class MailboxListState extends State<MailboxList> {
                 ),
                 color: _activeMailbox['email'] == email &&
                         _activeMailbox['path'] == inboxInfo.path
-                    ? ProjectColors.secondary(true)
+                    ? ProjectColors.accent
                     : Colors.transparent,
               ),
               child: Text(
                 inboxInfo.display,
                 style: TextStyle(
-                  color: ProjectColors.main(false),
+                  color: _activeMailbox['email'] == email &&
+                          _activeMailbox['path'] == inboxInfo.path
+                      ? ProjectColors.main(true)
+                      : ProjectColors.main(false),
                   fontSize: 14,
                 ),
                 overflow: TextOverflow.clip,

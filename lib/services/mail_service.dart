@@ -185,25 +185,29 @@ class CustomMailClient {
         .first;
   }
 
-  Mailbox getMailboxFromFlag(MailboxFlag flag) {
+  String getMailboxFromFlag(MailboxFlag flag) {
     Iterable<Mailbox> mailboxes =
         _mailBoxes.where((mailbox) => mailbox.flags.contains(flag));
 
     if (mailboxes.isEmpty) {
       return _mailBoxes
           .where((mailbox) => mailbox.flags.contains(MailboxFlag.all))
-          .first;
+          .first
+          .encodedPath;
     }
 
-    return mailboxes.first;
+    return mailboxes.first.encodedPath;
   }
 
   bool checkCurrentMaiboxFlag(MailboxFlag flag) {
     return _currentMailbox.flags.contains(flag);
   }
 
-  void markMessage(MimeMessage message, MessageUpdate messageUpdate) async {
+  Future<void> markMessage(
+      MimeMessage message, MessageUpdate messageUpdate) async {
     final messageSequence = MessageSequence.fromMessage(message);
+
+    print(message.fromEmail);
 
     MailboxFlag? flag;
 
@@ -227,16 +231,22 @@ class CustomMailClient {
         break;
     }
 
-    print(messageSequence);
-    print(flag);
-
     if (flag != null) {
-      print(getMailboxFromFlag(flag));
+      final newMailboxPath = getMailboxFromFlag(flag);
 
+      _client.selectMailbox(_currentMailbox);
       final result = await _client.move(messageSequence,
-          targetMailbox: getMailboxFromFlag(flag));
+          targetMailboxPath: newMailboxPath);
 
-      print(result.details);
+      print(result.responseCode);
+
+      if (result.warnings.isEmpty) {
+        _messages[newMailboxPath]!.add(message);
+        _messages[_currentMailbox.encodedPath]!
+            .removeWhere((e) => e == message);
+      } else {
+        // DISPLAY ERROR HERE
+      }
     }
   }
 
