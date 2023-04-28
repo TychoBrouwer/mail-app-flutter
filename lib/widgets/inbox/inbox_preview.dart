@@ -120,8 +120,10 @@ class MailPreviewState extends State<MailPreview> {
                   height: 10,
                   decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(5),
-                      color: _unseen && !_getActive(_idx)
-                          ? ProjectColors.accent
+                      color: _unseen
+                          ? !_getActive(_idx)
+                              ? ProjectColors.accent
+                              : ProjectColors.main(true)
                           : Colors.transparent),
                 ),
                 Expanded(

@@ -185,32 +185,58 @@ class CustomMailClient {
         .first;
   }
 
-  void markMessage(MessageSequence messageSeq, MessageUpdate messageUpdate) {
+  Mailbox getMailboxFromFlag(MailboxFlag flag) {
+    Iterable<Mailbox> mailboxes =
+        _mailBoxes.where((mailbox) => mailbox.flags.contains(flag));
+
+    if (mailboxes.isEmpty) {
+      return _mailBoxes
+          .where((mailbox) => mailbox.flags.contains(MailboxFlag.all))
+          .first;
+    }
+
+    return mailboxes.first;
+  }
+
+  bool checkCurrentMaiboxFlag(MailboxFlag flag) {
+    return _currentMailbox.flags.contains(flag);
+  }
+
+  void markMessage(MimeMessage message, MessageUpdate messageUpdate) async {
+    final messageSequence = MessageSequence.fromMessage(message);
+
+    MailboxFlag? flag;
+
     switch (messageUpdate) {
-      case MessageUpdate.seen:
-        _client.markSeen(messageSeq);
-        break;
-      case MessageUpdate.unseen:
-        _client.markUnseen(messageSeq);
-        break;
       case MessageUpdate.delete:
-        _client.markDeleted(messageSeq);
-        break;
-      case MessageUpdate.undelete:
-        _client.markUndeleted(messageSeq);
-        break;
-      case MessageUpdate.flag:
-        _client.markFlagged(messageSeq);
-        break;
-      case MessageUpdate.unflag:
-        _client.markUnflagged(messageSeq);
+        flag = checkCurrentMaiboxFlag(MailboxFlag.trash)
+            ? MailboxFlag.inbox
+            : MailboxFlag.trash;
         break;
       case MessageUpdate.archive:
-        // _client.move(messageSeq, );
+        flag = !checkCurrentMaiboxFlag(MailboxFlag.inbox)
+            ? MailboxFlag.inbox
+            : MailboxFlag.archive;
         break;
-
+      case MessageUpdate.flag:
+        flag = checkCurrentMaiboxFlag(MailboxFlag.flagged)
+            ? MailboxFlag.inbox
+            : MailboxFlag.flagged;
+        break;
       default:
         break;
+    }
+
+    print(messageSequence);
+    print(flag);
+
+    if (flag != null) {
+      print(getMailboxFromFlag(flag));
+
+      final result = await _client.move(messageSequence,
+          targetMailbox: getMailboxFromFlag(flag));
+
+      print(result.details);
     }
   }
 

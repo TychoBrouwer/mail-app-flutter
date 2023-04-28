@@ -16,18 +16,12 @@ class MailApp extends StatelessWidget {
     return MaterialApp(
       title: 'Mail App',
       theme: ThemeData(
-        primarySwatch: ProjectColors.accent as MaterialColor,
+        primarySwatch: ProjectColors.accent,
         scrollbarTheme: ScrollbarThemeData(
           thumbColor: MaterialStateProperty.all(ProjectColors.main(false)),
           thickness: MaterialStateProperty.all(6),
         ),
       ),
-      // scrollBehavior: const MaterialScrollBehavior().copyWith(
-      //   dragDevices: {
-      //     PointerDeviceKind.mouse,
-      //     PointerDeviceKind.trackpad,
-      //   },
-      // ),
       home: const SplashPage(),
     );
   }

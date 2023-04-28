@@ -141,32 +141,10 @@ class HomePageState extends State<HomePage> {
     print('composing a message');
   }
 
-  Future<void> _archive() async {
-    print('archive a message');
-
-    print('archive $_activeID');
-    // _messages[_activeID].parse();
-    // print(_messages[_activeID].renderMessage());
-
-    // print(_messages[_activeID].);
-
-    // _inboxService
-    //     .currentClient()
-    //     .markMessage(messageSeq, MessageUpdate.archive);
-
-    // print(messageSeq);
-  }
-
-  Future<void> _markImportant() async {
-    print('mark as important');
-  }
-
-  Future<void> _markDeleted() async {
-    print('mark as deleted');
-  }
-
-  Future<void> _markUnread() async {
-    print('mark as unread');
+  void _markMessage(MessageUpdate messageUpdate) {
+    _inboxService
+        .currentClient()
+        .markMessage(_messages[_activeID], messageUpdate);
   }
 
   Future<void> _reply() async {
@@ -234,10 +212,7 @@ class HomePageState extends State<HomePage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ControlBar(
-                    archive: _archive,
-                    markImportant: _markImportant,
-                    markDeleted: _markDeleted,
-                    markUnread: _markUnread,
+                    markMessage: _markMessage,
                     reply: _reply,
                     replyAll: _replyAll,
                     share: _share,
