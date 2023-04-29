@@ -7,7 +7,6 @@ class MailboxList extends StatefulWidget {
   final Map<String, List<MailboxInfo>> mailboxTree;
   final Function updateMessageList;
   final Map<String, String> activeMailbox;
-  final Function updateActiveMailbox;
   final Widget header;
 
   const MailboxList({
@@ -15,7 +14,6 @@ class MailboxList extends StatefulWidget {
     required this.mailboxTree,
     required this.updateMessageList,
     required this.activeMailbox,
-    required this.updateActiveMailbox,
     required this.header,
   });
 
@@ -27,7 +25,6 @@ class MailboxListState extends State<MailboxList> {
   late Map<String, List<MailboxInfo>> _mailboxTree;
   late Function _updateMessageList;
   late Map<String, String> _activeMailbox;
-  late Function _updateActiveMailbox;
   late Widget _header;
 
   @override
@@ -37,7 +34,6 @@ class MailboxListState extends State<MailboxList> {
     _mailboxTree = widget.mailboxTree;
     _updateMessageList = widget.updateMessageList;
     _activeMailbox = widget.activeMailbox;
-    _updateActiveMailbox = widget.updateActiveMailbox;
     _header = widget.header;
   }
 
@@ -50,7 +46,6 @@ class MailboxListState extends State<MailboxList> {
         mailboxTreeWidgets.add(
           GestureDetector(
             onTap: () => {
-              _updateActiveMailbox(email, inboxInfo.path),
               _updateMessageList(email, inboxInfo.path, inboxInfo.display),
             },
             child: Container(

@@ -42,11 +42,11 @@ class InboxService {
   }
 
   List<MimeMessage> getMessages() {
-    return _mailClients[_currentEmail]!.getMessages();
-  }
-
-  MessageSequence getUnseenMessages() {
-    return _mailClients[_currentEmail]!.getUnseenMesssages();
+    return _mailClients[_currentEmail]!.getMessages()
+      ..sort((a, b) => b
+          .decodeDate()!
+          .millisecondsSinceEpoch
+          .compareTo(a.decodeDate()!.millisecondsSinceEpoch));
   }
 
   Future<List<bool>> clientsConnected() {
@@ -79,7 +79,7 @@ class InboxService {
     await Future.wait(clientUpdates);
   }
 
-  Map<String, List<MailboxInfo>> mailboxTree() {
+  Map<String, List<MailboxInfo>> getMailboxTree() {
     Map<String, List<MailboxInfo>> mailboxTree = {};
 
     _mailClients.forEach((email, client) {

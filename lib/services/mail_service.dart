@@ -19,7 +19,7 @@ class CustomMailClient {
     return _messages[_currentMailbox.encodedPath]!;
   }
 
-  MessageSequence getUnseenMesssages() {
+  MessageSequence getUnseenMessages() {
     return _messagesUnseen[_currentMailbox.encodedPath]!;
   }
 
@@ -207,8 +207,6 @@ class CustomMailClient {
       MimeMessage message, MessageUpdate messageUpdate) async {
     final messageSequence = MessageSequence.fromMessage(message);
 
-    print(message.fromEmail);
-
     MailboxFlag? flag;
 
     switch (messageUpdate) {
@@ -238,9 +236,11 @@ class CustomMailClient {
       final result = await _client.move(messageSequence,
           targetMailboxPath: newMailboxPath);
 
+      print(result.warnings);
       print(result.responseCode);
+      print(result.details);
 
-      if (result.warnings.isEmpty) {
+      if (result.warnings.isEmpty && result.details == '(Success)') {
         _messages[newMailboxPath]!.add(message);
         _messages[_currentMailbox.encodedPath]!
             .removeWhere((e) => e == message);

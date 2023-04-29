@@ -7,7 +7,6 @@ import 'package:mail_app/services/overlay_builder.dart';
 import 'package:mail_app/services/local_settings.dart';
 import 'package:mail_app/services/inbox_service.dart';
 import 'package:mail_app/utils/local_file_store.dart';
-import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/add_account.dart';
 import 'package:mail_app/widgets/vertical_split.dart';
@@ -38,16 +37,12 @@ class HomePageState extends State<HomePage> {
   late LocalFileStore _fileStore;
   late LocalSettings _localSettings;
   late InboxService _inboxService;
-  late Map<String, String> _activeMailbox;
   late WebviewController _messageWebviewController;
   late OverlayBuilder _overlayBuilder;
 
-  List<MimeMessage> _messages = [];
-  late MessageSequence _unseenMessages = MessageSequence();
-  Map<String, List<MailboxInfo>> _mailboxTree = {};
   int _activeID = 0;
-  String _mailboxTitle = '';
   double _messageListPosition = 0;
+  MimeMessage message = MimeMessage();
 
   @override
   void initState() {
@@ -57,14 +52,6 @@ class HomePageState extends State<HomePage> {
     _localSettings = widget.localSettings;
     _inboxService = widget.inboxService;
     _messageWebviewController = widget.messageWebviewController;
-    _activeMailbox = {
-      'email': _inboxService.currentClient().getEmail(),
-      'path': _inboxService.currentClient().getCurrentMailboxPath(),
-    };
-    _mailboxTitle = _inboxService.currentClient().getCurrentMailboxTitle();
-
-    _setMessages();
-    _updateInbox();
   }
 
   void _updateActiveID(int idx) {
@@ -72,19 +59,7 @@ class HomePageState extends State<HomePage> {
 
     setState(() {
       _activeID = idx;
-    });
-  }
-
-  void _updateActiveMailbox(String email, String path) {
-    final newActive = {
-      'email': email,
-      'path': path,
-    };
-
-    if (_activeMailbox == newActive) return;
-
-    setState(() {
-      _activeMailbox = newActive;
+      message = _inboxService.getMessages()[idx];
     });
   }
 
@@ -92,41 +67,26 @@ class HomePageState extends State<HomePage> {
     _messageListPosition = position;
   }
 
-  void _setMessages() {
-    final List<MimeMessage> messages = _inboxService.getMessages();
-
-    messages.sort((a, b) => b
-        .decodeDate()!
-        .millisecondsSinceEpoch
-        .compareTo(a.decodeDate()!.millisecondsSinceEpoch));
-
-    setState(() {
-      _messages = messages;
-      _unseenMessages = _inboxService.getUnseenMessages();
-    });
-  }
-
-  void _updateInbox() {
-    _inboxService.updateInbox();
-
-    setState(() {
-      _mailboxTree = _inboxService.mailboxTree();
-    });
-  }
-
   Future<void> _updateMessageList(
       String email, String mailboxPath, String mailboxTitle) async {
-    _activeID = 0;
-    _mailboxTitle = mailboxTitle;
-    _inboxService.updateLocalMailbox(email, mailboxPath);
+    if (email == _inboxService.currentClient().getEmail() &&
+        mailboxPath == _inboxService.currentClient().getCurrentMailboxPath()) {
+      return;
+    }
 
-    _setMessages();
+    _inboxService.updateLocalMailbox(email, mailboxPath);
+    _updateMessageListPosition(0);
+
+    setState(() {
+      _activeID = 0;
+      message = _inboxService.getMessages().isNotEmpty
+          ? _inboxService.getMessages()[0]
+          : MimeMessage();
+    });
   }
 
   Future<void> _refreshAll() async {
     await _inboxService.updateInbox();
-
-    _setMessages();
   }
 
   void _addMailAccount() {
@@ -142,12 +102,13 @@ class HomePageState extends State<HomePage> {
   }
 
   void _markMessage(MessageUpdate messageUpdate) async {
-    print(_activeID);
     await _inboxService
         .currentClient()
-        .markMessage(_messages[_activeID], messageUpdate);
+        .markMessage(_inboxService.getMessages()[_activeID], messageUpdate);
 
-    _setMessages();
+    setState(() {
+      message = _inboxService.getMessages()[_activeID];
+    });
   }
 
   Future<void> _reply() async {
@@ -180,10 +141,13 @@ class HomePageState extends State<HomePage> {
               ),
               height: double.infinity,
               child: MailboxList(
-                  mailboxTree: _mailboxTree,
+                  mailboxTree: _inboxService.getMailboxTree(),
                   updateMessageList: _updateMessageList,
-                  activeMailbox: _activeMailbox,
-                  updateActiveMailbox: _updateActiveMailbox,
+                  activeMailbox: {
+                    'email': _inboxService.currentClient().getEmail(),
+                    'path':
+                        _inboxService.currentClient().getCurrentMailboxPath(),
+                  },
                   header: MailboxHeader(
                     composeMessage: _composeMessage,
                     addMailAccount: _addMailAccount,
@@ -193,9 +157,11 @@ class HomePageState extends State<HomePage> {
             middle: SizedBox(
               height: double.infinity,
               child: MessageList(
-                messages: _messages,
-                unseenMessages: _unseenMessages,
-                mailboxTitle: _mailboxTitle,
+                messages: _inboxService.getMessages(),
+                unseenMessages:
+                    _inboxService.currentClient().getUnseenMessages(),
+                mailboxTitle:
+                    _inboxService.currentClient().getCurrentMailboxTitle(),
                 activeID: _activeID,
                 updateActiveID: _updateActiveID,
                 refreshAll: _refreshAll,
@@ -224,8 +190,8 @@ class HomePageState extends State<HomePage> {
                   Expanded(
                     child: MessageContent(
                       key: UniqueKey(),
-                      message: _messages.length > _activeID
-                          ? _messages[_activeID]
+                      message: _inboxService.getMessages().length > _activeID
+                          ? message
                           : MimeMessage(),
                       controller: _messageWebviewController,
                     ),
