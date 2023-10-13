@@ -62,7 +62,8 @@ class ControlBarState extends State<ControlBar> {
                 padding: const EdgeInsets.all(10),
                 child: SvgPicture.asset(
                   'assets/icons/${control.icon}.svg',
-                  color: ProjectColors.main(false),
+                  colorFilter: ColorFilter.mode(
+                      ProjectColors.main(false), BlendMode.srcIn),
                   alignment: Alignment.centerRight,
                   height: 20,
                   width: 20,

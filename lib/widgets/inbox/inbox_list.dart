@@ -117,7 +117,8 @@ class MessageListState extends State<MessageList> {
                     padding: const EdgeInsets.all(10),
                     child: SvgPicture.asset(
                       'assets/icons/arrows-rotate.svg',
-                      color: ProjectColors.main(false),
+                      colorFilter: ColorFilter.mode(
+                          ProjectColors.main(false), BlendMode.srcIn),
                       width: 20,
                       height: 20,
                     ),

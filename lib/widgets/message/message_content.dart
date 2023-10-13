@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:html/parser.dart';
 import 'package:webview_windows/webview_windows.dart';
@@ -60,13 +62,13 @@ class MessageContentState extends State<MessageContent> {
     _subject = _message.decodeSubject() ?? '';
 
     if (_message.decodeTextHtmlPart() != null) {
-      loadHtml();
+      _loadHtml();
     } else {
-      _emailWidget = loadPlainText();
+      _emailWidget = _loadPlainText();
     }
   }
 
-  Future<void> loadHtml() async {
+  Future<void> _loadHtml() async {
     setState(() {
       _showHtml = false;
     });
@@ -78,6 +80,8 @@ class MessageContentState extends State<MessageContent> {
       position: absolute !important;
       background-color: transparent !important;
       border: none !important;
+      margin-left: auto !important;
+      margin-right: auto !important; 
     ''';
 
     if (document.body!.attributes['style'] == null) {
@@ -88,28 +92,16 @@ class MessageContentState extends State<MessageContent> {
     }
     document.body!.attributes['bgcolor'] = '';
 
-    final styledHtml = styleHtml(document.outerHtml);
+    final styledHtml = _styleHtml(document.outerHtml);
     await _controller.loadStringContent(styledHtml);
 
-    await Future.delayed(const Duration(milliseconds: 100));
+    await for (LoadingState state in _controller.loadingState) {
+      if (state == LoadingState.navigationCompleted) {
+        break;
+      }
+    }
 
-    final int height =
-        await _controller.executeScript('document.body.offsetHeight;');
-    _controller.executeScript('''
-      const maxWidth = document.body.offsetWidth;
-      const styles = 'body::-webkit-scrollbar{display:none}*{max-width:'+maxWidth+'px!important;min-width:0!important}';
-
-      document.body.style.marginLeft = Math.max(Math.floor(${getWidgetWidth()} - maxWidth) / 2, 0) + 'px';
-
-      const styling = document.createElement('style');
-      styling.type = 'text/css';
-      styling.appendChild(document.createTextNode(styles));
-
-      document.head.appendChild(styling);''');
-
-    setState(() {
-      _webviewHeight = height.toDouble() + 80;
-    });
+    await _updateHtmlSize();
 
     // _controller.openDevTools();
 
@@ -120,14 +112,14 @@ class MessageContentState extends State<MessageContent> {
       ),
     );
 
-    await Future.delayed(const Duration(milliseconds: 40));
+    await Future.delayed(const Duration(milliseconds: 100));
 
     setState(() {
       _showHtml = true;
     });
   }
 
-  styleHtml(String input) {
+  _styleHtml(String input) {
     String output = input;
     output = output.replaceAllMapped(
         RegExp(
@@ -155,13 +147,27 @@ class MessageContentState extends State<MessageContent> {
     return output;
   }
 
-  double getWidgetWidth() {
-    final Size? size = _widgetKey.currentContext?.size;
+  _updateHtmlSize() async {
+    final int height =
+        await _controller.executeScript('document.body.offsetHeight;') ?? 0;
+    final int width =
+        await _controller.executeScript('document.body.offsetWidth;') ?? 0;
 
-    return size?.width ?? 0;
+    final double widgetWidth = _widgetKey.currentContext?.size?.width ?? 0;
+
+    final String newMargin =
+        '${max((widgetWidth - width) / 2, 0).toString()}px';
+    await _controller
+        .executeScript('document.body.style.marginLeft = "$newMargin";');
+
+    setState(() {
+      _webviewHeight = height.toDouble() + 80;
+    });
+
+    return;
   }
 
-  Widget loadPlainText() {
+  Widget _loadPlainText() {
     return Text(
       _message.decodeTextPlainPart() ?? '',
       style: const TextStyle(color: Colors.white60),
@@ -182,22 +188,34 @@ class MessageContentState extends State<MessageContent> {
                     scrollDirection: Axis.vertical,
                     child: Padding(
                       padding: const EdgeInsets.only(right: 14),
-                      child: Column(
-                        key: _widgetKey,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 15),
-                            child: MessageHeader(
-                              from: _from,
-                              to: _to,
-                              subject: _subject,
-                              date: _message.decodeDate(),
-                            ),
+                      child:
+                          NotificationListener<SizeChangedLayoutNotification>(
+                        onNotification: (notification) {
+                          if (_showHtml) {
+                            _updateHtmlSize();
+                          }
+
+                          return true;
+                        },
+                        child: SizeChangedLayoutNotifier(
+                          child: Column(
+                            key: _widgetKey,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 15),
+                                child: MessageHeader(
+                                  from: _from,
+                                  to: _to,
+                                  subject: _subject,
+                                  date: _message.decodeDate(),
+                                ),
+                              ),
+                              Opacity(
+                                  opacity: _showHtml ? 1.0 : 0,
+                                  child: _emailWidget),
+                            ],
                           ),
-                          Opacity(
-                              opacity: _showHtml ? 1.0 : 0,
-                              child: _emailWidget),
-                        ],
+                        ),
                       ),
                     ),
                   ),

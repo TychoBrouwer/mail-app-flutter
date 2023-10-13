@@ -59,7 +59,32 @@ class HomePageState extends State<HomePage> {
 
     setState(() {
       _activeID = idx;
-      message = _inboxService.getMessages()[idx];
+      message = _inboxService.getMessages().isNotEmpty
+          ? _inboxService.getMessages()[_activeID]
+          : MimeMessage();
+
+      if (!message.isSeen) {
+        _readMessage();
+      }
+    });
+  }
+
+  void _readMessage() async {
+    await Future.delayed(const Duration(seconds: 2), () {});
+
+    MimeMessage message = _inboxService.getMessages()[_activeID];
+
+    if (_inboxService
+        .currentClient()
+        .getUnseenMessages()
+        .toList()
+        .contains(MessageSequence.fromMessage(message).toList().first)) {
+      await _inboxService.currentClient().markMessage(
+          _inboxService.getMessages()[_activeID], MessageUpdate.seen);
+    }
+
+    setState(() {
+      message = _inboxService.getMessages()[_activeID];
     });
   }
 

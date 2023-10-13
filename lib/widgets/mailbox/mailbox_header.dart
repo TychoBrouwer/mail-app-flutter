@@ -55,7 +55,8 @@ class MailboxHeaderState extends State<MailboxHeader> {
               padding: const EdgeInsets.all(10),
               child: SvgPicture.asset(
                 'assets/icons/paper-plane.svg',
-                color: ProjectColors.main(false),
+                colorFilter: ColorFilter.mode(
+                    ProjectColors.main(false), BlendMode.srcIn),
                 height: 20,
                 width: 20,
               ),

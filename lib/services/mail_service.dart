@@ -146,12 +146,12 @@ class CustomMailClient {
     }
   }
 
-  Future<MessageSequence?> unseenMessages() async {
-    final sequenceFetch =
-        await _client.searchMessages(searchCriteria: 'UNSEEN');
+  // Future<MessageSequence?> unseenMessages() async {
+  //   final sequenceFetch =
+  //       await _client.searchMessages(searchCriteria: 'UNSEEN');
 
-    return sequenceFetch.matchingSequence;
-  }
+  //   return sequenceFetch.matchingSequence;
+  // }
 
   Future<void> updateMailBoxes() async {
     _mailBoxes = await _client.listMailboxes(recursive: true);
@@ -210,6 +210,12 @@ class CustomMailClient {
     MailboxFlag? flag;
 
     switch (messageUpdate) {
+      case MessageUpdate.seen:
+        print("seen");
+        StoreImapResult result =
+            await _client.markSeen(MessageSequence.fromMessage(message));
+        // updateMailbox(_currentMailbox);
+        break;
       case MessageUpdate.delete:
         flag = checkCurrentMaiboxFlag(MailboxFlag.trash)
             ? MailboxFlag.inbox
