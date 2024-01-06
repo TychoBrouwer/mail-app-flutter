@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart';
@@ -87,7 +86,7 @@ extension MailSignature on MessageBuilder {
 
   String _sign(String privateKeyText, String value) {
     final privateKey = _rsaKeyParser.parse(privateKeyText) as RSAPrivateKey?;
-    final data = utf8.encode(value) as Uint8List;
+    final data = utf8.encode(value);
     return RSASigner(RSASignDigest.SHA256, privateKey: privateKey)
         .sign(data)
         .base64;

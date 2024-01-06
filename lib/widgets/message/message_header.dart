@@ -37,16 +37,13 @@ class MessageHeaderState extends State<MessageHeader> {
 
     DateTime? date = widget.date;
 
-    if (date == null) {
-      _dateText = '';
-    } else {
-      String time = DateFormat('HH:mm').format(date);
-      _dateText = DateTime.now().difference(date).inDays == 0
-          ? 'Today at $time'
-          : DateTime.now().difference(date).inDays == -1
-              ? 'Yesterday at $time'
-              : '${DateFormat('dd/MM/yy').format(date)} at $time';
-    }
+    _dateText = date == null
+        ? "Unknown date"
+        : DateTime.now().difference(date).inDays == 0
+            ? DateFormat('HH:mm').format(date)
+            : DateTime.now().difference(date).inDays == -1
+                ? 'Yesterday'
+                : DateFormat('dd/MM/yy').format(date);
   }
 
   @override

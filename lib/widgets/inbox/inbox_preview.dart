@@ -47,15 +47,13 @@ class MailPreviewState extends State<MailPreview> {
 
     DateTime? date = _email.decodeDate();
 
-    if (date == null) {
-      _dateText = '';
-    } else {
-      _dateText = DateTime.now().difference(date).inDays == 0
-          ? DateFormat('HH:mm').format(date)
-          : DateTime.now().difference(date).inDays == -1
-              ? 'Yesterday'
-              : DateFormat('dd/MM/yy').format(date);
-    }
+    _dateText = date == null
+        ? "Unknown date"
+        : DateTime.now().difference(date).inDays == 0
+            ? DateFormat('HH:mm').format(date)
+            : DateTime.now().difference(date).inDays == -1
+                ? 'Yesterday'
+                : DateFormat('dd/MM/yy').format(date);
 
     _from = _email.from![0].personalName ?? _email.from![0].email;
 
