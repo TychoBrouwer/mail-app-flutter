@@ -76,6 +76,12 @@ class SplashPageState extends State<SplashPage> {
   Future<void> _loadInboxService() async {
     final accounts = _localSettings.getSettings().accounts();
 
+    print(accounts.length);
+
+    if (accounts.isEmpty) {
+      return;
+    }
+
     for (var account in accounts) {
       _inboxService.newClient(
         account.email,

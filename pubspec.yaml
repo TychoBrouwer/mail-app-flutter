@@ -46,7 +46,7 @@ dependencies:
 
   flutter_svg: ^2.0.5
   path_provider: ^2.0.11
-  webview_windows: ^0.3.0
+  webview_windows: ^0.4.0
   html: ^0.15.1
   email_validator: ^2.1.17
 
