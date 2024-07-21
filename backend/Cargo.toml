@@ -1,0 +1,12 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+imap = "2.4.1"
+imap-proto = "0.10.2"
+mail-parser = "0.9.3"
+native-tls = "0.2.12"
+regex = "1.10.5"
+tungstenite = "0.23.0"
