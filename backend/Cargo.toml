@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+base64 = "0.22.1"
 imap = "2.4.1"
 imap-proto = "0.10.2"
 mail-parser = "0.9.3"

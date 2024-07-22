@@ -134,7 +134,13 @@ impl InboxClient {
 
       session.select(mailbox).unwrap();
 
-      let messages = session.uid_fetch(message_uid.to_string(), "BODY[TEXT]").unwrap();
+      let messages = match session.uid_fetch(message_uid.to_string(), "BODY[]") {
+          Ok(m) => m,
+          Err(e) => {
+              eprintln!("Error fetching message: {:?}", e);
+              return Err(String::from("Error fetching message"));
+          }
+      };
 
       match messages.first() {
           Some(message) => {
