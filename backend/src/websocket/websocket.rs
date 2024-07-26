@@ -55,7 +55,7 @@ fn handle_connection(msg: &str, inbox_client: &mut inbox_client::InboxClient) ->
         "/imap/logout" => {
             handle_conn::logout(data, inbox_client)
         },
-        "/imap/messages" => {
+        "/imap/message_envelopes" => {
             handle_conn::message_envelopes(data, inbox_client)
         },
         "/imap/message" => {
