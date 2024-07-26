@@ -6,8 +6,6 @@ use regex::Regex;
 use std::collections::HashMap;
 
 pub struct MessageBody {
-    pub connection_username: String,
-    pub mailbox_path: String,
     pub uid: u32,
     pub message_id: String,
     pub subject: String,
@@ -97,8 +95,6 @@ fn address_to_string(address: &Option<Vec<imap_proto::types::Address>>) -> Strin
 
 pub fn parse_message_body(
     body: &str,
-    connection_username: &str,
-    mailbox_path: &str,
     uid: &u32,
 ) -> MessageBody {
     let mut state = MimeParserState::HeaderKey;
@@ -288,8 +284,6 @@ pub fn parse_message_body(
     let message_id = headers.get("Message-ID").unwrap_or(&binding);
 
     return MessageBody {
-        connection_username: connection_username.to_string(),
-        mailbox_path: mailbox_path.to_string(),
         uid: uid.clone(),
         message_id: message_id.to_string(),
         subject: subject.to_string(),
@@ -310,8 +304,6 @@ pub fn parse_message_body(
 
 pub fn parse_envelope(
     fetch: &imap::types::Fetch,
-    connection_username: &str,
-    mailbox_path: &str,
     uid: &u32,
 ) -> Result<MessageBody, String> {
     let envelope = match fetch.envelope() {
@@ -323,8 +315,6 @@ pub fn parse_envelope(
     let date = parse_time_rfc2822(Some(&date_str)).timestamp_millis();
 
     return Ok(MessageBody {
-        connection_username: connection_username.to_string(),
-        mailbox_path: mailbox_path.to_string(),
         uid: uid.clone(),
         message_id: String::from(""),
         subject: decode_u8(envelope.subject),
@@ -343,17 +333,26 @@ pub fn parse_envelope(
     });
 }
 
+pub fn message_merge(message_1: MessageBody, message_2: MessageBody) -> MessageBody{
+    let mut result = message_2;
+
+    if !message_1.message_id.is_empty() { result.message_id = message_1.message_id };
+    if !message_1.sender.is_empty() { result.sender = message_1.sender };
+    if !message_1.cc.is_empty() { result.cc = message_1.cc };
+    if !message_1.bcc.is_empty() { result.bcc = message_1.bcc };
+    if !message_1.reply_to.is_empty() { result.reply_to = message_1.reply_to };
+    if !message_1.in_reply_to.is_empty() { result.in_reply_to = message_1.in_reply_to };
+    if !message_1.delivered_to.is_empty() { result.delivered_to = message_1.delivered_to };
+    if message_1.received != 0 { result.received = message_1.received };
+    if !message_1.text.is_empty() { result.text = message_1.text };
+    if !message_1.html.is_empty() { result.html = message_1.html };
+
+    return result;
+}
+
 pub fn message_to_string(message_body: MessageBody) -> String {
     let mut result = String::from("{");
 
-    result.push_str(&format!(
-        "\"connection_username\": \"{}\",",
-        message_body.connection_username
-    ));
-    result.push_str(&format!(
-        "\"mailbox_path\": \"{}\",",
-        message_body.mailbox_path
-    ));
     result.push_str(&format!("\"uid\": {},", message_body.uid));
     result.push_str(&format!("\"message_id\": \"{}\",", message_body.message_id));
     result.push_str(&format!("\"subject\": \"{}\",", message_body.subject));

@@ -30,7 +30,7 @@ pub fn login(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String 
         return format!("{{\"success\": \"true\", \"message\": \"Allready connected to IMAP server\", \"data\": {{ \"id\": {}}}}}", idx);
     }
 
-    match inbox_client.connect_imap(address.as_str(), port, email.as_str(), password.as_str()) {
+    match inbox_client.connect(address, port, email, password) {
         Ok(idx) => {
             format!("{{\"success\": \"true\", \"message\": \"Connected to IMAP server\", \"data\": {{ \"id\": {}}}}}", idx)
         }
@@ -159,7 +159,7 @@ pub fn mailboxes(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> Str
 
     let session_id = session_id.unwrap();
 
-    match inbox_client.get_all_mailboxes_imap(session_id) {
+    match inbox_client.get_mailboxes(session_id) {
         Ok(mailboxes) => {
             return format!(
                 "{{\"success\": \"true\", \"message\": \"Mailboxes retrieved\", \"data\": {}}}",
