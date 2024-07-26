@@ -1,178 +1,275 @@
-use crate::inbox_client::parse_message as parse_message;
+use crate::{database::conn::DBConnection, inbox_client::parse_message};
 
-use std::net::TcpStream;
-use native_tls::{
-    TlsConnector,
-    TlsStream,
-};
 use imap;
+use native_tls::{TlsConnector, TlsStream};
+use std::net::TcpStream;
+
+use super::parse_message::MessageBody;
 
 pub struct SequenceSet {
-  pub nr_messages: Option<usize>,
-  pub start_end: Option<StartEnd>,
+    pub nr_messages: Option<usize>,
+    pub start_end: Option<StartEnd>,
 }
 
 #[derive(Clone)]
 pub struct StartEnd {
-  pub start: usize,
-  pub end: usize,
+    pub start: usize,
+    pub end: usize,
 }
 
 pub struct InboxClient {
-  pub sessions: Vec<imap::Session<TlsStream<TcpStream>>>,
-  pub addresses: Vec<String>,
+    pub database_conn: DBConnection,
+    pub sessions: Vec<imap::Session<TlsStream<TcpStream>>>,
+    pub addresses: Vec<String>,
 }
 
 impl InboxClient {
-  pub fn new() -> InboxClient {
-      InboxClient {
-          sessions: Vec::new(),
-          addresses: Vec::new(),
-      }
-  }
+    pub fn new(database_conn: DBConnection) -> InboxClient {
+        InboxClient {
+            database_conn,
+            sessions: Vec::new(),
+            addresses: Vec::new(),
+        }
+    }
 
-  pub fn connect(&mut self, address: &str, port: u16, username: &str, password: &str) -> Result<usize, String> {
-      let tls = TlsConnector::builder().build().unwrap();
-  
-      match imap::connect((address, port), address, &tls) {
-          Ok(c) => {
-              match c.login(username, password) {
-                  Ok(s) => {
-                      
-                      self.sessions.push(s);
-                      self.addresses.push(String::from(username));
+    pub fn connect_imap(
+        &mut self,
+        address: &str,
+        port: u16,
+        username: &str,
+        password: &str,
+    ) -> Result<usize, String> {
+        let tls = TlsConnector::builder().build().unwrap();
 
-                      return Ok(self.sessions.len() - 1);
-                  },
-                  Err(e) => {
-                      eprintln!("Error logging in: {:?}", e);
-                      return Err(String::from("Error logging in"));
-                  }
-              }
-          },
-          Err(e) => {
-              eprintln!("Error connecting to IMAP server: {}", e);
-              return Err(String::from("Error connecting to IMAP server"));
-          }
-      };
-  }
+        match imap::connect((address, port), address, &tls) {
+            Ok(c) => match c.login(username, password) {
+                Ok(s) => {
+                    self.sessions.push(s);
+                    self.addresses.push(String::from(username));
 
-  pub fn logout(&mut self, session_id: usize) -> Result<(), String> {
-      if session_id >= self.sessions.len() {
-          return Err(String::from("Invalid session ID"));
-      }
+                    return Ok(self.sessions.len() - 1);
+                }
+                Err(e) => {
+                    eprintln!("Error logging in: {:?}", e);
+                    return Err(String::from("Error logging in"));
+                }
+            },
+            Err(e) => {
+                eprintln!("Error connecting to IMAP server: {}", e);
+                return Err(String::from("Error connecting to IMAP server"));
+            }
+        };
+    }
 
-      let session = &mut self.sessions[session_id];
+    pub fn logout_imap(&mut self, session_id: usize) -> Result<(), String> {
+        if session_id >= self.sessions.len() {
+            return Err(String::from("Invalid session ID"));
+        }
 
-      match session.logout() {
-          Ok(_) => {
-              self.sessions.remove(session_id);
-              self.addresses.remove(session_id);
+        let session = &mut self.sessions[session_id];
 
-              return Ok(());
-          },
-          Err(e) => {
-              eprintln!("Error logging out: {:?}", e);
-              return Err(String::from("Error logging out"));
-          }
-      }
-  }
+        match session.logout() {
+            Ok(_) => {
+                self.sessions.remove(session_id);
+                self.addresses.remove(session_id);
 
-  pub fn get_messages(&mut self, session_id: usize, mailbox: String, sequence_set: SequenceSet) -> Result<String, String> {
-      if session_id >= self.sessions.len() {
-          return Err(String::from("Invalid session ID"));
-      }
+                return Ok(());
+            }
+            Err(e) => {
+                eprintln!("Error logging out: {:?}", e);
+                return Err(String::from("Error logging out"));
+            }
+        }
+    }
 
-      let session = &mut self.sessions[session_id];
+    pub fn get_message_envelopes_imap(
+        &mut self,
+        session_id: usize,
+        mailbox_path: &str,
+        sequence_set: SequenceSet,
+    ) -> Result<String, String> {
+        if session_id >= self.sessions.len() {
+            return Err(String::from("Invalid session ID"));
+        }
 
-      session.select(mailbox).unwrap();
+        let session = &mut self.sessions[session_id];
 
-      let sequence_set_string: String = match sequence_set {
-          SequenceSet { nr_messages: Some(nr_messages), start_end: None } => {
-              format!("1:{}", nr_messages)
-          },
-          SequenceSet { nr_messages: None, start_end: Some(StartEnd { start, end }) } => {
-              if start > end {
-                  return Err(String::from("Start must be less than or equal to end"));
-              }
+        session.select(mailbox_path).unwrap();
 
-              format!("{}:{}", start, end)
-          },
-          _ => return Err(String::from("Provide either nr_messages or start and end")),
-      };
+        let sequence_set_string: String = match sequence_set {
+            SequenceSet {
+                nr_messages: Some(nr_messages),
+                start_end: None,
+            } => {
+                format!("1:{}", nr_messages)
+            }
+            SequenceSet {
+                nr_messages: None,
+                start_end: Some(StartEnd { start, end }),
+            } => {
+                if start > end {
+                    return Err(String::from("Start must be less than or equal to end"));
+                }
 
-      let message_envelopes = session.fetch(sequence_set_string.clone(), "ENVELOPE").unwrap();
-      let message_uids = session.fetch(sequence_set_string, "UID").unwrap();
+                format!("{}:{}", start, end)
+            }
+            _ => return Err(String::from("Provide either nr_messages or start and end")),
+        };
 
-      let mut response = String::from("{\"messages\": [");
+        let message_envelopes = session
+            .fetch(sequence_set_string.clone(), "ENVELOPE")
+            .unwrap();
+        let message_uids = session.fetch(sequence_set_string, "UID").unwrap();
 
-      for (i, message) in message_envelopes.iter().enumerate() {
-          let message_uid = match message_uids[i].uid {
-              Some(uid) => uid,
-              None => 0,
-          };
+        let mut response = String::from("{\"messages\": [");
 
-          let message_string = parse_message::envelope_to_string(message, message_uid);
+        for (i, fetch) in message_envelopes.iter().enumerate() {
+            let connection_username = &self.addresses[session_id];
 
-          response.push_str(&message_string);
-          if i < message_envelopes.len() - 1 {
-              response.push_str(",");
-          }
-      }
+            let message_uid = match message_uids[i].uid {
+                Some(uid) => uid,
+                None => 0,
+            };
 
-      response.push_str("]}");
+            let message = match parse_message::parse_envelope(fetch, connection_username, mailbox_path, &message_uid) {
+                Ok(m) => m,
+                Err(e) => {
+                    eprintln!("Error parsing envelope: {:?}", e);
+                    return Err(String::from("Error parsing envelope"));
+                }
+            };
 
-      Ok(response)
-  }
+            let message_string = parse_message::message_to_string(message);
 
-  pub fn get_message(&mut self, session_id: usize, mailbox: String, message_uid: u32) -> Result<String, String> {
-      if session_id >= self.sessions.len() {
-          return Err(String::from("Invalid session ID"));
-      }
+            response.push_str(&message_string);
+            if i < message_envelopes.len() - 1 {
+                response.push_str(",");
+            }
+        }
 
-      let session = &mut self.sessions[session_id];
+        response.push_str("]}");
 
-      session.select(mailbox).unwrap();
+        Ok(response)
+    }
 
-      let messages = match session.uid_fetch(message_uid.to_string(), "BODY[]") {
-          Ok(m) => m,
-          Err(e) => {
-              eprintln!("Error fetching message: {:?}", e);
-              return Err(String::from("Error fetching message"));
-          }
-      };
+    pub fn get_message(
+        &mut self,
+        session_id: usize,
+        mailbox: &str,
+        message_uid: &u32,
+    ) -> Result<String, String> {
+        let message_db = self.get_message_db(session_id, mailbox, message_uid);
 
-      match messages.first() {
-          Some(message) => {
-              let message = parse_message::message_to_string(message, message_uid);
+        match message_db {
+            Ok(message) => {
+                return Err(parse_message::message_to_string(message));
+            }
+            Err(e) => {
+                eprintln!("Error getting message from database: {:?}", e);
 
-              return Ok(message);
-          },
-          None => return Err(String::from("Message not found")),
-      };
-  }
+                let message_imap = self.get_message_imap(session_id, mailbox, message_uid);
 
-  pub fn get_all_mailboxes(&mut self, session_id: usize) -> Result<String, String> {
-      if session_id >= self.sessions.len() {
-          return Err(String::from("Invalid session ID"));
-      }
+                match message_imap {
+                    Ok(message) => {
+                        let username = &self.addresses[session_id];
 
-      let session = &mut self.sessions[session_id];
+                        self.database_conn.insert_message(username, mailbox, &message);
 
-      let mailboxes = session.list(Some(""), Some("*")).unwrap();
+                        return Ok(parse_message::message_to_string(message));
+                    },
+                    Err(e) => {
+                        eprintln!("Error getting message from IMAP: {:?}", e);
+                        return Err(String::from("{\"message\": \"Error getting message\"}"));
+                    }
+                }
+            }
+        }
+    }
 
-      let mut response = String::from("{\"mailboxes\": [");
+    pub fn get_message_imap(
+        &mut self,
+        session_id: usize,
+        mailbox_path: &str,
+        message_uid: &u32,
+    ) -> Result<MessageBody, String> {
+        if session_id >= self.sessions.len() {
+            return Err(String::from("Invalid session ID"));
+        }
 
-      for (i, mailbox) in mailboxes.iter().enumerate() {
-          response.push_str(&format!("\"{}\"", mailbox.name()));
+        let session = &mut self.sessions[session_id];
 
-          if i < mailboxes.len() - 1 {
-              response.push_str(",");
-          }
-      }
+        session.select(&mailbox_path).unwrap();
 
-      response.push_str("]}");
+        let messages = match session.uid_fetch(message_uid.to_string(), "BODY[]") {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("Error fetching message: {:?}", e);
+                return Err(String::from("Error fetching message"));
+            }
+        };
 
-      Ok(response)
-  }
+        match messages.first() {
+            Some(message) => {
+                let connection_username = &self.addresses[session_id];
+                
+                let message = match message.body() {
+                    Some(m) => std::str::from_utf8(m).unwrap(),
+                    None => return Err(String::from("Error getting message body")),
+                };
+
+                let message_body: MessageBody = parse_message::parse_message_body(message, connection_username, mailbox_path, message_uid);
+
+
+                return Ok(message_body);
+            }
+            None => return Err(String::from("Message not found")),
+        };
+    }
+
+    pub fn get_message_db(
+        &mut self,
+        session_id: usize,
+        mailbox: &str,
+        message_uid: &u32,
+    ) -> Result<MessageBody, String> {
+        if session_id >= self.addresses.len() {
+            return Err(String::from("Invalid session ID"));
+        }
+
+        let address = &self.addresses[session_id];
+
+        let message = match self.database_conn.get_message_with_uid(address, &mailbox, message_uid) {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("Error getting message: {:?}", e);
+                return Err(String::from("Error getting message"));
+            }
+        };
+
+        return Ok(message);
+    }
+
+    pub fn get_all_mailboxes_imap(&mut self, session_id: usize) -> Result<String, String> {
+        if session_id >= self.sessions.len() {
+            return Err(String::from("Invalid session ID"));
+        }
+
+        let session = &mut self.sessions[session_id];
+
+        let mailboxes = session.list(Some(""), Some("*")).unwrap();
+
+        let mut response = String::from("{\"mailboxes\": [");
+
+        for (i, mailbox) in mailboxes.iter().enumerate() {
+            response.push_str(&format!("\"{}\"", mailbox.name()));
+
+            if i < mailboxes.len() - 1 {
+                response.push_str(",");
+            }
+        }
+
+        response.push_str("]}");
+
+        Ok(response)
+    }
 }

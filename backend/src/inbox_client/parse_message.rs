@@ -1,30 +1,28 @@
-use std::collections::HashMap;
 use base64::{prelude::BASE64_STANDARD, Engine};
-use regex::Regex;
+use chrono::{DateTime, FixedOffset};
 use imap;
 use imap_proto;
-use chrono::{DateTime, FixedOffset};
+use regex::Regex;
+use std::collections::HashMap;
 
-fn decode_u8(string: Option<&[u8]>) -> String {
-    match string {
-        Some(s) => match std::str::from_utf8(s) {
-            Ok(s) => String::from(s),
-            Err(_) => String::from(""),
-        },
-        None => String::from(""),
-    }
-}
-
-struct MessageBody {
-    date: i64,
-    received: i64,
-    to: String,
-    delivered_to: String,
-    from: String,
-    subject: String,
-    message_id: String,
-    text: String,
-    html: String,
+pub struct MessageBody {
+    pub connection_username: String,
+    pub mailbox_path: String,
+    pub uid: u32,
+    pub message_id: String,
+    pub subject: String,
+    pub from: String,
+    pub sender: String,
+    pub to: String,
+    pub cc: String,
+    pub bcc: String,
+    pub reply_to: String,
+    pub in_reply_to: String,
+    pub delivered_to: String,
+    pub date: i64,
+    pub received: i64,
+    pub text: String,
+    pub html: String,
 }
 
 enum MimeParserState {
@@ -38,7 +36,9 @@ enum MimeParserState {
 }
 
 fn parse_time_rfc2822(time_str: Option<&String>) -> DateTime<FixedOffset> {
-    let time_re = Regex::new(r"(\w{1,3}, \d{1,2} \w{1,3} \d{4} \d{2}:\d{2}:\d{2} ([+-]\d{4})?(\w{3})?)").unwrap();
+    let time_re =
+        Regex::new(r"(\w{1,3}, \d{1,2} \w{1,3} \d{4} \d{2}:\d{2}:\d{2} ([+-]\d{4})?(\w{3})?)")
+            .unwrap();
     let binding = String::from("");
 
     let date = match time_re.captures(time_str.unwrap_or(&binding)) {
@@ -46,7 +46,7 @@ fn parse_time_rfc2822(time_str: Option<&String>) -> DateTime<FixedOffset> {
         None => {
             dbg!("Error: Could not parse date");
             "Thu, 1 Jan 1970 00:00:00 +0000"
-        },
+        }
     };
 
     let date = match DateTime::parse_from_rfc2822(&date) {
@@ -54,13 +54,53 @@ fn parse_time_rfc2822(time_str: Option<&String>) -> DateTime<FixedOffset> {
         Err(e) => {
             dbg!("Error: {}", e);
             DateTime::parse_from_rfc2822("Thu, 1 Jan 1970 00:00:00 +0000").unwrap()
-        },
+        }
     };
 
     return date;
 }
 
-fn parse_message_body(body: &str) -> MessageBody {   
+fn decode_u8(string: Option<&[u8]>) -> String {
+    match string {
+        Some(s) => match std::str::from_utf8(s) {
+            Ok(s) => String::from(s),
+            Err(_) => String::from(""),
+        },
+        None => String::from(""),
+    }
+}
+
+fn address_to_string(address: &Option<Vec<imap_proto::types::Address>>) -> String {
+    match address {
+        Some(a) => {
+            let mut result = String::from("[");
+
+            for (i, address) in a.iter().enumerate() {
+                result.push_str("{");
+                result.push_str(&format!("\"name\": \"{}\",", decode_u8(address.name)));
+                result.push_str(&format!("\"mailbox\": \"{}\",", decode_u8(address.mailbox)));
+                result.push_str(&format!("\"host\": \"{}\"", decode_u8(address.host)));
+                result.push_str("}");
+
+                if i < a.len() - 1 {
+                    result.push_str(",");
+                }
+            }
+
+            result.push_str("]");
+
+            return result;
+        }
+        None => return String::from("[]"),
+    }
+}
+
+pub fn parse_message_body(
+    body: &str,
+    connection_username: &str,
+    mailbox_path: &str,
+    uid: &u32,
+) -> MessageBody {
     let mut state = MimeParserState::HeaderKey;
 
     let mut header_key = String::from("");
@@ -98,21 +138,24 @@ fn parse_message_body(body: &str) -> MessageBody {
                         dbg!("Error: Could not split header key and value");
 
                         ("", "")
-                    },
+                    }
                 };
 
                 header_key = split.0.to_string();
 
                 let value_part = split.1.trim().replace("\r\n", " ");
-                
+
                 if headers.contains_key(&header_key) {
-                    headers.insert(header_key.clone(), headers[&header_key].clone() + value_part.as_str());
+                    headers.insert(
+                        header_key.clone(),
+                        headers[&header_key].clone() + value_part.as_str(),
+                    );
                 } else {
                     headers.insert(header_key.clone(), value_part);
                 }
 
                 state = MimeParserState::HeaderValue;
-            },
+            }
             MimeParserState::HeaderValue => {
                 if line.is_empty() {
                     state = MimeParserState::BlankLine;
@@ -125,18 +168,20 @@ fn parse_message_body(body: &str) -> MessageBody {
                     continue;
                 }
 
-                let value = line
-                    .trim()
-                    .replace("\r\n", " ");
+                let value = line.trim().replace("\r\n", " ");
 
                 if headers.contains_key(&header_key) {
-                    headers.insert(header_key.clone(), headers[&header_key].clone() + value.as_str());
+                    headers.insert(
+                        header_key.clone(),
+                        headers[&header_key].clone() + value.as_str(),
+                    );
                 } else {
                     headers.insert(header_key.clone(), value);
                 }
-            },
+            }
             MimeParserState::TextHeader => {
-                if line.is_empty() || (!line.contains(":") && line.starts_with(char::is_alphabetic)) {
+                if line.is_empty() || (!line.contains(":") && line.starts_with(char::is_alphabetic))
+                {
                     state = MimeParserState::Text;
 
                     continue;
@@ -148,7 +193,7 @@ fn parse_message_body(body: &str) -> MessageBody {
                         dbg!("Error: Could not split header key and value");
 
                         ("", "")
-                    },
+                    }
                 };
 
                 let key = split.0.trim();
@@ -156,7 +201,7 @@ fn parse_message_body(body: &str) -> MessageBody {
                 if key == "Content-Transfer-Encoding" {
                     text_encoding = split.1.trim().to_string();
                 }
-            },
+            }
             MimeParserState::Text => {
                 if line.starts_with(&(String::from("--") + boundary)) {
                     state = MimeParserState::BlankLine;
@@ -165,9 +210,10 @@ fn parse_message_body(body: &str) -> MessageBody {
                 }
 
                 text.push_str(line);
-            },
+            }
             MimeParserState::HtmlHeader => {
-                if line.is_empty() || (!line.contains(":") && line.starts_with(char::is_alphabetic)) {
+                if line.is_empty() || (!line.contains(":") && line.starts_with(char::is_alphabetic))
+                {
                     state = MimeParserState::Html;
 
                     continue;
@@ -179,7 +225,7 @@ fn parse_message_body(body: &str) -> MessageBody {
                         dbg!("Error: Could not split header key and value");
 
                         ("", "")
-                    },
+                    }
                 };
 
                 let key = split.0.trim();
@@ -187,7 +233,7 @@ fn parse_message_body(body: &str) -> MessageBody {
                 if key == "Content-Transfer-Encoding" {
                     html_encoding = split.1.trim().to_string();
                 }
-            },
+            }
             MimeParserState::Html => {
                 if line.starts_with(&(String::from("--") + boundary)) {
                     state = MimeParserState::BlankLine;
@@ -196,9 +242,8 @@ fn parse_message_body(body: &str) -> MessageBody {
                 }
 
                 html.push_str(line);
-            },
+            }
             MimeParserState::BlankLine => {
-
                 if line.starts_with("Content-Type: text/plain") {
                     state = MimeParserState::TextHeader;
                 } else if line.starts_with("Content-Type: text/html") {
@@ -209,13 +254,15 @@ fn parse_message_body(body: &str) -> MessageBody {
     }
 
     let re_encoding = Regex::new(r"=(..)").unwrap();
-    html = re_encoding.replace_all(html.as_str(), |caps: &regex::Captures| {
-        if caps.get(1).unwrap().as_str() == "3D" {
-            String::from("=")
-        } else {
-            caps.get(1).unwrap().as_str().to_string()
-        }
-    }).to_string();
+    html = re_encoding
+        .replace_all(html.as_str(), |caps: &regex::Captures| {
+            if caps.get(1).unwrap().as_str() == "3D" {
+                String::from("=")
+            } else {
+                caps.get(1).unwrap().as_str().to_string()
+            }
+        })
+        .to_string();
 
     html = html.replace("=3D", "=");
     html = html.replace("&#39;", "'");
@@ -241,88 +288,91 @@ fn parse_message_body(body: &str) -> MessageBody {
     let message_id = headers.get("Message-ID").unwrap_or(&binding);
 
     return MessageBody {
+        connection_username: connection_username.to_string(),
+        mailbox_path: mailbox_path.to_string(),
+        uid: uid.clone(),
+        message_id: message_id.to_string(),
+        subject: subject.to_string(),
+        from: from.to_string(),
+        sender: String::from(""),
+        to: to.to_string(),
+        cc: String::from(""),
+        bcc: String::from(""),
+        reply_to: String::from(""),
+        in_reply_to: String::from(""),
+        delivered_to: delivered_to.to_string(),
         date: date.timestamp_millis(),
         received: received.timestamp_millis(),
-        to: to.to_string(),
-        delivered_to: delivered_to.to_string(),
-        from: from.to_string(),
-        subject: subject.to_string(),
-        message_id: message_id.to_string(),
         text,
         html,
     };
 }
 
-fn address_to_string(address: &Option<Vec<imap_proto::types::Address>>) -> String {
-    match address {
-        Some(a) => {
-            let mut result = String::from("[");
-
-            for (i, address) in a.iter().enumerate() {
-                result.push_str("{");
-                result.push_str(&format!("\"name\": \"{}\",", decode_u8(address.name)));
-                result.push_str(&format!("\"mailbox\": \"{}\",", decode_u8(address.mailbox)));
-                result.push_str(&format!("\"host\": \"{}\"", decode_u8(address.host)));
-                result.push_str("}");
-
-                if i < a.len() - 1 {
-                    result.push_str(",");
-                }
-            }
-
-            result.push_str("]");
-
-            return result;
-        },
-        None => return String::from("[]"),
-    }
-}
-
-pub fn envelope_to_string(fetch: &imap::types::Fetch, message_uid: u32) -> String {
+pub fn parse_envelope(
+    fetch: &imap::types::Fetch,
+    connection_username: &str,
+    mailbox_path: &str,
+    uid: &u32,
+) -> Result<MessageBody, String> {
     let envelope = match fetch.envelope() {
         Some(e) => e,
-        None => return String::from(""),
+        None => return Err(String::from("Error getting envelope")),
     };
 
-    let mut result = String::from("{");
+    let date_str = decode_u8(envelope.date);
+    let date = parse_time_rfc2822(Some(&date_str)).timestamp_millis();
 
-    result.push_str(&format!("\"date\": \"{}\",", decode_u8(envelope.date)));
-    result.push_str(&format!("\"subject\": \"{}\",", decode_u8(envelope.subject)));
-    result.push_str(&format!("\"from\": {},", address_to_string(&envelope.from)));
-    result.push_str(&format!("\"sender\": {},", address_to_string(&envelope.sender)));
-    result.push_str(&format!("\"reply_to\": {},", address_to_string(&envelope.reply_to)));
-    result.push_str(&format!("\"to\": {},", address_to_string(&envelope.to)));
-    result.push_str(&format!("\"cc\": {},", address_to_string(&envelope.cc)));
-    result.push_str(&format!("\"bcc\": {},", address_to_string(&envelope.bcc)));
-    result.push_str(&format!("\"in_reply_to\": \"{}\",", decode_u8(envelope.in_reply_to)));
-    result.push_str(&format!("\"message_id\": \"{}\",", decode_u8(envelope.message_id)));
-    result.push_str(&format!("\"message_uid\": {}", message_uid));
-
-    result.push_str("}");
-
-    return result;
+    return Ok(MessageBody {
+        connection_username: connection_username.to_string(),
+        mailbox_path: mailbox_path.to_string(),
+        uid: uid.clone(),
+        message_id: String::from(""),
+        subject: decode_u8(envelope.subject),
+        from: address_to_string(&envelope.from),
+        sender: String::from(""),
+        to: address_to_string(&envelope.to),
+        cc: address_to_string(&envelope.cc),
+        bcc: address_to_string(&envelope.bcc),
+        reply_to: address_to_string(&envelope.reply_to),
+        in_reply_to: decode_u8(envelope.in_reply_to),
+        delivered_to: String::from(""),
+        date,
+        received: 0,
+        text: String::from(""),
+        html: String::from(""),
+    });
 }
 
-pub fn message_to_string(body_fetch: &imap::types::Fetch, message_uid: u32) -> String {
-    let message = match body_fetch.body() {
-        Some(m) => std::str::from_utf8(m).unwrap(),
-        None => "",
-    };
-
-    let message_body: MessageBody = parse_message_body(message);
-
+pub fn message_to_string(message_body: MessageBody) -> String {
     let mut result = String::from("{");
 
-    result.push_str(&format!("\"message_uid\": {},", message_uid));
-    result.push_str(&format!("\"date\": \"{}\",", message_body.date));
-    result.push_str(&format!("\"received\": \"{}\",", message_body.received));
+    result.push_str(&format!(
+        "\"connection_username\": \"{}\",",
+        message_body.connection_username
+    ));
+    result.push_str(&format!(
+        "\"mailbox_path\": \"{}\",",
+        message_body.mailbox_path
+    ));
+    result.push_str(&format!("\"uid\": {},", message_body.uid));
+    result.push_str(&format!("\"message_id\": \"{}\",", message_body.message_id));
     result.push_str(&format!("\"subject\": \"{}\",", message_body.subject));
     result.push_str(&format!("\"from\": \"{}\",", message_body.from));
+    result.push_str(&format!("\"sender\": \"{}\",", message_body.sender));
     result.push_str(&format!("\"to\": \"{}\",", message_body.to));
+    result.push_str(&format!("\"cc\": \"{}\",", message_body.cc));
+    result.push_str(&format!("\"bcc\": \"{}\",", message_body.bcc));
+    result.push_str(&format!("\"reply_to\": \"{}\",", message_body.reply_to));
+    result.push_str(&format!("\"in_reply_to\": \"{}\",", message_body.in_reply_to));
     result.push_str(&format!("\"delivered_to\": \"{}\",", message_body.delivered_to));
-    result.push_str(&format!("\"message_id\": \"{}\",", message_body.message_id));
-    result.push_str(&format!("\"text\": \"{}\",", message_body.text));
+    result.push_str(&format!("\"date\": \"{}\",", message_body.date));
+    result.push_str(&format!("\"received\": \"{}\",", message_body.received));
+    result.push_str(&format!(
+        "\"delivered_to\": \"{}\",",
+        message_body.delivered_to
+    ));
     result.push_str(&format!("\"html\": \"{}\"", message_body.html));
+    result.push_str(&format!("\"text\": \"{}\",", message_body.text));
 
     result.push_str("}");
 

@@ -1,5 +1,4 @@
-use crate::inbox_client::inbox_client as inbox_client;
-use crate::websocket::handle_conn as handle_conn;
+use crate::{inbox_client::inbox_client, websocket::handle_conn};
 
 use std::net::TcpListener;
 use tungstenite::accept;
@@ -46,26 +45,14 @@ fn handle_connection(msg: &str, inbox_client: &mut inbox_client::InboxClient) ->
     };
 
     let request = uri_parts[0];
-    let data = uri_parts[1];    
+    let data = uri_parts[1];
 
     match request {
-        "/imap/login" => {
-            handle_conn::login(data, inbox_client)
-        },
-        "/imap/logout" => {
-            handle_conn::logout(data, inbox_client)
-        },
-        "/imap/message_envelopes" => {
-            handle_conn::message_envelopes(data, inbox_client)
-        },
-        "/imap/message" => {
-            handle_conn::message(data, inbox_client)
-        },
-        "/imap/mailboxes" => {
-            handle_conn::mailboxes(data, inbox_client)
-        },
-        _ => {
-            String::from("{\"message\": \"Not Found\"}")
-        }
+        "/imap/login" => handle_conn::login(data, inbox_client),
+        "/imap/logout" => handle_conn::logout(data, inbox_client),
+        "/imap/message_envelopes" => handle_conn::message_envelopes(data, inbox_client),
+        "/imap/message" => handle_conn::message(data, inbox_client),
+        "/imap/mailboxes" => handle_conn::mailboxes(data, inbox_client),
+        _ => String::from("{\"message\": \"Not Found\"}"),
     }
 }
