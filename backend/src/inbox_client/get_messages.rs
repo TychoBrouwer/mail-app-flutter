@@ -164,8 +164,6 @@ impl InboxClient {
             }
         };
 
-        dbg!(&sequence_set_string);
-
         let fetches = match session.fetch(&sequence_set_string, "(UID ENVELOPE BODY[])") {
             Ok(fetch) => fetch,
             Err(e) => {
