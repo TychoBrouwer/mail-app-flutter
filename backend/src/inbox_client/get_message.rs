@@ -11,7 +11,7 @@ impl InboxClient {
 
         match message_db {
             Ok(message) => {
-                return Err(parse_message::message_to_string(message));
+                return Ok(parse_message::message_to_string(message));
             }
             Err(e) => {
                 println!("Error getting message from local database: {:?}", e);
@@ -150,8 +150,7 @@ impl InboxClient {
             message_uid,
         ) {
             Ok(m) => m,
-            Err(e) => {
-                eprintln!("Error getting message: {:?}", e);
+            Err(_) => {
                 return Err(String::from("Error getting message"));
             }
         };

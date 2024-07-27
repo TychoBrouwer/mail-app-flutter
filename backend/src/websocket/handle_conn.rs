@@ -94,6 +94,39 @@ pub fn mailboxes(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> Str
     }
 }
 
+pub fn message(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
+    let uri_params = params::parse_params(String::from(uri));
+
+    let session_id = params::get_usize(uri_params.get("session_id"));
+    let mailbox = uri_params.get("mailbox");
+    let message_uid = params::get_u32(uri_params.get("message_uid"));
+
+    if session_id.is_none() || mailbox.is_none() || message_uid.is_none() {
+        eprintln!(
+            "Provide session_id, mailbox and message_id GET parameters: {}",
+            uri
+        );
+        return String::from("{\"success\": \"false\", \"message\": \"Provide session_id, mailbox and message_uid GET parameters\"}");
+    }
+
+    let session_id = session_id.unwrap();
+    let mailbox = mailbox.unwrap();
+    let message_uid = message_uid.unwrap();
+
+    match inbox_client.get_message(session_id, mailbox, &message_uid) {
+        Ok(message) => {
+            return format!(
+                "{{\"success\": \"true\", \"message\": \"Message retrieved\", \"data\": {}}}",
+                message
+            )
+        }
+        Err(e) => {
+            eprintln!("Error getting message: {:?}", e);
+            return format!("{{\"success\": \"false\", \"message\": {}}}", e);
+        }
+    }
+}
+
 pub fn message_envelopes(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
@@ -138,39 +171,6 @@ pub fn message_envelopes(uri: &str, inbox_client: &mut inbox_client::InboxClient
         Err(e) => {
             eprintln!("Error getting message envelopes: {:?}", e);
             return format!("{{\"success\": \"false\", \"message\": \"{}\"}}", e);
-        }
-    }
-}
-
-pub fn message(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
-    let uri_params = params::parse_params(String::from(uri));
-
-    let session_id = params::get_usize(uri_params.get("session_id"));
-    let mailbox = uri_params.get("mailbox");
-    let message_uid = params::get_u32(uri_params.get("message_uid"));
-
-    if session_id.is_none() || mailbox.is_none() || message_uid.is_none() {
-        eprintln!(
-            "Provide session_id, mailbox and message_id GET parameters: {}",
-            uri
-        );
-        return String::from("{\"success\": \"false\", \"message\": \"Provide session_id, mailbox and message_uid GET parameters\"}");
-    }
-
-    let session_id = session_id.unwrap();
-    let mailbox = mailbox.unwrap();
-    let message_uid = message_uid.unwrap();
-
-    match inbox_client.get_message(session_id, mailbox, &message_uid) {
-        Ok(message) => {
-            return format!(
-                "{{\"success\": \"true\", \"message\": \"Message retrieved\", \"data\": {}}}",
-                message
-            )
-        }
-        Err(e) => {
-            eprintln!("Error getting message: {:?}", e);
-            return format!("{{\"success\": \"false\", \"message\": {}}}", e);
         }
     }
 }
