@@ -4,11 +4,14 @@ use imap;
 use native_tls::{TlsConnector, TlsStream};
 use std::net::TcpStream;
 
+#[derive(Debug)]
 pub struct SequenceSet {
     pub nr_messages: Option<usize>,
     pub start_end: Option<StartEnd>,
+    pub idx: Option<Vec<usize>>,
 }
 
+#[derive(Debug)]
 pub struct StartEnd {
     pub start: usize,
     pub end: usize,
@@ -118,18 +121,37 @@ impl InboxClient {
             SequenceSet {
                 nr_messages: Some(nr_messages),
                 start_end: None,
+                idx: None,
             } => {
                 format!("1:{}", nr_messages)
             }
             SequenceSet {
                 nr_messages: None,
                 start_end: Some(StartEnd { start, end }),
+                idx: None,
             } => {
                 if start > end {
                     return Err(String::from("Start must be less than or equal to end"));
                 }
     
                 format!("{}:{}", start, end)
+            }
+            SequenceSet {
+                nr_messages: None,
+                start_end: None,
+                idx: Some(idxs),
+            } => {                
+                let mut result = String::new();
+    
+                for (i, idx) in idxs.iter().enumerate() {
+                    result.push_str(&idx.to_string());
+    
+                    if i < idxs.len() - 1 {
+                        result.push_str(",");
+                    }
+                }
+    
+                result
             }
             _ => String::from("1:*"),
         };

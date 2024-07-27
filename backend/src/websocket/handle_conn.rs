@@ -185,6 +185,7 @@ pub fn messages(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> Stri
         } else {
             None
         },
+        idx: None,
     };
 
     match inbox_client.get_messages(session_id, mailbox, sequence_set) {
