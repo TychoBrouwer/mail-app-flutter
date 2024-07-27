@@ -1,4 +1,7 @@
-use crate::{inbox_client::inbox_client, websocket::params};
+use crate::{
+    inbox_client::inbox_client::{self, Session},
+    websocket::params,
+};
 
 pub fn login(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
     let uri_params = params::parse_params(String::from(uri));
@@ -20,17 +23,24 @@ pub fn login(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String 
     let address = address.unwrap();
     let port = port.unwrap();
 
-    if inbox_client.addresses.contains(&email.to_string()) {
-        let idx = inbox_client
-            .addresses
-            .iter()
-            .position(|x| x == email)
-            .unwrap();
+    match inbox_client
+        .sessions
+        .iter()
+        .position(|x| x.username == email.to_string())
+    {
+        Some(idx) => {
+            return format!("{{\"success\": \"true\", \"message\": \"Allready connected to IMAP server\", \"data\": {{ \"id\": {}}}}}", idx);
+        }
+        None => {}
+    };
 
-        return format!("{{\"success\": \"true\", \"message\": \"Allready connected to IMAP server\", \"data\": {{ \"id\": {}}}}}", idx);
-    }
-
-    match inbox_client.connect(address, port, email, password) {
+    match inbox_client.connect(Session {
+        stream: None,
+        username: email.to_string(),
+        password: password.to_string(),
+        address: address.to_string(),
+        port,
+    }) {
         Ok(idx) => {
             format!("{{\"success\": \"true\", \"message\": \"Connected to IMAP server\", \"data\": {{ \"id\": {}}}}}", idx)
         }
@@ -168,7 +178,7 @@ pub fn messages(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> Stri
         Err(e) => {
             eprintln!("Error getting messages: {:?}", e);
             return format!("{{\"success\": \"false\", \"message\": \"{}\"}}", e);
-        }        
+        }
     }
 }
 

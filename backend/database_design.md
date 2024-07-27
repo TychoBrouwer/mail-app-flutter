@@ -3,7 +3,7 @@
 | CONNECTIONS   |      |              |
 |---------------|------|--------------|
 | username      | PK   | VARCHAR(500) |
-| password      |      | VARCHAR(100) |
+| password      |      | VARCHAR(500) |
 | address       | PK   | VARCHAR(500) |
 | port          |      | INT          |
 | updated_at    |      | DATETIME     |
@@ -12,7 +12,7 @@
 |---------------------|--------|--------------|
 | connection_username | FK, PK | INT          |
 | connection_address  | FK, PK | INT          |
-| path                | PK     | VARCHAR(100) |
+| path                | PK     | VARCHAR(500) |
 | updated_at          |        | DATETIME     |
 
 | MESSAGES            |        |              |

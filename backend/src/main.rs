@@ -29,9 +29,25 @@ fn main() {
         Err(e) => {
             panic!("Error initialising database: {}", e);
         }
-    }
+    };
+
+    let connections = match database_conn.get_connections() {
+        Ok(connections) => connections,
+        Err(e) => {
+            panic!("Error getting connections: {}", e);
+        }
+    };
 
     let mut inbox_client = inbox_client::inbox_client::InboxClient::new(database_conn);
+
+    for connection in connections {
+        match inbox_client.connect(connection) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Error connecting to IMAP stored in local database: {:?}", e);
+            }
+        }
+    }
 
     websocket::websocket::create_server(&mut inbox_client);
 }

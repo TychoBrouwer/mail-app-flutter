@@ -26,9 +26,9 @@ impl InboxClient {
                 let messages_imap =
                     match self.get_messages_imap(session_id, mailbox_path, sequence_set) {
                         Ok(messages) => {
-                            let username = &self.usernames[session_id];
-                            let address = &self.addresses[session_id];
-
+                            let username = &self.sessions[session_id].username;
+                            let address = &self.sessions[session_id].address;
+                                        
                             for message in &messages {
                                 match self.database_conn.insert_message(
                                     username,
@@ -87,7 +87,10 @@ impl InboxClient {
             return Err(String::from("Invalid session ID"));
         }
 
-        let session = &mut self.sessions[session_id];
+        let session = match &mut self.sessions[session_id].stream {
+            Some(s) => s,
+            None => return Err(String::from("Session not found")),
+        };
 
         session.select(mailbox_path).unwrap();
 
@@ -131,7 +134,10 @@ impl InboxClient {
             return Err(String::from("Invalid session ID"));
         }
 
-        let session = &mut self.sessions[session_id];
+        let session = match &mut self.sessions[session_id].stream {
+            Some(s) => s,
+            None => return Err(String::from("Session not found")),
+        };
 
         session.select(mailbox_path).unwrap();
 
@@ -174,12 +180,12 @@ impl InboxClient {
         mailbox_path: &str,
         message_uids: &Vec<u32>,
     ) -> Result<Vec<parse_message::Message>, String> {
-        if session_id >= self.addresses.len() {
+        if session_id >= self.sessions.len() {
             return Err(String::from("Invalid session ID"));
         }
 
-        let username = &self.usernames[session_id];
-        let address = &self.addresses[session_id];
+        let username = &self.sessions[session_id].username;
+        let address = &self.sessions[session_id].address;
 
         let mut messages: Vec<parse_message::Message> = Vec::new();
 

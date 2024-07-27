@@ -13,7 +13,11 @@ impl InboxClient {
                         self.get_mailboxes_imap(session_id);
 
                     match mailboxes_imap {
-                        Ok(mailboxes_imap) => mailboxes_imap,
+                        Ok(mailboxes_imap) => {
+                            
+                            
+                            mailboxes_imap
+                        },
                         Err(e) => {
                             eprintln!("Error getting mailboxes from IMAP: {:?}", e);
                             return Err(String::from("{\"message\": \"Error getting mailboxes\"}"));
@@ -33,9 +37,9 @@ impl InboxClient {
         for (i, mailbox_path) in mailboxes.iter().enumerate() {
             response.push_str(&format!("\"{}\"", mailbox_path));
 
-            let username = &self.usernames[session_id];
-            let address = &self.addresses[session_id];
-
+            let username = &self.sessions[session_id].username;
+            let address = &self.sessions[session_id].address;
+        
             self.database_conn
                 .insert_mailbox(username, address, mailbox_path);
 
@@ -54,8 +58,8 @@ impl InboxClient {
             return Err(String::from("Invalid session ID"));
         }
 
-        let username = &self.usernames[session_id];
-        let address = &self.addresses[session_id];
+        let username = &self.sessions[session_id].username;
+        let address = &self.sessions[session_id].address;
 
         let mailboxes = match self.database_conn.get_mailboxes(username, address) {
             Ok(m) => m,
@@ -73,7 +77,12 @@ impl InboxClient {
             return Err(String::from("Invalid session ID"));
         }
 
-        let session = &mut self.sessions[session_id];
+        let session = match &mut self.sessions[session_id].stream {
+            Some(s) => s,
+            None => {
+                return Err(String::from("Session not found"));
+            }
+        };
 
         let mailboxes = session.list(Some(""), Some("*")).unwrap();
 

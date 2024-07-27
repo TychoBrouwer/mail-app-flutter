@@ -1,6 +1,6 @@
-use crate::inbox_client::parse_message::Message;
+use crate::inbox_client::{inbox_client::Session, parse_message::Message};
 
-use rusqlite::{params, Connection, OpenFlags, Result};
+use rusqlite::{params, Connection, OpenFlags};
 use base64::{prelude::BASE64_STANDARD, Engine};
 
 pub struct DBConnection {
@@ -8,7 +8,7 @@ pub struct DBConnection {
 }
 
 impl DBConnection {
-    pub fn new(database_path: &str) -> Result<DBConnection> {
+    pub fn new(database_path: &str) -> Result<DBConnection, String> {
         let conn = match Connection::open_with_flags(
             database_path,
             OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE,
@@ -16,14 +16,14 @@ impl DBConnection {
             Ok(conn) => conn,
             Err(e) => {
                 eprintln!("Error opening database: {}", e);
-                return Err(e);
+                return Err(String::from("Error opening database"));
             }
         };
 
         return Ok(DBConnection { conn });
     }
 
-    pub fn initialise(&mut self) -> Result<()> {
+    pub fn initialise(&mut self) -> Result<(), String> {
         match self.conn.execute(
             "CREATE TABLE IF NOT EXISTS connections (
                 username VARCHAR(500) NOT NULL,
@@ -39,7 +39,7 @@ impl DBConnection {
             Err(e) => {
                 eprintln!("Error creating connections table: {}", e);
 
-                return Err(e);
+                return Err(String::from("Error creating connections table"));
             }
         }
 
@@ -58,7 +58,7 @@ impl DBConnection {
             Err(e) => {
                 eprintln!("Error creating mailboxes table: {}", e);
 
-                return Err(e);
+                return Err(String::from("Error creating mailboxes table"));
             }
         }
 
@@ -93,14 +93,14 @@ impl DBConnection {
             Err(e) => {
                 eprintln!("Error creating mailboxes table: {}", e);
 
-                return Err(e);
+                return Err(String::from("Error creating mailboxes table"));
             }
         }
 
         return Ok(());
     }
 
-    pub fn insert_connection(&mut self, username: &str, password: &str, address: &str, port: u16) {
+    pub fn insert_connection(&mut self, session: &Session) {
         match self.conn.execute(
             "INSERT OR IGNORE INTO connections (
                 username,
@@ -108,7 +108,7 @@ impl DBConnection {
                 address,
                 port
             ) VALUES (?1, ?2, ?3, ?4)",
-            params![username, password, address, port],
+            params![session.username, session.password, session.address, session.port],
         ) {
             Ok(_) => {}
             Err(e) => {
@@ -209,6 +209,43 @@ impl DBConnection {
         }
     }
 
+    pub fn get_connections(&mut self) -> Result<Vec<Session>, String> {
+        let mut stmt = match self.conn.prepare("SELECT * FROM connections") {
+            Ok(stmt) => stmt,
+            Err(e) => {
+                eprintln!("Error preparing statement at connections: {}", e);
+                return Err(String::from("Error preparing statement at connections"));
+            }
+        };
+
+        match stmt.query_map(params![], |row| {
+            Ok(Session {
+                stream: None,
+                username: row.get(0).unwrap(),
+                password: row.get(1).unwrap(),
+                address: row.get(2).unwrap(),
+                port: row.get(3).unwrap(),
+            })
+        }) {
+            Ok(rows) => {
+                let mut connections: Vec<Session> = Vec::new();
+
+                for row in rows {
+                    connections.push(match row {
+                        Ok(session) => session,
+                        Err(_) => continue
+                    });
+                }
+
+                return Ok(connections);
+            }
+            Err(e) => {
+                eprintln!("Error getting connections: {}", e);
+                return Err(String::from("Error getting connections"));
+            }
+        };
+    }
+ 
     pub fn get_mailboxes(&mut self, username: &str, address: &str) -> Result<Vec<String>, String> {
         let mut stmt = match self
             .conn

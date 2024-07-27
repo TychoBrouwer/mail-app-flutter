@@ -15,11 +15,17 @@ pub struct StartEnd {
     pub end: usize,
 }
 
+pub struct Session {
+    pub stream: Option<imap::Session<TlsStream<TcpStream>>>,
+    pub address: String,
+    pub port: u16,
+    pub username: String,
+    pub password: String,
+}
+
 pub struct InboxClient {
     pub database_conn: DBConnection,
-    pub sessions: Vec<imap::Session<TlsStream<TcpStream>>>,
-    pub addresses: Vec<String>,
-    pub usernames: Vec<String>,
+    pub sessions: Vec<Session>,
 }
 
 impl InboxClient {
@@ -27,41 +33,47 @@ impl InboxClient {
         InboxClient {
             database_conn,
             sessions: Vec::new(),
-            addresses: Vec::new(),
-            usernames: Vec::new(),
         }
     }
 
     pub fn connect(
         &mut self,
-        address: &str,
-        port: u16,
-        username: &str,
-        password: &str,
+        session: Session,
     ) -> Result<usize, String> {
-        self.database_conn
-            .insert_connection(username, password, address, port);
+        self.sessions.push(session);
 
-        return self.connect_imap(address, port, username, password);
+        let idx = self.sessions.len() - 1;
+
+        self.database_conn
+            .insert_connection(&self.sessions[idx]);
+
+        match self.connect_imap(idx) {
+            Ok(_) => {
+                return Ok(idx);
+            }
+            Err(e) => {
+                return Err(e);
+            }
+        }
     }
 
     pub fn connect_imap(
         &mut self,
-        address: &str,
-        port: u16,
-        username: &str,
-        password: &str,
-    ) -> Result<usize, String> {
+        idx: usize,
+    ) -> Result<(), String> {
         let tls = TlsConnector::builder().build().unwrap();
 
-        match imap::connect((address, port), address, &tls) {
+        let address = &self.sessions[idx].address;
+        let port = self.sessions[idx].port;
+        let username = &self.sessions[idx].username;
+        let password = &self.sessions[idx].password;
+
+        match imap::connect((address.as_str(), port), address, &tls) {
             Ok(c) => match c.login(username, password) {
                 Ok(s) => {
-                    self.sessions.push(s);
-                    self.addresses.push(String::from(address));
-                    self.usernames.push(String::from(username));
+                    self.sessions[idx].stream = Some(s);
 
-                    return Ok(self.sessions.len() - 1);
+                    return Ok(());
                 }
                 Err(e) => {
                     eprintln!("Error logging in: {:?}", e);
@@ -80,13 +92,16 @@ impl InboxClient {
             return Err(String::from("Invalid session ID"));
         }
 
-        let session = &mut self.sessions[session_id];
+        let session = match &mut self.sessions[session_id].stream {
+            Some(s) => s,
+            None => {
+                return Err(String::from("Session not found"));
+            }
+        };
 
         match session.logout() {
             Ok(_) => {
                 self.sessions.remove(session_id);
-                self.addresses.remove(session_id);
-                self.usernames.remove(session_id);
 
                 return Ok(());
             }
