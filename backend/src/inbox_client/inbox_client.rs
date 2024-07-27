@@ -51,6 +51,8 @@ impl InboxClient {
                 return Ok(idx);
             }
             Err(e) => {
+
+                self.sessions.remove(idx);
                 return Err(e);
             }
         }
