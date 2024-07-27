@@ -9,7 +9,6 @@ pub struct SequenceSet {
     pub start_end: Option<StartEnd>,
 }
 
-#[derive(Clone)]
 pub struct StartEnd {
     pub start: usize,
     pub end: usize,

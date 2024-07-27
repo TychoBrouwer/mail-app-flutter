@@ -40,16 +40,13 @@ pub fn create_server(inbox_client: &mut inbox_client::InboxClient) {
 fn handle_connection(msg: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
     let uri_parts: Vec<&str> = msg.split("\r\n").collect();
 
-    if uri_parts.len() != 2 {
-        return String::from("{\"message\": \"Bad Request\"}");
-    };
-
-    let request = uri_parts[0];
-    let data = uri_parts[1];
+    let request = uri_parts.get(0).unwrap_or(&"").to_owned();
+    let data = uri_parts.get(1).unwrap_or(&"").to_owned();
 
     match request {
         "/imap/login" => handle_conn::login(data, inbox_client),
         "/imap/logout" => handle_conn::logout(data, inbox_client),
+        "/imap/sessions" => handle_conn::sessions(inbox_client),
         "/imap/mailboxes" => handle_conn::mailboxes(data, inbox_client),
         "/imap/message" => handle_conn::message(data, inbox_client),
         "/imap/messages" => handle_conn::messages(data, inbox_client),

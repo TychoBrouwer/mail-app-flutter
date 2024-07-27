@@ -76,6 +76,25 @@ pub fn logout(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String
     }
 }
 
+pub fn sessions(inbox_client: &mut inbox_client::InboxClient) -> String {
+    let sessions = &inbox_client.sessions;
+
+    let mut response = String::from("[");
+    for (i, session) in sessions.iter().enumerate() {
+        response.push_str(&format!(
+            "{{\"id\": {}, \"username\": \"{}\", \"address\": \"{}\", \"port\": {}}}",
+            i, session.username, session.address, session.port
+        ));
+
+        if i < sessions.len() - 1 {
+            response.push_str(",");
+        }
+    }
+    response.push_str("]");
+
+    return response;
+}
+
 pub fn mailboxes(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
@@ -181,51 +200,3 @@ pub fn messages(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> Stri
         }
     }
 }
-
-// pub fn message_envelopes(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
-//     let uri_params = params::parse_params(String::from(uri));
-
-//     let session_id = params::get_usize(uri_params.get("session_id"));
-//     let mailbox = uri_params.get("mailbox");
-
-//     let nr_messages = params::get_usize(uri_params.get("nr_messages"));
-//     let start = params::get_usize(uri_params.get("start"));
-//     let end = params::get_usize(uri_params.get("end"));
-
-//     if session_id.is_none()
-//         || mailbox.is_none()
-//         || (nr_messages.is_none() && (start.is_none() || end.is_none()))
-//     {
-//         eprintln!("Provide session_id GET parameter: {}", uri);
-//         return String::from(
-//             "{\"success\": \"false\", \"message\": \"Provide session_id GET parameter\"}",
-//         );
-//     }
-
-//     let session_id = session_id.unwrap();
-//     let mailbox = mailbox.unwrap();
-//     let sequence_set = inbox_client::SequenceSet {
-//         nr_messages,
-//         start_end: if start.is_some() && end.is_some() {
-//             Some(inbox_client::StartEnd {
-//                 start: start.unwrap(),
-//                 end: end.unwrap(),
-//             })
-//         } else {
-//             None
-//         },
-//     };
-
-//     match inbox_client.get_message_envelopes_imap(session_id, mailbox, sequence_set) {
-//         Ok(messages) => {
-//             return format!(
-//             "{{\"success\": \"true\", \"message\": \"Message envelopes retrieved\", \"data\": {}}}",
-//             messages
-//         )
-//         }
-//         Err(e) => {
-//             eprintln!("Error getting message envelopes: {:?}", e);
-//             return format!("{{\"success\": \"false\", \"message\": \"{}\"}}", e);
-//         }
-//     }
-// }

@@ -94,7 +94,7 @@ fn address_to_string(address: &Option<Vec<imap_proto::types::Address>>) -> Strin
     }
 }
 
-pub fn parse_message_body(body: &str, uid: &u32) -> Message {
+fn parse_message_body(body: &str, uid: &u32) -> Message {
     let mut state = MimeParserState::HeaderKey;
 
     let mut header_key = String::from("");
@@ -126,14 +126,7 @@ pub fn parse_message_body(body: &str, uid: &u32) -> Message {
                     continue;
                 }
 
-                let split = match line.split_once(":") {
-                    Some(s) => s,
-                    None => {
-                        eprintln!("Error: Could not split header key and value");
-
-                        ("", "")
-                    }
-                };
+                let split = line.split_once(":").unwrap_or(("", ""));
 
                 header_key = split.0.to_string();
 
@@ -181,14 +174,7 @@ pub fn parse_message_body(body: &str, uid: &u32) -> Message {
                     continue;
                 }
 
-                let split = match line.split_once(":") {
-                    Some(s) => s,
-                    None => {
-                        eprintln!("Error: Could not split header key and value");
-
-                        ("", "")
-                    }
-                };
+                let split = line.split_once(":").unwrap_or(("", ""));
 
                 let key = split.0.trim();
 
@@ -213,14 +199,7 @@ pub fn parse_message_body(body: &str, uid: &u32) -> Message {
                     continue;
                 }
 
-                let split = match line.split_once(":") {
-                    Some(s) => s,
-                    None => {
-                        eprintln!("Error: Could not split header key and value");
-
-                        ("", "")
-                    }
-                };
+                let split = line.split_once(":").unwrap_or(("", ""));
 
                 let key = split.0.trim();
 
