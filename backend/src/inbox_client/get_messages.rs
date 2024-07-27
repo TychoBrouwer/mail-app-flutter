@@ -191,8 +191,7 @@ impl InboxClient {
                 message_uid,
             ) {
                 Ok(m) => m,
-                Err(e) => {
-                    eprintln!("Error getting message from local database: {:?}", e);
+                Err(_) => {
                     return Err(String::from("Error getting message from local database"));
                 }
             };
