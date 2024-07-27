@@ -36,10 +36,3 @@
 | html                |        | TEXT         |
 | text                |        | TEXT         |
 | updated_at          |        | DATETIME     |
-
-| ADDRESSES           |      |              |
-|---------------------|------|--------------|
-| id                  | PK   | INT          |
-| address             |      | VARCHAR(500) |
-| name                |      | VARCHAR(500) |
-| type                |      | VARCHAR(100) |

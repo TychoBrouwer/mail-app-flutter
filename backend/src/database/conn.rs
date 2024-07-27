@@ -1,6 +1,7 @@
-use crate::inbox_client::parse_message::MessageBody;
+use crate::inbox_client::parse_message::Message;
 
 use rusqlite::{params, Connection, OpenFlags, Result};
+use base64::{prelude::BASE64_STANDARD, Engine};
 
 pub struct DBConnection {
     conn: Connection,
@@ -137,8 +138,26 @@ impl DBConnection {
         username: &str,
         address: &str,
         mailbox_path: &str,
-        message: &MessageBody,
+        message: &Message,
     ) -> Result<(), String> {
+        let html = match String::from_utf8(BASE64_STANDARD.decode(message.html.as_str()).unwrap()) {
+            Ok(html) => html,
+            Err(e) => {
+                eprintln!("Error decoding HTML: {}", e);
+
+                return Err(String::from("Error decoding HTML"));
+            }
+        };
+
+        let text = match String::from_utf8(BASE64_STANDARD.decode(message.text.as_str()).unwrap()) {
+            Ok(text) => text,
+            Err(e) => {
+                eprintln!("Error decoding text: {}", e);
+
+                return Err(String::from("Error decoding text"));
+            }
+        };
+
         match self.conn.execute(
             "INSERT OR IGNORE INTO messages (
                 uid,
@@ -177,8 +196,8 @@ impl DBConnection {
                 message.delivered_to,
                 message.date,
                 message.received,
-                message.html,
-                message.text
+                html,
+                text
             ],
         ) {
             Ok(_) => Ok({}),
@@ -225,7 +244,7 @@ impl DBConnection {
         address: &str,
         mailbox_path: &str,
         uid: &u32,
-    ) -> Result<MessageBody, String> {
+    ) -> Result<Message, String> {
         let mut stmt = match self.conn.prepare(
             "SELECT * FROM messages WHERE c_username = ?1 AND c_address = ?2 AND m_path = ?3 AND uid = ?4",
         ) {
@@ -236,8 +255,12 @@ impl DBConnection {
             }
         };
 
+
         match stmt.query_row(params![username, address, mailbox_path, uid], |row| {
-            Ok(MessageBody {
+            let html: String = row.get(16).unwrap();
+            let text: String = row.get(17).unwrap();
+
+            Ok(Message {
                 uid: row.get(0).unwrap(),
                 message_id: row.get(4).unwrap(),
                 subject: row.get(5).unwrap(),
@@ -251,8 +274,8 @@ impl DBConnection {
                 delivered_to: row.get(13).unwrap(),
                 date: row.get(14).unwrap(),
                 received: row.get(15).unwrap(),
-                html: row.get(16).unwrap(),
-                text: row.get(17).unwrap(),
+                html: BASE64_STANDARD.encode(html.as_bytes()),
+                text: BASE64_STANDARD.encode(text.as_bytes()),
             })
         }) {
             Ok(message) => {
@@ -260,7 +283,7 @@ impl DBConnection {
             }
             Err(e) => {
                 eprintln!("Error getting message: {}", e);
-                return Err(String::from("Error getting message"));
+                return Err(String::from("Error getting message from local database"));
             }
         };
     }

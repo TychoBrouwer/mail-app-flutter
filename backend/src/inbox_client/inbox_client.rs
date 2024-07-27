@@ -97,71 +97,27 @@ impl InboxClient {
         }
     }
 
-    // pub fn get_message_envelopes_imap(
-    //     &mut self,
-    //     session_id: usize,
-    //     mailbox_path: &str,
-    //     sequence_set: SequenceSet,
-    // ) -> Result<String, String> {
-    //     if session_id >= self.sessions.len() {
-    //         return Err(String::from("Invalid session ID"));
-    //     }
-
-    //     let session = &mut self.sessions[session_id];
-
-    //     session.select(mailbox_path).unwrap();
-
-    //     let sequence_set_string: String = match sequence_set {
-    //         SequenceSet {
-    //             nr_messages: Some(nr_messages),
-    //             start_end: None,
-    //         } => {
-    //             format!("1:{}", nr_messages)
-    //         }
-    //         SequenceSet {
-    //             nr_messages: None,
-    //             start_end: Some(StartEnd { start, end }),
-    //         } => {
-    //             if start > end {
-    //                 return Err(String::from("Start must be less than or equal to end"));
-    //             }
-
-    //             format!("{}:{}", start, end)
-    //         }
-    //         _ => return Err(String::from("Provide either nr_messages or start and end")),
-    //     };
-
-    //     let message_envelopes = session
-    //         .fetch(sequence_set_string.clone(), "ENVELOPE")
-    //         .unwrap();
-    //     let message_uids = session.fetch(sequence_set_string, "UID").unwrap();
-
-    //     let mut response = String::from("{\"messages\": [");
-
-    //     for (i, fetch) in message_envelopes.iter().enumerate() {
-    //         let message_uid = match message_uids[i].uid {
-    //             Some(uid) => uid,
-    //             None => 0,
-    //         };
-
-    //         let message = match parse_message::parse_envelope(fetch, &message_uid) {
-    //             Ok(m) => m,
-    //             Err(e) => {
-    //                 eprintln!("Error parsing envelope: {:?}", e);
-    //                 return Err(String::from("Error parsing envelope"));
-    //             }
-    //         };
-
-    //         let message_string = parse_message::message_to_string(message);
-
-    //         response.push_str(&message_string);
-    //         if i < message_envelopes.len() - 1 {
-    //             response.push_str(",");
-    //         }
-    //     }
-
-    //     response.push_str("]}");
-
-    //     Ok(response)
-    // }
+    pub fn sequence_set_to_string(sequence_set: &SequenceSet) -> Result<String, String> {
+        let sequence_set_string: String = match sequence_set {
+            SequenceSet {
+                nr_messages: Some(nr_messages),
+                start_end: None,
+            } => {
+                format!("1:{}", nr_messages)
+            }
+            SequenceSet {
+                nr_messages: None,
+                start_end: Some(StartEnd { start, end }),
+            } => {
+                if start > end {
+                    return Err(String::from("Start must be less than or equal to end"));
+                }
+    
+                format!("{}:{}", start, end)
+            }
+            _ => String::from("1:*"),
+        };
+    
+        return Ok(sequence_set_string);
+    }
 }

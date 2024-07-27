@@ -49,7 +49,7 @@ impl InboxClient {
         return Ok(response);
     }
 
-    pub fn get_mailboxes_db(&mut self, session_id: usize) -> Result<Vec<String>, String> {
+    fn get_mailboxes_db(&mut self, session_id: usize) -> Result<Vec<String>, String> {
         if session_id >= self.sessions.len() {
             return Err(String::from("Invalid session ID"));
         }
@@ -68,7 +68,7 @@ impl InboxClient {
         return Ok(mailboxes);
     }
 
-    pub fn get_mailboxes_imap(&mut self, session_id: usize) -> Result<Vec<String>, String> {
+    fn get_mailboxes_imap(&mut self, session_id: usize) -> Result<Vec<String>, String> {
         if session_id >= self.sessions.len() {
             return Err(String::from("Invalid session ID"));
         }

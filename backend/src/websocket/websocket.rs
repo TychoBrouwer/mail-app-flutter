@@ -50,9 +50,9 @@ fn handle_connection(msg: &str, inbox_client: &mut inbox_client::InboxClient) ->
     match request {
         "/imap/login" => handle_conn::login(data, inbox_client),
         "/imap/logout" => handle_conn::logout(data, inbox_client),
-        "/imap/message" => handle_conn::message(data, inbox_client),
         "/imap/mailboxes" => handle_conn::mailboxes(data, inbox_client),
-        "/imap/message_ids" => handle_conn::message_ids(data, inbox_client),
+        "/imap/message" => handle_conn::message(data, inbox_client),
+        "/imap/messages" => handle_conn::messages(data, inbox_client),
         // "/imap/message_envelopes" => handle_conn::message_envelopes(data, inbox_client),
         _ => String::from("{\"message\": \"Not Found\"}"),
     }

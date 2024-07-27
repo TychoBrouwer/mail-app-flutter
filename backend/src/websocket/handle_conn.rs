@@ -127,7 +127,7 @@ pub fn message(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> Strin
     }
 }
 
-pub fn message_ids(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
+pub fn messages(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = params::get_usize(uri_params.get("session_id"));
@@ -158,17 +158,17 @@ pub fn message_ids(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> S
         },
     };
 
-    match inbox_client.get_message_ids(session_id, mailbox, sequence_set) {
+    match inbox_client.get_messages(session_id, mailbox, sequence_set) {
         Ok(messages) => {
             return format!(
-            "{{\"success\": \"true\", \"message\": \"Message envelopes retrieved\", \"data\": {}}}",
-            messages
-        )
+                "{{\"success\": \"true\", \"message\": \"Messages retrieved\", \"data\": {}}}",
+                messages
+            )
         }
         Err(e) => {
-            eprintln!("Error getting message envelopes: {:?}", e);
+            eprintln!("Error getting messages: {:?}", e);
             return format!("{{\"success\": \"false\", \"message\": \"{}\"}}", e);
-        }
+        }        
     }
 }
 

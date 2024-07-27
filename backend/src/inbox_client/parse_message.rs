@@ -6,7 +6,7 @@ use regex::Regex;
 use std::collections::HashMap;
 
 #[derive(Debug)]
-pub struct MessageBody {
+pub struct Message {
     pub uid: u32,
     pub message_id: String,
     pub subject: String,
@@ -94,7 +94,7 @@ fn address_to_string(address: &Option<Vec<imap_proto::types::Address>>) -> Strin
     }
 }
 
-pub fn parse_message_body(body: &str, uid: &u32) -> MessageBody {
+pub fn parse_message_body(body: &str, uid: &u32) -> Message {
     let mut state = MimeParserState::HeaderKey;
 
     let mut header_key = String::from("");
@@ -262,6 +262,7 @@ pub fn parse_message_body(body: &str, uid: &u32) -> MessageBody {
     html = html.replace("&#39;", "'");
     html = html.replace("&amp;", "&");
     html = html.replace("&copy;", "©");
+    html = html.replace("E28099", "'");
 
     if text_encoding != "base64" {
         text = BASE64_STANDARD.encode(text.as_bytes());
@@ -281,7 +282,7 @@ pub fn parse_message_body(body: &str, uid: &u32) -> MessageBody {
     let subject = headers.get("Subject").unwrap_or(&binding);
     let message_id = headers.get("Message-ID").unwrap_or(&binding);
 
-    return MessageBody {
+    return Message {
         uid: uid.clone(),
         message_id: message_id.to_string(),
         subject: subject.to_string(),
@@ -300,95 +301,72 @@ pub fn parse_message_body(body: &str, uid: &u32) -> MessageBody {
     };
 }
 
-pub fn parse_envelope(fetch: &imap::types::Fetch, uid: &u32) -> Result<MessageBody, String> {
+pub fn parse_message(fetch: &imap::types::Fetch) -> Result<Message, String> {
     let envelope = match fetch.envelope() {
         Some(e) => e,
         None => return Err(String::from("Error getting envelope")),
     };
 
-    let date_str = decode_u8(envelope.date);
-    let date = parse_time_rfc2822(Some(&date_str)).timestamp_millis();
+    let uid = match fetch.uid {
+        Some(u) => u,
+        None => return Err(String::from("Error getting UID")),
+    };
 
-    return Ok(MessageBody {
-        uid: uid.clone(),
-        message_id: String::from(""),
+    let body_str = match fetch.body() {
+        Some(b) => {
+            match std::str::from_utf8(b) {
+                Ok(b) => b,
+                Err(_) => return Err(String::from("Error getting body")),
+            }
+        },
+        None => return Err(String::from("Error getting body")),
+    };
+
+    let body_data = parse_message_body(body_str, &uid);
+
+    return Ok(Message {
+        uid,
+        message_id: decode_u8(envelope.message_id),
         subject: decode_u8(envelope.subject),
         from: address_to_string(&envelope.from),
-        sender: String::from(""),
+        sender: address_to_string(&envelope.sender),
         to: address_to_string(&envelope.to),
         cc: address_to_string(&envelope.cc),
         bcc: address_to_string(&envelope.bcc),
         reply_to: address_to_string(&envelope.reply_to),
         in_reply_to: decode_u8(envelope.in_reply_to),
-        delivered_to: String::from(""),
-        date,
-        received: 0,
-        text: String::from(""),
-        html: String::from(""),
+        delivered_to: body_data.delivered_to,
+        date: body_data.date,
+        received: body_data.received,
+        text: body_data.text,
+        html: body_data.html,
     });
 }
 
-pub fn message_merge(message_primary: MessageBody, message_secondary: MessageBody) -> MessageBody {
-    let mut result = message_primary;
-
-    if result.message_id.is_empty() {
-        result.message_id = message_secondary.message_id
-    };
-    if result.sender.is_empty() {
-        result.sender = message_secondary.sender
-    };
-    if result.cc.is_empty() {
-        result.cc = message_secondary.cc
-    };
-    if result.bcc.is_empty() {
-        result.bcc = message_secondary.bcc
-    };
-    if result.reply_to.is_empty() {
-        result.reply_to = message_secondary.reply_to
-    };
-    if result.in_reply_to.is_empty() {
-        result.in_reply_to = message_secondary.in_reply_to
-    };
-    if result.delivered_to.is_empty() {
-        result.delivered_to = message_secondary.delivered_to
-    };
-    if result.received == 0 {
-        result.received = message_secondary.received
-    };
-    if result.text.is_empty() {
-        result.text = message_secondary.text
-    };
-    if result.html.is_empty() {
-        result.html = message_secondary.html
-    };
-
-    return result;
-}
-
-pub fn message_to_string(message_body: MessageBody) -> String {
+pub fn message_to_string(message: &Message) -> String {
     let mut result = String::from("{");
   
-    result.push_str(&format!("\"uid\": {},", message_body.uid));
-    result.push_str(&format!("\"message_id\": \"{}\",", message_body.message_id));
-    result.push_str(&format!("\"subject\": \"{}\",", message_body.subject));
-    result.push_str(&format!("\"from\": {},", message_body.from));
-    result.push_str(&format!("\"sender\": \"{}\",", message_body.sender));
-    result.push_str(&format!("\"to\": {},", message_body.to));
-    result.push_str(&format!("\"cc\": {},", message_body.cc));
-    result.push_str(&format!("\"bcc\": {},", message_body.bcc));
-    result.push_str(&format!("\"reply_to\": {},", message_body.reply_to));
+    result.push_str(&format!("\"uid\": {},", message.uid));
+    result.push_str(&format!("\"message_id\": \"{}\",", message.message_id));
+    result.push_str(&format!("\"subject\": \"{}\",", message.subject));
+    result.push_str(&format!("\"from\": {},", message.from));
+    result.push_str(&format!("\"sender\": \"{}\",", message.sender));
+    result.push_str(&format!("\"to\": {},", message.to));
+    result.push_str(&format!("\"cc\": {},", message.cc));
+    result.push_str(&format!("\"bcc\": {},", message.bcc));
+    result.push_str(&format!("\"reply_to\": {},", message.reply_to));
     result.push_str(&format!(
         "\"in_reply_to\": \"{}\",",
-        message_body.in_reply_to
+        message.in_reply_to
     ));
     result.push_str(&format!(
         "\"delivered_to\": \"{}\",",
-        message_body.delivered_to
+        message.delivered_to
     ));
-    result.push_str(&format!("\"date\": \"{}\",", message_body.date));
-    result.push_str(&format!("\"received\": \"{}\",", message_body.received));
-    result.push_str(&format!("\"html\": \"{}\",", message_body.html));
-    result.push_str(&format!("\"text\": \"{}\"", message_body.text));
+    result.push_str(&format!("\"date\": \"{}\",", message.date));
+    result.push_str(&format!("\"received\": \"{}\",", message.received));
+    result.push_str(&format!("\"html\": \"{}\",", message.html));
+    result.push_str(&format!("\"text\": \"{}\"", message.text));
   
     result.push_str("}");
   
