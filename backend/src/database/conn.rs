@@ -25,12 +25,12 @@ impl DBConnection {
     pub fn initialise(&mut self) -> Result<()> {
         match self.conn.execute(
             "CREATE TABLE IF NOT EXISTS connections (
-                id INTEGER PRIMARY KEY,
                 username VARCHAR(500) NOT NULL,
                 password VARCHAR(500) NOT NULL,
                 address VARCHAR(500) NOT NULL,
                 port INTEGER NOT NULL,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(username, address)
             )",
             params![],
         ) {
@@ -44,11 +44,12 @@ impl DBConnection {
 
         match self.conn.execute(
             "CREATE TABLE IF NOT EXISTS mailboxes (
-                id INTEGER PRIMARY KEY,
-                connection_id INTEGER NOT NULL,
+                c_username VARCHAR(500) NOT NULL,
+                c_address VARCHAR(500) NOT NULL,
                 path VARCHAR(500) NOT NULL,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(connection_id) REFERENCES connections(id) ON DELETE CASCADE
+                PRIMARY KEY(c_username, c_address, path),
+                FOREIGN KEY(c_username, c_address) REFERENCES connections(username, address) ON DELETE CASCADE
             )",
             params![],
         ) {
@@ -62,26 +63,28 @@ impl DBConnection {
 
         match self.conn.execute(
             "CREATE TABLE IF NOT EXISTS messages (
-                uid INTEGER PRIMARY KEY,
-                connection_id INTEGER NOT NULL,
-                mailbox_id INTEGER NOT NULL,
+                uid INTEGER NOT NULL,
+                c_username VARCHAR(500) NOT NULL,
+                c_address VARCHAR(500) NOT NULL,
+                m_path VARCHAR(500) NOT NULL,
                 message_id VARCHAR(500) NOT NULL,
                 subject VARCHAR(500) NOT NULL,
-                from VARCHAR(500) NOT NULL,
+                from_ VARCHAR(500) NOT NULL,
                 sender VARCHAR(500) NOT NULL,
-                to VARCHAR(500) NOT NULL,
+                to_ VARCHAR(500) NOT NULL,
                 cc VARCHAR(500) NOT NULL,
                 bcc VARCHAR(500) NOT NULL,
                 reply_to VARCHAR(500) NOT NULL,
                 in_reply_to VARCHAR(500) NOT NULL,
                 delivered_to VARCHAR(500) NOT NULL,
-                date TIMESTAMP NOT NULL,
+                date_ TIMESTAMP NOT NULL,
                 received TIMESTAMP NOT NULL,
                 html TEXT NOT NULL,
                 text TEXT NOT NULL,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(connection_id) REFERENCES connections(id) ON DELETE CASCADE,
-                FOREIGN KEY(mailbox_id) REFERENCES mailboxes(id) ON DELETE CASCADE
+                PRIMARY KEY(c_username, c_address, m_path, uid),
+                FOREIGN KEY(c_username, c_address) REFERENCES connections(username, address) ON DELETE CASCADE,
+                FOREIGN KEY(c_username, c_address, m_path) REFERENCES mailboxes(c_username, c_address, path) ON DELETE CASCADE
             )",
             params![],
         ) {
@@ -94,55 +97,6 @@ impl DBConnection {
         }
 
         return Ok(());
-    }
-
-    fn get_connection_id(&mut self, username: &str, address: &str) -> Result<u32, String> {
-        let mut stmt = match self
-            .conn
-            .prepare("SELECT * FROM connections WHERE username = ?1 AND address = ?2")
-        {
-            Ok(stmt) => stmt,
-            Err(e) => {
-                eprintln!("Error preparing statement at connection id: {}", e);
-                return Err(String::from("Error preparing statement at connection id"));
-            }
-        };
-
-        let connection_id = match stmt.query_row(params![username, address], |row| row.get(0)) {
-            Ok(result) => result,
-            Err(e) => {
-                eprintln!("Error retreiving connection id: {}", e);
-
-                return Err(String::from("Error retreiving connection id"));
-            }
-        };
-
-        return Ok(connection_id);
-    }
-
-    fn get_mailbox_id(&mut self, connection_id: &u32, mailbox_path: &str) -> Result<u32, String> {
-        let mut stmt = match self
-            .conn
-            .prepare("SELECT * FROM mailboxes WHERE connection_id = ?1 AND path = ?2")
-        {
-            Ok(stmt) => stmt,
-            Err(e) => {
-                eprintln!("Error preparing statement at mailbox id: {}", e);
-                return Err(String::from("Error preparing statement at mailbox id"));
-            }
-        };
-
-        let mailbox_id =
-            match stmt.query_row(params![connection_id, mailbox_path], |row| row.get(0)) {
-                Ok(result) => result,
-                Err(e) => {
-                    eprintln!("Error retreiving mailbox id: {}", e);
-
-                    return Err(String::from("Error retreiving mailbox id"));
-                }
-            };
-
-        return Ok(mailbox_id);
     }
 
     pub fn insert_connection(&mut self, username: &str, password: &str, address: &str, port: u16) {
@@ -163,20 +117,13 @@ impl DBConnection {
     }
 
     pub fn insert_mailbox(&mut self, username: &str, address: &str, mailbox_path: &str) {
-        let connection_id = match self.get_connection_id(username, address) {
-            Ok(result) => result,
-            Err(e) => {
-                eprintln!("Error getting connection id: {}", e);
-                return;
-            }
-        };
-
         match self.conn.execute(
             "INSERT OR IGNORE INTO mailboxes (
-                connection_id,
+                c_username,
+                c_address,
                 path
-            ) VALUES (?1, ?2)",
-            params![mailbox_path, connection_id],
+            ) VALUES (?1, ?2, ?3)",
+            params![username, address, mailbox_path],
         ) {
             Ok(_) => {}
             Err(e) => {
@@ -192,45 +139,32 @@ impl DBConnection {
         mailbox_path: &str,
         message: &MessageBody,
     ) -> Result<(), String> {
-        let connection_id = match self.get_connection_id(username, address) {
-            Ok(result) => result,
-            Err(e) => {
-                return Err(e);
-            }
-        };
-
-        let mailbox_id = match self.get_mailbox_id(&connection_id, mailbox_path) {
-            Ok(result) => result,
-            Err(e) => {
-                // Create mailbox database row
-                return Err(e);
-            }
-        };
-
         match self.conn.execute(
             "INSERT OR IGNORE INTO messages (
                 uid,
-                connection_id,
-                mailbox_id,
+                c_username,
+                c_address,
+                m_path,
                 message_id,
                 subject,
-                from,
+                from_,
                 sender,
-                to,
+                to_,
                 cc,
                 bcc,
                 reply_to,
                 in_reply_to,
                 delivered_to,
-                date,
+                date_,
                 received,
                 html,
                 text
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)",
             params![
-                connection_id,
-                mailbox_id,
                 message.uid,
+                username,
+                address,
+                mailbox_path,
                 message.message_id,
                 message.subject,
                 message.from,
@@ -257,17 +191,9 @@ impl DBConnection {
     }
 
     pub fn get_mailboxes(&mut self, username: &str, address: &str) -> Result<Vec<String>, String> {
-        let connection_id = match self.get_connection_id(username, address) {
-            Ok(result) => result,
-            Err(e) => {
-                eprintln!("Error getting connection id: {}", e);
-                return Err(String::from("Error getting connection id"));
-            }
-        };
-
         let mut stmt = match self
             .conn
-            .prepare("SELECT * FROM mailboxes WHERE connection_id = ?1")
+            .prepare("SELECT * FROM mailboxes WHERE c_username = ?1 AND c_address = ?2")
         {
             Ok(stmt) => stmt,
             Err(e) => {
@@ -278,7 +204,7 @@ impl DBConnection {
 
         let mut mailboxes: Vec<String> = Vec::new();
 
-        match stmt.query_map(params![connection_id], |row| row.get(2)) {
+        match stmt.query_map(params![username, address], |row| row.get(2)) {
             Ok(rows) => {
                 for row in rows {
                     mailboxes.push(row.unwrap());
@@ -296,11 +222,12 @@ impl DBConnection {
     pub fn get_message_with_uid(
         &mut self,
         username: &str,
+        address: &str,
         mailbox_path: &str,
         uid: &u32,
     ) -> Result<MessageBody, String> {
         let mut stmt = match self.conn.prepare(
-            "SELECT * FROM messages WHERE connection_username = ?1 AND mailbox_path = ?2 AND uid = ?3",
+            "SELECT * FROM messages WHERE c_username = ?1 AND c_address = ?2 AND m_path = ?3 AND uid = ?4",
         ) {
             Ok(stmt) => stmt,
             Err(e) => {
@@ -309,23 +236,23 @@ impl DBConnection {
             }
         };
 
-        match stmt.query_row(params![username, mailbox_path, uid], |row| {
+        match stmt.query_row(params![username, address, mailbox_path, uid], |row| {
             Ok(MessageBody {
                 uid: row.get(0).unwrap(),
-                message_id: row.get(3).unwrap(),
-                subject: row.get(4).unwrap(),
-                from: row.get(5).unwrap(),
-                sender: row.get(6).unwrap(),
-                to: row.get(7).unwrap(),
-                cc: row.get(8).unwrap(),
-                bcc: row.get(9).unwrap(),
-                reply_to: row.get(10).unwrap(),
-                in_reply_to: row.get(11).unwrap(),
-                delivered_to: row.get(12).unwrap(),
-                date: row.get(13).unwrap(),
-                received: row.get(14).unwrap(),
-                html: row.get(15).unwrap(),
-                text: row.get(16).unwrap(),
+                message_id: row.get(4).unwrap(),
+                subject: row.get(5).unwrap(),
+                from: row.get(6).unwrap(),
+                sender: row.get(7).unwrap(),
+                to: row.get(8).unwrap(),
+                cc: row.get(9).unwrap(),
+                bcc: row.get(10).unwrap(),
+                reply_to: row.get(11).unwrap(),
+                in_reply_to: row.get(12).unwrap(),
+                delivered_to: row.get(13).unwrap(),
+                date: row.get(14).unwrap(),
+                received: row.get(15).unwrap(),
+                html: row.get(16).unwrap(),
+                text: row.get(17).unwrap(),
             })
         }) {
             Ok(message) => {

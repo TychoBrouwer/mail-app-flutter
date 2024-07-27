@@ -29,8 +29,12 @@ pub fn parse_params(uri: String) -> HashMap<String, String> {
     uri_parts.iter().for_each(|part| {
         let parts: Vec<&str> = part.split("=").collect();
 
+        if parts.len() != 2 {
+            return;
+        }
+
         let key = parts[0].to_owned();
-        let value = parts[1].to_owned();
+        let value: String = parts[1].to_owned();
 
         result.insert(key, value);
     });

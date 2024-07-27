@@ -66,6 +66,34 @@ pub fn logout(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String
     }
 }
 
+pub fn mailboxes(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
+    let uri_params = params::parse_params(String::from(uri));
+
+    let session_id = params::get_usize(uri_params.get("session_id"));
+
+    if session_id.is_none() {
+        eprintln!("Provide session_id GET parameter: {}", uri);
+        return String::from(
+            "{\"success\": \"false\", \"message\": \"Provide session_id GET parameter\"}",
+        );
+    }
+
+    let session_id = session_id.unwrap();
+
+    match inbox_client.get_mailboxes(session_id) {
+        Ok(mailboxes) => {
+            return format!(
+                "{{\"success\": \"true\", \"message\": \"Mailboxes retrieved\", \"data\": {}}}",
+                mailboxes
+            )
+        }
+        Err(e) => {
+            eprintln!("Error getting mailboxes: {:?}", e);
+            return format!("{{\"success\": \"false\", \"message\": \"{}\"}}", e);
+        }
+    }
+}
+
 pub fn message_envelopes(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
@@ -101,10 +129,12 @@ pub fn message_envelopes(uri: &str, inbox_client: &mut inbox_client::InboxClient
     };
 
     match inbox_client.get_message_envelopes_imap(session_id, mailbox, sequence_set) {
-        Ok(messages) => return format!(
+        Ok(messages) => {
+            return format!(
             "{{\"success\": \"true\", \"message\": \"Message envelopes retrieved\", \"data\": {}}}",
             messages
-        ),
+        )
+        }
         Err(e) => {
             eprintln!("Error getting message envelopes: {:?}", e);
             return format!("{{\"success\": \"false\", \"message\": \"{}\"}}", e);
@@ -140,35 +170,7 @@ pub fn message(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> Strin
         }
         Err(e) => {
             eprintln!("Error getting message: {:?}", e);
-            return format!("{{\"success\": \"false\", \"message\": \"{}\"}}", e);
-        }
-    }
-}
-
-pub fn mailboxes(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
-    let uri_params = params::parse_params(String::from(uri));
-
-    let session_id = params::get_usize(uri_params.get("session_id"));
-
-    if session_id.is_none() {
-        eprintln!("Provide session_id GET parameter: {}", uri);
-        return String::from(
-            "{\"success\": \"false\", \"message\": \"Provide session_id GET parameter\"}",
-        );
-    }
-
-    let session_id = session_id.unwrap();
-
-    match inbox_client.get_mailboxes(session_id) {
-        Ok(mailboxes) => {
-            return format!(
-                "{{\"success\": \"true\", \"message\": \"Mailboxes retrieved\", \"data\": {}}}",
-                mailboxes
-            )
-        }
-        Err(e) => {
-            eprintln!("Error getting mailboxes: {:?}", e);
-            return format!("{{\"success\": \"false\", \"message\": \"{}\"}}", e);
+            return format!("{{\"success\": \"false\", \"message\": {}}}", e);
         }
     }
 }

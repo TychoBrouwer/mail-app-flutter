@@ -1,16 +1,18 @@
-mod websocket {
-    pub mod handle_conn;
-    pub mod params;
-    pub mod websocket;
-}
-
 mod database {
     pub mod conn;
 }
 
 mod inbox_client {
+    pub mod get_mailboxes;
+    pub mod get_message;
     pub mod inbox_client;
     pub mod parse_message;
+}
+
+mod websocket {
+    pub mod handle_conn;
+    pub mod params;
+    pub mod websocket;
 }
 
 fn main() {

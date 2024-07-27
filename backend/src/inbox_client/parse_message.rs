@@ -5,6 +5,7 @@ use imap_proto;
 use regex::Regex;
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct MessageBody {
     pub uid: u32,
     pub message_id: String,
@@ -42,7 +43,7 @@ fn parse_time_rfc2822(time_str: Option<&String>) -> DateTime<FixedOffset> {
     let date = match time_re.captures(time_str.unwrap_or(&binding)) {
         Some(c) => c.get(1).unwrap().as_str(),
         None => {
-            dbg!("Error: Could not parse date");
+            eprintln!("Error: Could not parse date");
             "Thu, 1 Jan 1970 00:00:00 +0000"
         }
     };
@@ -50,7 +51,7 @@ fn parse_time_rfc2822(time_str: Option<&String>) -> DateTime<FixedOffset> {
     let date = match DateTime::parse_from_rfc2822(&date) {
         Ok(date) => date,
         Err(e) => {
-            dbg!("Error: {}", e);
+            eprintln!("Error: {}", e);
             DateTime::parse_from_rfc2822("Thu, 1 Jan 1970 00:00:00 +0000").unwrap()
         }
     };
@@ -93,10 +94,7 @@ fn address_to_string(address: &Option<Vec<imap_proto::types::Address>>) -> Strin
     }
 }
 
-pub fn parse_message_body(
-    body: &str,
-    uid: &u32,
-) -> MessageBody {
+pub fn parse_message_body(body: &str, uid: &u32) -> MessageBody {
     let mut state = MimeParserState::HeaderKey;
 
     let mut header_key = String::from("");
@@ -131,7 +129,7 @@ pub fn parse_message_body(
                 let split = match line.split_once(":") {
                     Some(s) => s,
                     None => {
-                        dbg!("Error: Could not split header key and value");
+                        eprintln!("Error: Could not split header key and value");
 
                         ("", "")
                     }
@@ -186,7 +184,7 @@ pub fn parse_message_body(
                 let split = match line.split_once(":") {
                     Some(s) => s,
                     None => {
-                        dbg!("Error: Could not split header key and value");
+                        eprintln!("Error: Could not split header key and value");
 
                         ("", "")
                     }
@@ -218,7 +216,7 @@ pub fn parse_message_body(
                 let split = match line.split_once(":") {
                     Some(s) => s,
                     None => {
-                        dbg!("Error: Could not split header key and value");
+                        eprintln!("Error: Could not split header key and value");
 
                         ("", "")
                     }
@@ -302,10 +300,7 @@ pub fn parse_message_body(
     };
 }
 
-pub fn parse_envelope(
-    fetch: &imap::types::Fetch,
-    uid: &u32,
-) -> Result<MessageBody, String> {
+pub fn parse_envelope(fetch: &imap::types::Fetch, uid: &u32) -> Result<MessageBody, String> {
     let envelope = match fetch.envelope() {
         Some(e) => e,
         None => return Err(String::from("Error getting envelope")),
@@ -333,47 +328,69 @@ pub fn parse_envelope(
     });
 }
 
-pub fn message_merge(message_1: MessageBody, message_2: MessageBody) -> MessageBody{
-    let mut result = message_2;
+pub fn message_merge(message_primary: MessageBody, message_secondary: MessageBody) -> MessageBody {
+    let mut result = message_primary;
 
-    if !message_1.message_id.is_empty() { result.message_id = message_1.message_id };
-    if !message_1.sender.is_empty() { result.sender = message_1.sender };
-    if !message_1.cc.is_empty() { result.cc = message_1.cc };
-    if !message_1.bcc.is_empty() { result.bcc = message_1.bcc };
-    if !message_1.reply_to.is_empty() { result.reply_to = message_1.reply_to };
-    if !message_1.in_reply_to.is_empty() { result.in_reply_to = message_1.in_reply_to };
-    if !message_1.delivered_to.is_empty() { result.delivered_to = message_1.delivered_to };
-    if message_1.received != 0 { result.received = message_1.received };
-    if !message_1.text.is_empty() { result.text = message_1.text };
-    if !message_1.html.is_empty() { result.html = message_1.html };
+    if result.message_id.is_empty() {
+        result.message_id = message_secondary.message_id
+    };
+    if result.sender.is_empty() {
+        result.sender = message_secondary.sender
+    };
+    if result.cc.is_empty() {
+        result.cc = message_secondary.cc
+    };
+    if result.bcc.is_empty() {
+        result.bcc = message_secondary.bcc
+    };
+    if result.reply_to.is_empty() {
+        result.reply_to = message_secondary.reply_to
+    };
+    if result.in_reply_to.is_empty() {
+        result.in_reply_to = message_secondary.in_reply_to
+    };
+    if result.delivered_to.is_empty() {
+        result.delivered_to = message_secondary.delivered_to
+    };
+    if result.received == 0 {
+        result.received = message_secondary.received
+    };
+    if result.text.is_empty() {
+        result.text = message_secondary.text
+    };
+    if result.html.is_empty() {
+        result.html = message_secondary.html
+    };
 
     return result;
 }
 
 pub fn message_to_string(message_body: MessageBody) -> String {
     let mut result = String::from("{");
-
+  
     result.push_str(&format!("\"uid\": {},", message_body.uid));
     result.push_str(&format!("\"message_id\": \"{}\",", message_body.message_id));
     result.push_str(&format!("\"subject\": \"{}\",", message_body.subject));
-    result.push_str(&format!("\"from\": \"{}\",", message_body.from));
+    result.push_str(&format!("\"from\": {},", message_body.from));
     result.push_str(&format!("\"sender\": \"{}\",", message_body.sender));
-    result.push_str(&format!("\"to\": \"{}\",", message_body.to));
-    result.push_str(&format!("\"cc\": \"{}\",", message_body.cc));
-    result.push_str(&format!("\"bcc\": \"{}\",", message_body.bcc));
-    result.push_str(&format!("\"reply_to\": \"{}\",", message_body.reply_to));
-    result.push_str(&format!("\"in_reply_to\": \"{}\",", message_body.in_reply_to));
-    result.push_str(&format!("\"delivered_to\": \"{}\",", message_body.delivered_to));
-    result.push_str(&format!("\"date\": \"{}\",", message_body.date));
-    result.push_str(&format!("\"received\": \"{}\",", message_body.received));
+    result.push_str(&format!("\"to\": {},", message_body.to));
+    result.push_str(&format!("\"cc\": {},", message_body.cc));
+    result.push_str(&format!("\"bcc\": {},", message_body.bcc));
+    result.push_str(&format!("\"reply_to\": {},", message_body.reply_to));
+    result.push_str(&format!(
+        "\"in_reply_to\": \"{}\",",
+        message_body.in_reply_to
+    ));
     result.push_str(&format!(
         "\"delivered_to\": \"{}\",",
         message_body.delivered_to
     ));
-    result.push_str(&format!("\"html\": \"{}\"", message_body.html));
-    result.push_str(&format!("\"text\": \"{}\",", message_body.text));
-
+    result.push_str(&format!("\"date\": \"{}\",", message_body.date));
+    result.push_str(&format!("\"received\": \"{}\",", message_body.received));
+    result.push_str(&format!("\"html\": \"{}\",", message_body.html));
+    result.push_str(&format!("\"text\": \"{}\"", message_body.text));
+  
     result.push_str("}");
-
+  
     return result;
 }
