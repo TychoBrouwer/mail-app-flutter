@@ -5,6 +5,7 @@ mod database {
 mod inbox_client {
     pub mod get_mailboxes;
     pub mod get_message;
+    pub mod get_messages;
     pub mod inbox_client;
     pub mod parse_message;
 }

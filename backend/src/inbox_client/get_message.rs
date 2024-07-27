@@ -17,7 +17,7 @@ impl InboxClient {
                 println!("Error getting message from local database: {:?}", e);
 
                 let message_imap =
-                    match self.get_message_imap(session_id, mailbox_path, message_uid) {
+                    match self.get_message_body_imap(session_id, mailbox_path, message_uid) {
                         Ok(m) => m,
                         Err(e) => {
                             eprintln!("Error getting message from IMAP: {:?}", e);
@@ -92,7 +92,7 @@ impl InboxClient {
         };
     }
 
-    pub fn get_message_imap(
+    pub fn get_message_body_imap(
         &mut self,
         session_id: usize,
         mailbox_path: &str,
