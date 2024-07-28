@@ -35,7 +35,7 @@ impl InboxClient {
             Some(start_end) => start_end.start - 1,
             None => 0,
         };
-        
+
         let failed_sequence_set: SequenceSet = SequenceSet {
             nr_messages: None,
             start_end: None,
@@ -80,7 +80,6 @@ impl InboxClient {
                 }
             }
         };
-        
 
         let mut response = String::from("[");
 
@@ -112,7 +111,13 @@ impl InboxClient {
             None => return Err(String::from("Session not found")),
         };
 
-        session.select(mailbox_path).unwrap();
+        match session.select(mailbox_path) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Error selecting mailbox: {:?}", e);
+                return Err(String::from("Error selecting mailbox"));
+            }
+        }
 
         let sequence_set_string: String = match InboxClient::sequence_set_to_string(&sequence_set) {
             Ok(s) => s,
@@ -159,7 +164,13 @@ impl InboxClient {
             None => return Err(String::from("Session not found")),
         };
 
-        session.select(mailbox_path).unwrap();
+        match session.select(mailbox_path) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Error selecting mailbox: {:?}", e);
+                return Err(String::from("Error selecting mailbox"));
+            }
+        }
 
         let sequence_set_string: String = match InboxClient::sequence_set_to_string(&sequence_set) {
             Ok(s) => s,

@@ -58,7 +58,13 @@ impl InboxClient {
             None => return Err(String::from("Session not found")),
         };
 
-        session.select(mailbox_path).unwrap();
+        match session.select(mailbox_path) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Error selecting mailbox: {:?}", e);
+                return Err(String::from("Error selecting mailbox"));
+            }
+        }
 
         let envelope_fetch =
             match session.uid_fetch(message_uid.to_string(), "(UID ENVELOPE BODY[])") {
