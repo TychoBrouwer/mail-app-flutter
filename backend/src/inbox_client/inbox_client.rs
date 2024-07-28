@@ -144,7 +144,7 @@ impl InboxClient {
                 let mut result = String::new();
     
                 for (i, idx) in idxs.iter().enumerate() {
-                    result.push_str(&(idx + 1).to_string());
+                    result.push_str(&idx.to_string());
     
                     if i < idxs.len() - 1 {
                         result.push_str(",");

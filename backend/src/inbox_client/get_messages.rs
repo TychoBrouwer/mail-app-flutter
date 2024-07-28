@@ -35,10 +35,11 @@ impl InboxClient {
             Some(start_end) => start_end.start - 1,
             None => 0,
         };
+        
         let failed_sequence_set: SequenceSet = SequenceSet {
             nr_messages: None,
             start_end: None,
-            idx: Some(failed_sequence_idx.iter().map(|x| x + offset).collect()),
+            idx: Some(failed_sequence_idx.iter().map(|x| x + offset + 1).collect()),
         };
 
         match failed_message_uids.len() {
