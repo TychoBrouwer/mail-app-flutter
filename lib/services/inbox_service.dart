@@ -13,8 +13,6 @@ class InboxService {
     String password,
     String imapAddress,
     int imapPort,
-    String smtpServer,
-    int smtpPort,
   ) async {
     if (_mailClients.containsKey(email)) return null;
 

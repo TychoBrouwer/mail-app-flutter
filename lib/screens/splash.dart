@@ -88,8 +88,6 @@ class SplashPageState extends State<SplashPage> {
         account.password,
         account.imapAddress,
         account.imapPort,
-        account.smtpAddress,
-        account.smtpPort,
       );
     }
 
