@@ -292,7 +292,6 @@ impl DBConnection {
             }
         };
 
-
         match stmt.query_row(params![username, address, mailbox_path, uid], |row| {
             let html: String = row.get(16).unwrap();
             let text: String = row.get(17).unwrap();

@@ -16,8 +16,11 @@ mod websocket {
     pub mod websocket;
 }
 
+use crate::database::conn::DBConnection;
+use crate::inbox_client::inbox_client::InboxClient;
+
 fn main() {
-    let mut database_conn = match database::conn::DBConnection::new("mail.db") {
+    let mut database_conn = match DBConnection::new("mail.db") {
         Ok(conn) => conn,
         Err(e) => {
             panic!("Error opening database: {}", e);
@@ -38,7 +41,7 @@ fn main() {
         }
     };
 
-    let mut inbox_client = inbox_client::inbox_client::InboxClient::new(database_conn);
+    let mut inbox_client = InboxClient::new(database_conn);
 
     for connection in connections {
         match inbox_client.connect(connection) {

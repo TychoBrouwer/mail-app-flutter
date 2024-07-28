@@ -31,10 +31,14 @@ impl InboxClient {
             .map(|uid| message_uids.iter().position(|x| x == uid).unwrap())
             .collect::<Vec<usize>>();
 
+        let offset = match &sequence_set.start_end {
+            Some(start_end) => start_end.start - 1,
+            None => 0,
+        };
         let failed_sequence_set: SequenceSet = SequenceSet {
             nr_messages: None,
             start_end: None,
-            idx: Some(failed_sequence_idx.iter().map(|x| x + 1).collect()),
+            idx: Some(failed_sequence_idx.iter().map(|x| x + offset).collect()),
         };
 
         match failed_message_uids.len() {

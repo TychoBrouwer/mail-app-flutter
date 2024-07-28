@@ -1,9 +1,9 @@
 use crate::{
-    inbox_client::inbox_client::{self, Session},
+    inbox_client::inbox_client::{InboxClient, SequenceSet, Session, StartEnd},
     websocket::params,
 };
 
-pub fn login(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
+pub fn login(uri: &str, inbox_client: &mut InboxClient) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let email = uri_params.get("email");
@@ -51,7 +51,7 @@ pub fn login(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String 
     }
 }
 
-pub fn logout(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
+pub fn logout(uri: &str, inbox_client: &mut InboxClient) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = params::get_usize(uri_params.get("session_id"));
@@ -76,7 +76,7 @@ pub fn logout(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String
     }
 }
 
-pub fn sessions(inbox_client: &mut inbox_client::InboxClient) -> String {
+pub fn sessions(inbox_client: &mut InboxClient) -> String {
     let sessions = &inbox_client.sessions;
 
     let mut response = String::from("[");
@@ -95,7 +95,7 @@ pub fn sessions(inbox_client: &mut inbox_client::InboxClient) -> String {
     return response;
 }
 
-pub fn mailboxes(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
+pub fn mailboxes(uri: &str, inbox_client: &mut InboxClient) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = params::get_usize(uri_params.get("session_id"));
@@ -123,7 +123,7 @@ pub fn mailboxes(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> Str
     }
 }
 
-pub fn message(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
+pub fn message(uri: &str, inbox_client: &mut InboxClient) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = params::get_usize(uri_params.get("session_id"));
@@ -156,7 +156,7 @@ pub fn message(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> Strin
     }
 }
 
-pub fn messages(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
+pub fn messages(uri: &str, inbox_client: &mut InboxClient) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = params::get_usize(uri_params.get("session_id"));
@@ -175,10 +175,10 @@ pub fn messages(uri: &str, inbox_client: &mut inbox_client::InboxClient) -> Stri
 
     let session_id = session_id.unwrap();
     let mailbox = mailbox.unwrap();
-    let sequence_set = inbox_client::SequenceSet {
+    let sequence_set = SequenceSet {
         nr_messages,
         start_end: if start.is_some() && end.is_some() {
-            Some(inbox_client::StartEnd {
+            Some(StartEnd {
                 start: start.unwrap(),
                 end: end.unwrap(),
             })

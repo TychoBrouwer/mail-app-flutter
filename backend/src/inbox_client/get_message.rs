@@ -1,4 +1,7 @@
-use crate::inbox_client::{inbox_client::InboxClient, parse_message};
+use crate::inbox_client::{
+    inbox_client::InboxClient,
+    parse_message::{message_to_string, parse_message, Message},
+};
 
 impl InboxClient {
     pub fn get_message(
@@ -11,27 +14,26 @@ impl InboxClient {
 
         match message_db {
             Ok(message) => {
-                return Ok(parse_message::message_to_string(&message));
+                return Ok(message_to_string(&message));
             }
             Err(_) => {
-                let message =
-                    match self.get_message_imap(session_id, mailbox_path, message_uid) {
-                        Ok(m) => m,
-                        Err(e) => {
-                            eprintln!("Error getting message from IMAP: {:?}", e);
-                            return Err(String::from("{\"message\": \"Error getting message\"}"));
-                        }
-                    };
+                let message = match self.get_message_imap(session_id, mailbox_path, message_uid) {
+                    Ok(m) => m,
+                    Err(e) => {
+                        eprintln!("Error getting message from IMAP: {:?}", e);
+                        return Err(String::from("{\"message\": \"Error getting message\"}"));
+                    }
+                };
 
                 let username = &self.sessions[session_id].username;
                 let address = &self.sessions[session_id].address;
-            
+
                 match self
                     .database_conn
                     .insert_message(username, address, mailbox_path, &message)
                 {
                     Ok(_) => {
-                        return Ok(parse_message::message_to_string(&message));
+                        return Ok(message_to_string(&message));
                     }
                     Err(e) => {
                         return Err(e);
@@ -46,7 +48,7 @@ impl InboxClient {
         session_id: usize,
         mailbox_path: &str,
         message_uid: &u32,
-    ) -> Result<parse_message::Message, String> {
+    ) -> Result<Message, String> {
         if session_id >= self.sessions.len() {
             return Err(String::from("Invalid session ID"));
         }
@@ -58,20 +60,21 @@ impl InboxClient {
 
         session.select(mailbox_path).unwrap();
 
-        let envelope_fetch = match session.uid_fetch(message_uid.to_string(), "(UID ENVELOPE BODY[])") {
-            Ok(fetch) => fetch,
-            Err(e) => {
-                eprintln!("Error fetching message: {:?}", e);
-                return Err(String::from("Error fetching message"));
-            }
-        };
+        let envelope_fetch =
+            match session.uid_fetch(message_uid.to_string(), "(UID ENVELOPE BODY[])") {
+                Ok(fetch) => fetch,
+                Err(e) => {
+                    eprintln!("Error fetching message: {:?}", e);
+                    return Err(String::from("Error fetching message"));
+                }
+            };
 
         let fetch = match envelope_fetch.first() {
             Some(e) => e,
             None => return Err(String::from("Message not found")),
         };
 
-        let message = match parse_message::parse_message(fetch) {
+        let message = match parse_message(fetch) {
             Ok(m) => m,
             Err(e) => {
                 eprintln!("Error parsing envelope: {:?}", e);
@@ -87,7 +90,7 @@ impl InboxClient {
         session_id: usize,
         mailbox_path: &str,
         message_uid: &u32,
-    ) -> Result<parse_message::Message, String> {
+    ) -> Result<Message, String> {
         if session_id >= self.sessions.len() {
             return Err(String::from("Invalid session ID"));
         }

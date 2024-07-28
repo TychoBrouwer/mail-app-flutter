@@ -1,7 +1,7 @@
 use base64::{prelude::BASE64_STANDARD, Engine};
 use chrono::{DateTime, FixedOffset};
-use imap;
-use imap_proto;
+use imap::types::Fetch;
+use imap_proto::types::Address;
 use regex::Regex;
 use std::collections::HashMap;
 
@@ -69,7 +69,7 @@ fn decode_u8(string: Option<&[u8]>) -> String {
     }
 }
 
-fn address_to_string(address: &Option<Vec<imap_proto::types::Address>>) -> String {
+fn address_to_string(address: &Option<Vec<Address>>) -> String {
     match address {
         Some(a) => {
             let mut result = String::from("[");
@@ -280,7 +280,7 @@ fn parse_message_body(body: &str, uid: &u32) -> Message {
     };
 }
 
-pub fn parse_message(fetch: &imap::types::Fetch) -> Result<Message, String> {
+pub fn parse_message(fetch: &Fetch) -> Result<Message, String> {
     let envelope = match fetch.envelope() {
         Some(e) => e,
         None => return Err(String::from("Error getting envelope")),
@@ -292,11 +292,9 @@ pub fn parse_message(fetch: &imap::types::Fetch) -> Result<Message, String> {
     };
 
     let body_str = match fetch.body() {
-        Some(b) => {
-            match std::str::from_utf8(b) {
-                Ok(b) => b,
-                Err(_) => return Err(String::from("Error getting body")),
-            }
+        Some(b) => match std::str::from_utf8(b) {
+            Ok(b) => b,
+            Err(_) => return Err(String::from("Error getting body")),
         },
         None => return Err(String::from("Error getting body")),
     };
@@ -324,7 +322,7 @@ pub fn parse_message(fetch: &imap::types::Fetch) -> Result<Message, String> {
 
 pub fn message_to_string(message: &Message) -> String {
     let mut result = String::from("{");
-  
+
     result.push_str(&format!("\"uid\": {},", message.uid));
     result.push_str(&format!("\"message_id\": \"{}\",", message.message_id));
     result.push_str(&format!("\"subject\": \"{}\",", message.subject));
@@ -334,20 +332,14 @@ pub fn message_to_string(message: &Message) -> String {
     result.push_str(&format!("\"cc\": {},", message.cc));
     result.push_str(&format!("\"bcc\": {},", message.bcc));
     result.push_str(&format!("\"reply_to\": {},", message.reply_to));
-    result.push_str(&format!(
-        "\"in_reply_to\": \"{}\",",
-        message.in_reply_to
-    ));
-    result.push_str(&format!(
-        "\"delivered_to\": \"{}\",",
-        message.delivered_to
-    ));
+    result.push_str(&format!("\"in_reply_to\": \"{}\",", message.in_reply_to));
+    result.push_str(&format!("\"delivered_to\": \"{}\",", message.delivered_to));
     result.push_str(&format!("\"date\": \"{}\",", message.date));
     result.push_str(&format!("\"received\": \"{}\",", message.received));
     result.push_str(&format!("\"html\": \"{}\",", message.html));
     result.push_str(&format!("\"text\": \"{}\"", message.text));
-  
+
     result.push_str("}");
-  
+
     return result;
 }

@@ -1,9 +1,9 @@
-use crate::{inbox_client::inbox_client, websocket::handle_conn};
+use crate::{inbox_client::inbox_client::InboxClient, websocket::handle_conn};
 
 use std::net::TcpListener;
 use tungstenite::accept;
 
-pub fn create_server(inbox_client: &mut inbox_client::InboxClient) {
+pub fn create_server(inbox_client: &mut InboxClient) {
     let server = TcpListener::bind("localhost:9001").unwrap();
 
     for stream in server.incoming() {
@@ -37,7 +37,7 @@ pub fn create_server(inbox_client: &mut inbox_client::InboxClient) {
     }
 }
 
-fn handle_connection(msg: &str, inbox_client: &mut inbox_client::InboxClient) -> String {
+fn handle_connection(msg: &str, inbox_client: &mut InboxClient) -> String {
     let uri_parts: Vec<&str> = msg.split("\r\n").collect();
 
     let request = uri_parts.get(0).unwrap_or(&"").to_owned();
