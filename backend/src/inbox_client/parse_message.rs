@@ -327,15 +327,15 @@ pub fn message_to_string(message: &Message) -> String {
     result.push_str(&format!("\"message_id\": \"{}\",", message.message_id));
     result.push_str(&format!("\"subject\": \"{}\",", message.subject));
     result.push_str(&format!("\"from\": {},", message.from));
-    result.push_str(&format!("\"sender\": \"{}\",", message.sender));
+    result.push_str(&format!("\"sender\": {},", message.sender));
     result.push_str(&format!("\"to\": {},", message.to));
     result.push_str(&format!("\"cc\": {},", message.cc));
     result.push_str(&format!("\"bcc\": {},", message.bcc));
     result.push_str(&format!("\"reply_to\": {},", message.reply_to));
     result.push_str(&format!("\"in_reply_to\": \"{}\",", message.in_reply_to));
     result.push_str(&format!("\"delivered_to\": \"{}\",", message.delivered_to));
-    result.push_str(&format!("\"date\": \"{}\",", message.date));
-    result.push_str(&format!("\"received\": \"{}\",", message.received));
+    result.push_str(&format!("\"date\": {},", message.date));
+    result.push_str(&format!("\"received\": {},", message.received));
     result.push_str(&format!("\"html\": \"{}\",", message.html));
     result.push_str(&format!("\"text\": \"{}\"", message.text));
 

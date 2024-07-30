@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mail_app/services/inbox_service.dart';
+import 'package:mail_app/services/websocket_service.dart';
 import 'package:webview_windows/webview_windows.dart';
 
 import 'package:mail_app/screens/home.dart';
-import 'package:mail_app/services/inbox_service.dart';
-import 'package:mail_app/services/local_settings.dart';
 import 'package:mail_app/types/project_colors.dart';
-import 'package:mail_app/utils/local_file_store.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -16,11 +15,6 @@ class SplashPage extends StatefulWidget {
 }
 
 class SplashPageState extends State<SplashPage> {
-  late LocalSettings _localSettings;
-
-  final LocalFileStore _fileStore = LocalFileStore();
-  final InboxService _inboxService = InboxService();
-
   double _turns = 0;
   String _status = '';
 
@@ -34,11 +28,8 @@ class SplashPageState extends State<SplashPage> {
   void _loadHomePage() async {
     setState(() => _status = 'Loading application settings');
     setState(() => _turns += 100);
-    await _loadSettings();
+    final inboxService = await _loadInboxService();
     setState(() => _status = 'Loading inboxes');
-    setState(() => _turns += 100);
-    await _loadInboxService();
-    setState(() => _status = 'Loading webview');
     setState(() => _turns += 100);
     final messageWebviewController = await loadWebview();
 
@@ -47,9 +38,7 @@ class SplashPageState extends State<SplashPage> {
       context,
       MaterialPageRoute(
         builder: (context) => HomePage(
-          fileStore: _fileStore,
-          localSettings: _localSettings,
-          inboxService: _inboxService,
+          inboxService: inboxService,
           messageWebviewController: messageWebviewController,
         ),
       ),
@@ -67,31 +56,19 @@ class SplashPageState extends State<SplashPage> {
     return controller;
   }
 
-  Future<void> _loadSettings() async {
-    _localSettings = LocalSettings(_fileStore);
+  Future<InboxService> _loadInboxService() async {
+    final WebsocketService websocketService = WebsocketService();
 
-    await _localSettings.loaded();
-  }
+    await websocketService.connect();
 
-  Future<void> _loadInboxService() async {
-    final accounts = _localSettings.getSettings().accounts();
+    final inboxService = InboxService(websocketService);
+    final sessions = await inboxService.getSessions();
 
-    print(accounts.length);
-
-    if (accounts.isEmpty) {
-      return;
+    if (sessions.isNotEmpty) {
+      inboxService.setActiveSessionId(sessions[0].sessionId);
     }
 
-    for (var account in accounts) {
-      _inboxService.newClient(
-        account.email,
-        account.password,
-        account.imapAddress,
-        account.imapPort,
-      );
-    }
-
-    await _inboxService.clientsConnected();
+    return inboxService;
   }
 
   @override

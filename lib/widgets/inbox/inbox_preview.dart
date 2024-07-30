@@ -1,11 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:mail_app/types/message.dart';
 
 import 'package:mail_app/types/project_colors.dart';
-import 'package:mail_app/mail-client/enough_mail.dart';
 
 class MailPreview extends StatefulWidget {
-  final MimeMessage email;
+  final Message email;
   final int idx;
   final bool unseen;
   final Function getActive;
@@ -25,7 +27,7 @@ class MailPreview extends StatefulWidget {
 }
 
 class MailPreviewState extends State<MailPreview> {
-  late MimeMessage _email;
+  late Message _email;
   late int _idx;
   late bool _unseen;
   late Function _getActive;
@@ -45,55 +47,24 @@ class MailPreviewState extends State<MailPreview> {
     _getActive = widget.getActive;
     _updateMessageID = widget.updateMessageID;
 
-    DateTime? date = _email.decodeDate();
+    DateTime? date = DateTime.fromMillisecondsSinceEpoch(_email.date);
 
-    _dateText = date == null
-        ? "Unknown date"
-        : DateTime.now().difference(date).inDays == 0
-            ? DateFormat('HH:mm').format(date)
-            : DateTime.now().difference(date).inDays == -1
-                ? 'Yesterday'
-                : DateFormat('dd/MM/yy').format(date);
+    _dateText = DateTime.now().difference(date).inDays == 0
+        ? DateFormat('HH:mm').format(date)
+        : DateTime.now().difference(date).inDays == -1
+            ? 'Yesterday'
+            : DateFormat('dd/MM/yy').format(date);
 
-    _from = _email.from![0].personalName ?? _email.from![0].email;
+    _from = '${_email.from.first.mailbox}@${_email.from.first.host}';
 
     _previewStr = _textPreview();
   }
 
   String _textPreview() {
-    try {
-      if (_email.decodeTextHtmlPart() != null) {
-        return _htmlPreview() ?? _plainTextPreview();
-      } else {
-        return _plainTextPreview();
-      }
-    } catch (e) {
-      return _plainTextPreview();
-    }
-  }
+    var decoded = utf8.decode(base64Decode(_email.text));
+    decoded = decoded.replaceAll(RegExp(r"\n"), " ");
 
-  String? _htmlPreview() {
-    final html = _email.decodeTextHtmlPart()!;
-    final decoded = html
-        .replaceAll(RegExp(r"\n|\r"), "")
-        .replaceAll(RegExp(r"( +|&nbsp;)"), " ")
-        .replaceAll(RegExp(r"&amp;"), "&");
-    final previewRegex =
-        RegExp(r'(?<=>)([^\/<>}\n]{5,})(?=<)').firstMatch(decoded);
-
-    if (previewRegex == null) {
-      return null;
-    } else {
-      return previewRegex[0]!.trim();
-    }
-  }
-
-  String _plainTextPreview() {
-    if (_email.decodeTextPlainPart() != null) {
-      return _email.decodeTextPlainPart()!.split(RegExp(r"\n"))[0];
-    } else {
-      return '';
-    }
+    return decoded.split(RegExp(r"\n"))[0];
   }
 
   @override
@@ -173,7 +144,7 @@ class MailPreviewState extends State<MailPreview> {
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              _email.decodeSubject() ?? '',
+                              _email.subject,
                               overflow: TextOverflow.fade,
                               softWrap: false,
                               style: TextStyle(

@@ -14,7 +14,7 @@ pub fn login(uri: &str, inbox_client: &mut InboxClient) -> String {
     if email.is_none() || password.is_none() || address.is_none() || port.is_none() {
         eprintln!("Provide all GET parameters: {}", uri);
         return String::from(
-            "{\"success\": \"false\", \"message\": \"Provide all GET parameters\"}",
+            "{\"success\": false, \"message\": \"Provide all GET parameters\"}",
         );
     }
 
@@ -29,7 +29,7 @@ pub fn login(uri: &str, inbox_client: &mut InboxClient) -> String {
         .position(|x| x.username == email.to_string())
     {
         Some(idx) => {
-            return format!("{{\"success\": \"true\", \"message\": \"Allready connected to IMAP server\", \"data\": {{ \"id\": {}}}}}", idx);
+            return format!("{{\"success\": true, \"message\": \"Allready connected to IMAP server\", \"data\": {{ \"id\": {}}}}}", idx);
         }
         None => {}
     };
@@ -42,11 +42,11 @@ pub fn login(uri: &str, inbox_client: &mut InboxClient) -> String {
         port,
     }) {
         Ok(idx) => {
-            format!("{{\"success\": \"true\", \"message\": \"Connected to IMAP server\", \"data\": {{ \"id\": {}}}}}", idx)
+            format!("{{\"success\": true, \"message\": \"Connected to IMAP server\", \"data\": {{ \"id\": {}}}}}", idx)
         }
         Err(e) => {
             eprintln!("Error connecting to IMAP server: {:?}", e);
-            return format!("{{\"success\": \"false\", \"message\": \"{}\"}}", e);
+            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     }
 }
@@ -59,7 +59,7 @@ pub fn logout(uri: &str, inbox_client: &mut InboxClient) -> String {
     if session_id.is_none() {
         eprintln!("Provide session_id GET parameter: {}", uri);
         return String::from(
-            "{\"success\": \"false\", \"message\": \"Provide session_id GET parameter\"}",
+            "{\"success\": false, \"message\": \"Provide session_id GET parameter\"}",
         );
     }
 
@@ -67,11 +67,11 @@ pub fn logout(uri: &str, inbox_client: &mut InboxClient) -> String {
 
     match inbox_client.logout_imap(session_id) {
         Ok(_) => {
-            return String::from("{\"success\": \"true\", \"message\": \"Logged out\"}");
+            return String::from("{\"success\": true, \"message\": \"Logged out\"}");
         }
         Err(e) => {
             eprintln!("Error logging out: {:?}", e);
-            return format!("{{\"success\": \"false\", \"message\": \"{}\"}}", e);
+            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     }
 }
@@ -79,7 +79,7 @@ pub fn logout(uri: &str, inbox_client: &mut InboxClient) -> String {
 pub fn sessions(inbox_client: &mut InboxClient) -> String {
     let sessions = &inbox_client.sessions;
 
-    let mut response = String::from("[");
+    let mut response = String::from("{\"success\": true, \"message\": \"Sessions retrieved\", \"data\": [");
     for (i, session) in sessions.iter().enumerate() {
         response.push_str(&format!(
             "{{\"id\": {}, \"username\": \"{}\", \"address\": \"{}\", \"port\": {}}}",
@@ -90,7 +90,7 @@ pub fn sessions(inbox_client: &mut InboxClient) -> String {
             response.push_str(",");
         }
     }
-    response.push_str("]");
+    response.push_str("]}");
 
     return response;
 }
@@ -103,7 +103,7 @@ pub fn mailboxes(uri: &str, inbox_client: &mut InboxClient) -> String {
     if session_id.is_none() {
         eprintln!("Provide session_id GET parameter: {}", uri);
         return String::from(
-            "{\"success\": \"false\", \"message\": \"Provide session_id GET parameter\"}",
+            "{\"success\": false, \"message\": \"Provide session_id GET parameter\"}",
         );
     }
 
@@ -112,13 +112,13 @@ pub fn mailboxes(uri: &str, inbox_client: &mut InboxClient) -> String {
     match inbox_client.get_mailboxes(session_id) {
         Ok(mailboxes) => {
             return format!(
-                "{{\"success\": \"true\", \"message\": \"Mailboxes retrieved\", \"data\": {}}}",
+                "{{\"success\": true, \"message\": \"Mailboxes retrieved\", \"data\": {}}}",
                 mailboxes
             )
         }
         Err(e) => {
             eprintln!("Error getting mailboxes: {:?}", e);
-            return format!("{{\"success\": \"false\", \"message\": \"{}\"}}", e);
+            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     }
 }
@@ -135,7 +135,7 @@ pub fn message(uri: &str, inbox_client: &mut InboxClient) -> String {
             "Provide session_id, mailbox and message_id GET parameters: {}",
             uri
         );
-        return String::from("{\"success\": \"false\", \"message\": \"Provide session_id, mailbox and message_uid GET parameters\"}");
+        return String::from("{\"success\": false, \"message\": \"Provide session_id, mailbox and message_uid GET parameters\"}");
     }
 
     let session_id = session_id.unwrap();
@@ -145,13 +145,13 @@ pub fn message(uri: &str, inbox_client: &mut InboxClient) -> String {
     match inbox_client.get_message(session_id, mailbox, &message_uid) {
         Ok(message) => {
             return format!(
-                "{{\"success\": \"true\", \"message\": \"Message retrieved\", \"data\": {}}}",
+                "{{\"success\": true, \"message\": \"Message retrieved\", \"data\": {}}}",
                 message
             )
         }
         Err(e) => {
             eprintln!("Error getting message: {:?}", e);
-            return format!("{{\"success\": \"false\", \"message\": {}}}", e);
+            return format!("{{\"success\": false, \"message\": {}}}", e);
         }
     }
 }
@@ -169,7 +169,7 @@ pub fn messages(uri: &str, inbox_client: &mut InboxClient) -> String {
     if session_id.is_none() || mailbox.is_none() {
         eprintln!("Provide session_id GET parameter: {}", uri);
         return String::from(
-            "{\"success\": \"false\", \"message\": \"Provide session_id GET parameter\"}",
+            "{\"success\": false, \"message\": \"Provide session_id GET parameter\"}",
         );
     }
 
@@ -191,13 +191,13 @@ pub fn messages(uri: &str, inbox_client: &mut InboxClient) -> String {
     match inbox_client.get_messages(session_id, mailbox, sequence_set) {
         Ok(messages) => {
             return format!(
-                "{{\"success\": \"true\", \"message\": \"Messages retrieved\", \"data\": {}}}",
+                "{{\"success\": true, \"message\": \"Messages retrieved\", \"data\": {}}}",
                 messages
             )
         }
         Err(e) => {
             eprintln!("Error getting messages: {:?}", e);
-            return format!("{{\"success\": \"false\", \"message\": \"{}\"}}", e);
+            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     }
 }

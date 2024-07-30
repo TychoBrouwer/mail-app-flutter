@@ -6,7 +6,6 @@ import 'package:webview_windows/webview_windows.dart';
 
 import 'package:mail_app/utils/to_rgba.dart';
 import 'package:mail_app/types/project_colors.dart';
-import 'package:mail_app/mail-client/enough_mail.dart';
 import 'package:mail_app/widgets/message/message_header.dart';
 
 class MessageContent extends StatefulWidget {

@@ -149,7 +149,19 @@ impl DBConnection {
             }
         };
 
-        let text = match String::from_utf8(BASE64_STANDARD.decode(message.text.as_str()).unwrap()) {
+        let decode = match BASE64_STANDARD.decode(message.text.as_str()) {
+            Ok(decode) => decode,
+            Err(e) => {
+                eprintln!("Error decoding text: {}", e);
+
+                print!("{}", &message.text);
+                print!("{}", &message.uid);
+
+                return Err(String::from("Error decoding text"));
+            }
+        };
+
+        let text = match String::from_utf8(decode) {
             Ok(text) => text,
             Err(e) => {
                 eprintln!("Error decoding text: {}", e);

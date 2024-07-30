@@ -1,28 +1,22 @@
 class MailAccount {
-  late String email;
-  late String password;
-  late String imapAddress;
-  late int imapPort;
-  late String smtpAddress;
-  late int smtpPort;
+  late int sessionId;
+  late String username;
+  late String address;
+  late int port;
 
   MailAccount(
-    this.email,
-    this.password,
-    this.imapAddress,
-    this.imapPort,
-    this.smtpAddress,
-    this.smtpPort,
+    this.sessionId,
+    this.username,
+    this.address,
+    this.port,
   );
 
-  accountJson() {
-    return {
-      'email': email,
-      'password': password,
-      'imapAddress': imapAddress,
-      'imapPort': imapPort,
-      'smtpAddress': smtpAddress,
-      'smtpPort': smtpPort,
-    };
+  factory MailAccount.fromJson(Map<String, dynamic> data) {
+    final sessionId = data['id'] as int;
+    final username = data['username'] as String;
+    final address = data['address'] as String;
+    final port = data['port'] as int;
+
+    return MailAccount(sessionId, username, address, port);
   }
 }

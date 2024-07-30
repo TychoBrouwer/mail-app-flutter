@@ -51,6 +51,6 @@ fn handle_connection(msg: &str, inbox_client: &mut InboxClient) -> String {
         "/imap/message" => handle_conn::message(data, inbox_client),
         "/imap/messages" => handle_conn::messages(data, inbox_client),
         // "/imap/message_envelopes" => handle_conn::message_envelopes(data, inbox_client),
-        _ => String::from("{\"message\": \"Not Found\"}"),
+        _ => String::from("{\"succes\": false, \"message\": \"Not Found\"}"),
     }
 }
