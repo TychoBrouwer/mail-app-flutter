@@ -242,6 +242,7 @@ fn parse_message_body(body: &str, uid: &u32) -> Message {
     html = html.replace("&amp;", "&");
     html = html.replace("&copy;", "©");
     html = html.replace("E28099", "'");
+    html = html.replace("C2A0", " ");
 
     if text_encoding != "base64" {
         text = BASE64_STANDARD.encode(text.as_bytes());
