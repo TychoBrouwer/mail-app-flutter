@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:email_validator/email_validator.dart';
-import 'package:mail_app/services/inbox_service.dart';
 
+import 'package:mail_app/services/inbox_service.dart';
 import 'package:mail_app/services/overlay_builder.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/custom_button.dart';

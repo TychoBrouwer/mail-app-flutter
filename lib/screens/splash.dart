@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+
 import 'package:mail_app/services/inbox_service.dart';
 import 'package:mail_app/services/websocket_service.dart';
-import 'package:webview_windows/webview_windows.dart';
-
 import 'package:mail_app/screens/home.dart';
 import 'package:mail_app/types/project_colors.dart';
 
@@ -26,12 +25,10 @@ class SplashPageState extends State<SplashPage> {
   }
 
   void _loadHomePage() async {
-    setState(() => _status = 'Loading application settings');
     setState(() => _turns += 100);
     final inboxService = await _loadInboxService();
     setState(() => _status = 'Loading inboxes');
     setState(() => _turns += 100);
-    final messageWebviewController = await loadWebview();
 
     if (!mounted) return;
     Navigator.pushReplacement(
@@ -39,21 +36,9 @@ class SplashPageState extends State<SplashPage> {
       MaterialPageRoute(
         builder: (context) => HomePage(
           inboxService: inboxService,
-          messageWebviewController: messageWebviewController,
         ),
       ),
     );
-  }
-
-  Future<WebviewController> loadWebview() async {
-    final controller = WebviewController();
-
-    await controller.initialize();
-    await controller.setBackgroundColor(Colors.transparent);
-    await controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
-    await controller.openDevTools();
-
-    return controller;
   }
 
   Future<InboxService> _loadInboxService() async {

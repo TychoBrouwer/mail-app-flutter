@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+
 import 'package:mail_app/screens/splash.dart';
 import 'package:mail_app/types/project_colors.dart';
-// import 'package:mail_app/screens/home.dart';
 
 void main() {
   runApp(const MailApp());
@@ -18,8 +18,8 @@ class MailApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: ProjectColors.accent,
         scrollbarTheme: ScrollbarThemeData(
-          thumbColor: MaterialStateProperty.all(ProjectColors.main(false)),
-          thickness: MaterialStateProperty.all(6),
+          thumbColor: WidgetStateProperty.all(ProjectColors.main(false)),
+          thickness: WidgetStateProperty.all(6),
         ),
       ),
       home: const SplashPage(),

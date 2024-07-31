@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:mail_app/types/message.dart';
 
+import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/custom_button.dart';
 import 'package:mail_app/widgets/inbox/inbox_preview.dart';

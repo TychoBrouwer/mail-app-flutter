@@ -1,22 +1,20 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:html/parser.dart';
-import 'package:mail_app/types/message.dart';
-import 'package:webview_windows/webview_windows.dart';
 
+import 'package:mail_app/types/message.dart';
 import 'package:mail_app/utils/to_rgba.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/message/message_header.dart';
 
 class MessageContent extends StatefulWidget {
   final Message? message;
-  final WebviewController controller;
 
   const MessageContent({
     super.key,
     required this.message,
-    required this.controller,
   });
 
   @override
@@ -27,11 +25,9 @@ class MessageContentState extends State<MessageContent> {
   late Message? _message;
   late String _from;
   late String _to;
-  late WebviewController _controller;
 
   final GlobalKey _widgetKey = GlobalKey();
 
-  double _webviewHeight = 100;
   bool _showHtml = false;
   Widget _emailWidget = const SizedBox(
     height: 10,
@@ -42,7 +38,6 @@ class MessageContentState extends State<MessageContent> {
     super.initState();
 
     _message = widget.message;
-    _controller = widget.controller;
 
     if (_message != null) {
       _from = '${_message!.from.first.mailbox}@${_message!.from.first.host}';
@@ -65,10 +60,10 @@ class MessageContentState extends State<MessageContent> {
     final document = parse(decoded);
 
     final defaultStyle = '''
-      color: ${ProjectColors.main(true).toRgba()} !important;
+      color: ${ProjectColors.main(false).toRgba()} !important;
       height: min-content !important;
       position: absolute !important;
-      background-color: transparent !important; 
+      background-color: transparent !important;
       border: none !important;
       margin-left: auto !important;
       margin-right: auto !important;
@@ -81,29 +76,36 @@ class MessageContentState extends State<MessageContent> {
       document.body!.attributes['style'] =
           '${document.body!.attributes['style']} $defaultStyle';
     }
-    document.body!.attributes['bgcolor'] = '';
+    document.body!.attributes['bgcolor'] = 'transparent';
 
-    final styledHtml = _styleHtml(document.outerHtml);
-    await _controller.loadStringContent(styledHtml);
+    RegExp(r'<style>(.*?)<\/style>').allMatches(decoded).forEach((match) {
+      final style = match.group(1);
+      var styleTag = parseFragment('<style>$style</style>');
 
-    await for (LoadingState state in _controller.loadingState) {
-      if (state == LoadingState.navigationCompleted) {
-        break;
-      }
-    }
+      document.body!.append(styleTag);
+    });
 
-    await _updateHtmlSize();
+    final styledHtml = _styleHtml(document.body!.outerHtml);
 
-    // _controller.openDevTools();
+    print(styledHtml);
 
-    _emailWidget = SizedBox(
-      height: _webviewHeight,
-      child: Webview(
-        _controller,
-      ),
+    _emailWidget = HtmlWidget(
+      styledHtml,
+      key: UniqueKey(),
+      textStyle: TextStyle(color: ProjectColors.main(false), fontSize: 14),
+      onErrorBuilder: (context, element, error) {
+        print(error);
+
+        return const SizedBox();
+      },
+      customStylesBuilder: (element) {
+        if (element.classes.contains('foo')) {
+          return {'color': 'red'};
+        }
+
+        return null;
+      },
     );
-
-    await Future.delayed(const Duration(milliseconds: 100));
 
     setState(() {
       _showHtml = true;
@@ -156,29 +158,7 @@ class MessageContentState extends State<MessageContent> {
       return 'color: ${ProjectColors.main(false).toRgba()} !important;';
     });
 
-    print(output);
-
     return output;
-  }
-
-  _updateHtmlSize() async {
-    final int height =
-        await _controller.executeScript('document.body.offsetHeight;') ?? 0;
-    // final int width =
-    //     await _controller.executeScript('document.body.offsetWidth;') ?? 0;
-
-    // final double widgetWidth = _widgetKey.currentContext?.size?.width ?? 0;
-
-    // final String newMargin =
-    //     '${max((widgetWidth - width) / 2, 0).toString()}px';
-    // await _controller
-    //     .executeScript('document.body.style.marginLeft = "$newMargin";');
-
-    setState(() {
-      _webviewHeight = height.toDouble() + 80;
-    });
-
-    return;
   }
 
   @override
@@ -195,35 +175,23 @@ class MessageContentState extends State<MessageContent> {
                     scrollDirection: Axis.vertical,
                     child: Padding(
                       padding: const EdgeInsets.only(right: 14),
-                      child:
-                          NotificationListener<SizeChangedLayoutNotification>(
-                        onNotification: (notification) {
-                          if (_showHtml) {
-                            _updateHtmlSize();
-                          }
-
-                          return true;
-                        },
-                        child: SizeChangedLayoutNotifier(
-                          child: Column(
-                            key: _widgetKey,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 15),
-                                child: MessageHeader(
-                                  from: _from,
-                                  to: _to,
-                                  subject: _message!.subject,
-                                  date: DateTime.fromMillisecondsSinceEpoch(
-                                      _message!.received),
-                                ),
-                              ),
-                              Opacity(
-                                  opacity: _showHtml ? 1.0 : 0,
-                                  child: _emailWidget),
-                            ],
+                      child: Column(
+                        key: _widgetKey,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 15),
+                            child: MessageHeader(
+                              from: _from,
+                              to: _to,
+                              subject: _message!.subject,
+                              date: DateTime.fromMillisecondsSinceEpoch(
+                                  _message!.received),
+                            ),
                           ),
-                        ),
+                          Opacity(
+                              opacity: _showHtml ? 1.0 : 0,
+                              child: _emailWidget),
+                        ],
                       ),
                     ),
                   ),

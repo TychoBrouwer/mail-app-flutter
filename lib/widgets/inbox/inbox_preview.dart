@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:mail_app/types/message.dart';
 
+import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/project_colors.dart';
 
 class MailPreview extends StatefulWidget {

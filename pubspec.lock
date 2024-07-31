@@ -845,22 +845,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.14.0"
-  webview_windows:
-    dependency: "direct main"
-    description:
-      name: webview_windows
-      sha256: "47fcad5875a45db29dbb5c9e6709bf5c88dcc429049872701343f91ed7255730"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.4.0"
   win32:
     dependency: transitive
     description:
       name: win32
-      sha256: ed1b29469ef4158ab78295c967a2948d6e1b84dd6cb12d3a6dc677403e59647d
+      sha256: "015002c060f1ae9f41a818f2d5640389cc05283e368be19dc8d77cecb43c40c9"
       url: "https://pub.dev"
     source: hosted
-    version: "5.5.2"
+    version: "5.5.3"
   xdg_directories:
     dependency: transitive
     description:

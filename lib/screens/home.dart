@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'package:mail_app/services/inbox_service.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/message.dart';
@@ -8,20 +9,14 @@ import 'package:mail_app/widgets/mailbox/mailbox_header.dart';
 import 'package:mail_app/widgets/mailbox/mailbox_list.dart';
 import 'package:mail_app/widgets/message/message_content.dart';
 import 'package:mail_app/widgets/message/message_control_bar.dart';
-import 'package:webview_windows/webview_windows.dart';
-
 import 'package:mail_app/services/overlay_builder.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/vertical_split.dart';
 
 class HomePage extends StatefulWidget {
   final InboxService inboxService;
-  final WebviewController messageWebviewController;
 
-  const HomePage(
-      {super.key,
-      required this.inboxService,
-      required this.messageWebviewController});
+  const HomePage({super.key, required this.inboxService});
 
   @override
   HomePageState createState() => HomePageState();
@@ -29,7 +24,6 @@ class HomePage extends StatefulWidget {
 
 class HomePageState extends State<HomePage> {
   late InboxService _inboxService;
-  late WebviewController _messageWebviewController;
   late OverlayBuilder _overlayBuilder;
 
   String? _activeMailbox;
@@ -45,7 +39,6 @@ class HomePageState extends State<HomePage> {
     super.initState();
 
     _inboxService = widget.inboxService;
-    _messageWebviewController = widget.messageWebviewController;
 
     _initMessages();
   }
@@ -236,7 +229,6 @@ class HomePageState extends State<HomePage> {
                     child: MessageContent(
                       key: UniqueKey(),
                       message: _activeID != null ? _messages[_activeID!] : null,
-                      controller: _messageWebviewController,
                     ),
                   ),
                 ],
