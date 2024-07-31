@@ -3,6 +3,8 @@ import 'package:web_socket_client/web_socket_client.dart';
 class WebsocketService {
   late WebSocket _socket;
 
+  bool lock = false;
+
   Future<void> connect() async {
     // Connect to the websocket server
     final uri = Uri.parse('ws://localhost:9001');
@@ -27,12 +29,15 @@ class WebsocketService {
 
   // Send a message to the websocket server
   Future<String> sendMessage(String message) async {
-    // Send a message to the websocket server
+    lock = true;
+
     _socket.send(message);
 
     await for (final String message in _socket.messages) {
       return message;
     }
+
+    lock = false;
 
     throw Exception('No message received');
   }

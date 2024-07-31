@@ -5,6 +5,8 @@ import 'package:mail_app/types/message.dart';
 import 'package:mail_app/widgets/inbox/inbox_list.dart';
 import 'package:mail_app/widgets/mailbox/mailbox_header.dart';
 import 'package:mail_app/widgets/mailbox/mailbox_list.dart';
+import 'package:mail_app/widgets/message/message_content.dart';
+import 'package:mail_app/widgets/message/message_control_bar.dart';
 import 'package:webview_windows/webview_windows.dart';
 
 import 'package:mail_app/services/overlay_builder.dart';
@@ -29,13 +31,13 @@ class HomePageState extends State<HomePage> {
   late WebviewController _messageWebviewController;
   late OverlayBuilder _overlayBuilder;
 
-  int _activeID = 0;
+  String? _activeMailbox;
+  int? _activeSession;
+  int? _activeID;
+
   double _messageListPosition = 0;
   List<Message> _messages = [];
   Map<int, List<MailboxInfo>> _mailboxTree = {};
-
-  String? _activeMailbox;
-  int? _activeSession;
 
   @override
   void initState() {
@@ -44,14 +46,12 @@ class HomePageState extends State<HomePage> {
     _inboxService = widget.inboxService;
     _messageWebviewController = widget.messageWebviewController;
 
-    _setMessages();
+    _initMessages();
   }
 
-  void _setMessages() async {
+  void _initMessages() async {
     final inboxes = await _inboxService.getMailboxes();
     _inboxService.setActiveMailbox(inboxes[0].path);
-
-    await Future.delayed(const Duration(seconds: 2), () {});
 
     _messages = await _inboxService.getMessages(start: 1, end: 5);
 
@@ -59,11 +59,10 @@ class HomePageState extends State<HomePage> {
       _messages = _messages;
     });
 
-    await Future.delayed(const Duration(seconds: 2), () {});
-
     _mailboxTree = await _inboxService.getMailboxTree();
 
     setState(() {
+      _activeID = 0;
       _mailboxTree = _mailboxTree;
       _activeMailbox = _inboxService.getActiveMailbox();
       _activeSession = _inboxService.getActiveSessionId();
@@ -209,7 +208,7 @@ class HomePageState extends State<HomePage> {
                 // unseenMessages:
                 //     _inboxService.currentClient().getUnseenMessages(),
                 mailboxTitle: _inboxService.getActiveMailboxDisplay() ?? '',
-                activeID: _activeID,
+                activeID: _activeID ?? 0,
                 updateActiveID: _updateActiveID,
                 refreshAll: _refreshAll,
                 listPosition: _messageListPosition,
@@ -223,27 +222,25 @@ class HomePageState extends State<HomePage> {
                     left: BorderSide(color: ProjectColors.secondary(false))),
               ),
               height: double.infinity,
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
-                // children: [
-                //   ControlBar(
-                //     markMessage: _markMessage,
-                //     reply: _reply,
-                //     replyAll: _replyAll,
-                //     share: _share,
-                //     key: UniqueKey(),
-                //   ),
-                //   Expanded(
-                //     child: MessageContent(
-                //       key: UniqueKey(),
-                //       message: _inboxService.getMessages().length > _activeID
-                //           ? message
-                //           : MimeMessage(),
-                //       controller: _messageWebviewController,
-                //     ),
-                //   ),
-                // ],
+                children: [
+                  ControlBar(
+                    markMessage: _markMessage,
+                    reply: _reply,
+                    replyAll: _replyAll,
+                    share: _share,
+                    key: UniqueKey(),
+                  ),
+                  Expanded(
+                    child: MessageContent(
+                      key: UniqueKey(),
+                      message: _activeID != null ? _messages[_activeID!] : null,
+                      controller: _messageWebviewController,
+                    ),
+                  ),
+                ],
               ),
             ),
             ratio2: 0.25,

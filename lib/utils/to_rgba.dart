@@ -19,6 +19,6 @@ extension HexColor on Color {
       '$red, '
       '$green, '
       '$blue, '
-      '${(1 * alpha / 255).toStringAsFixed(2)}'
+      '${(alpha / 255).toStringAsFixed(2)}'
       ')';
 }

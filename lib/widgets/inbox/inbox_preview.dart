@@ -7,7 +7,7 @@ import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/project_colors.dart';
 
 class MailPreview extends StatefulWidget {
-  final Message email;
+  final Message message;
   final int idx;
   final bool unseen;
   final Function getActive;
@@ -15,7 +15,7 @@ class MailPreview extends StatefulWidget {
 
   const MailPreview({
     super.key,
-    required this.email,
+    required this.message,
     required this.idx,
     required this.unseen,
     required this.getActive,
@@ -27,27 +27,26 @@ class MailPreview extends StatefulWidget {
 }
 
 class MailPreviewState extends State<MailPreview> {
-  late Message _email;
+  late Message _message;
   late int _idx;
   late bool _unseen;
   late Function _getActive;
   late Function _updateMessageID;
 
   late String _from;
-  late String _previewStr;
   late String _dateText;
 
   @override
   void initState() {
     super.initState();
 
-    _email = widget.email;
+    _message = widget.message;
     _idx = widget.idx;
     _unseen = widget.unseen;
     _getActive = widget.getActive;
     _updateMessageID = widget.updateMessageID;
 
-    DateTime? date = DateTime.fromMillisecondsSinceEpoch(_email.date);
+    DateTime? date = DateTime.fromMillisecondsSinceEpoch(_message.received);
 
     _dateText = DateTime.now().difference(date).inDays == 0
         ? DateFormat('HH:mm').format(date)
@@ -55,13 +54,11 @@ class MailPreviewState extends State<MailPreview> {
             ? 'Yesterday'
             : DateFormat('dd/MM/yy').format(date);
 
-    _from = '${_email.from.first.mailbox}@${_email.from.first.host}';
-
-    _previewStr = _textPreview();
+    _from = '${_message.from.first.mailbox}@${_message.from.first.host}';
   }
 
   String _textPreview() {
-    var decoded = utf8.decode(base64Decode(_email.text));
+    var decoded = utf8.decode(base64Decode(_message.text));
     decoded = decoded.replaceAll(RegExp(r"\n"), " ");
 
     return decoded.split(RegExp(r"\n"))[0];
@@ -144,7 +141,7 @@ class MailPreviewState extends State<MailPreview> {
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              _email.subject,
+                              _message.subject,
                               overflow: TextOverflow.fade,
                               softWrap: false,
                               style: TextStyle(
@@ -157,7 +154,7 @@ class MailPreviewState extends State<MailPreview> {
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              _previewStr,
+                              _textPreview(),
                               overflow: TextOverflow.fade,
                               softWrap: false,
                               style: TextStyle(

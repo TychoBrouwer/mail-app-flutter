@@ -143,7 +143,7 @@ class MessageListState extends State<MessageList> {
                 padding: const EdgeInsets.only(bottom: 200),
                 itemBuilder: (_, idx) {
                   return MailPreview(
-                    email: _messages[idx],
+                    message: _messages[idx],
                     idx: idx,
                     unseen: false,
                     // unseen: _unseenMessages.toList().contains(
