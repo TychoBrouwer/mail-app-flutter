@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mail_app/services/inbox_service.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/message.dart';
+import 'package:mail_app/widgets/add_account.dart';
 import 'package:mail_app/widgets/inbox/inbox_list.dart';
 import 'package:mail_app/widgets/mailbox/mailbox_header.dart';
 import 'package:mail_app/widgets/mailbox/mailbox_list.dart';
@@ -136,12 +137,10 @@ class HomePageState extends State<HomePage> {
   }
 
   void _addMailAccount() {
-    print("add mail account");
-    // _overlayBuilder.insertOverlay(AddAccount(
-    //   inboxService: _inboxService,
-    //   overlayBuilder: _overlayBuilder,
-    //   localSettings: _localSettings,
-    // ));
+    _overlayBuilder.insertOverlay(AddAccount(
+      overlayBuilder: _overlayBuilder,
+      inboxService: _inboxService,
+    ));
   }
 
   Future<void> _composeMessage() async {

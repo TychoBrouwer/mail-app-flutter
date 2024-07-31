@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:email_validator/email_validator.dart';
+import 'package:mail_app/services/inbox_service.dart';
 
 import 'package:mail_app/services/overlay_builder.dart';
-import 'package:mail_app/types/mail_account.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/custom_button.dart';
 import 'package:mail_app/widgets/custom_form_field.dart';
 
 class AddAccount extends StatefulWidget {
   final OverlayBuilder overlayBuilder;
+  final InboxService inboxService;
 
   const AddAccount({
     super.key,
     required this.overlayBuilder,
+    required this.inboxService,
   });
 
   @override
@@ -22,25 +24,23 @@ class AddAccount extends StatefulWidget {
 
 class AddAccountState extends State<AddAccount> {
   late OverlayBuilder _overlayBuilder;
+  late InboxService _inboxService;
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   bool loading = false;
 
-  String? _email;
+  String? _username;
   String? _password;
-  String? _smtpAddress;
-  int? _smtpPort;
-  String? _imapAddress;
-  int? _imapPort;
+  String? _address;
+  int? _port;
 
   @override
   void initState() {
     super.initState();
 
-    _inboxService = widget.inboxService;
     _overlayBuilder = widget.overlayBuilder;
-    _localSettings = widget.localSettings;
+    _inboxService = widget.inboxService;
   }
 
   void _cancel() {
@@ -53,29 +53,22 @@ class AddAccountState extends State<AddAccount> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      final mailAccount = MailAccount(
-        _email!,
+      if (_username == null ||
+          _password == null ||
+          _address == null ||
+          _port == null) {
+        return;
+      }
+
+      final connection = await _inboxService.newSession(
+        _username!,
         _password!,
-        _imapAddress!,
-        _imapPort!,
-        _smtpAddress!,
-        _smtpPort!,
+        _address!,
+        _port!,
       );
 
-      final connection = await _inboxService.newClient(
-        mailAccount.email,
-        mailAccount.password,
-        mailAccount.imapAddress,
-        mailAccount.imapPort,
-        mailAccount.smtpAddress,
-        mailAccount.smtpPort,
-      );
-
-      if (connection != null) {
+      if (connection != -1) {
         print('success');
-
-        _localSettings.addAccount(mailAccount);
-        _localSettings.saveSettings();
 
         _overlayBuilder.removeOverlay();
       } else {
@@ -109,7 +102,7 @@ class AddAccountState extends State<AddAccount> {
               child: ListView(
                 children: <Widget>[
                   CustomFormField(
-                    onSaved: (val) => _email = val,
+                    onSaved: (val) => _username = val,
                     labelText: 'Email address',
                     validator: (String? value) {
                       if (value == null || value.isEmpty) {
@@ -136,7 +129,7 @@ class AddAccountState extends State<AddAccount> {
                       Flexible(
                         flex: 2,
                         child: CustomFormField(
-                          onSaved: (val) => _smtpAddress = val,
+                          onSaved: (val) => _address = val,
                           labelText: 'SMTP address',
                           validator: (String? value) {
                             if (value == null || value.isEmpty) {
@@ -149,7 +142,7 @@ class AddAccountState extends State<AddAccount> {
                       Flexible(
                         child: CustomFormField(
                           onSaved: (val) =>
-                              _smtpPort = (val != null) ? int.parse(val) : 0,
+                              _port = (val != null) ? int.parse(val) : 0,
                           labelText: 'SMTP port',
                           keyboardType: TextInputType.number,
                           inputFormatters: [
@@ -170,7 +163,7 @@ class AddAccountState extends State<AddAccount> {
                       Flexible(
                         flex: 2,
                         child: CustomFormField(
-                          onSaved: (val) => _imapAddress = val,
+                          onSaved: (val) => _address = val,
                           labelText: 'IMAP address',
                           validator: (String? value) {
                             if (value == null || value.isEmpty) {
@@ -183,7 +176,7 @@ class AddAccountState extends State<AddAccount> {
                       Flexible(
                         child: CustomFormField(
                           onSaved: (val) =>
-                              _imapPort = (val != null) ? int.parse(val) : 0,
+                              _port = (val != null) ? int.parse(val) : 0,
                           labelText: 'IMAP port',
                           keyboardType: TextInputType.number,
                           inputFormatters: [

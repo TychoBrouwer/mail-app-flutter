@@ -6,19 +6,19 @@ use crate::{
 pub fn login(uri: &str, inbox_client: &mut InboxClient) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
-    let email = uri_params.get("email");
+    let username = uri_params.get("username");
     let password = uri_params.get("password");
     let address = uri_params.get("address");
     let port = params::get_u16(uri_params.get("port"));
 
-    if email.is_none() || password.is_none() || address.is_none() || port.is_none() {
+    if username.is_none() || password.is_none() || address.is_none() || port.is_none() {
         eprintln!("Provide all GET parameters: {}", uri);
         return String::from(
             "{\"success\": false, \"message\": \"Provide all GET parameters\"}",
         );
     }
 
-    let email = email.unwrap();
+    let username = username.unwrap();
     let password = password.unwrap();
     let address = address.unwrap();
     let port = port.unwrap();
@@ -26,7 +26,7 @@ pub fn login(uri: &str, inbox_client: &mut InboxClient) -> String {
     match inbox_client
         .sessions
         .iter()
-        .position(|x| x.username == email.to_string())
+        .position(|x| x.username == username.to_string())
     {
         Some(idx) => {
             return format!("{{\"success\": true, \"message\": \"Allready connected to IMAP server\", \"data\": {{ \"id\": {}}}}}", idx);
@@ -36,7 +36,7 @@ pub fn login(uri: &str, inbox_client: &mut InboxClient) -> String {
 
     match inbox_client.connect(Session {
         stream: None,
-        username: email.to_string(),
+        username: username.to_string(),
         password: password.to_string(),
         address: address.to_string(),
         port,

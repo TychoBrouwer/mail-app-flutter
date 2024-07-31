@@ -65,6 +65,30 @@ class InboxService {
     return mailboxTree;
   }
 
+  Future<int> newSession(
+      String username, String password, String address, int port) async {
+    String request =
+        '/imap/login\r\nemail=$username\npassword=$password\naddress=$address\nport=$port';
+
+    final response = await _websocketService.sendMessage(request);
+
+    final decode = jsonDecode(response);
+    final messageData = MessageData.fromJson(decode);
+
+    if (!messageData.success) return -1;
+
+    final session = messageData.data['id'] as int;
+
+    _sessions.add(MailAccount(
+      session,
+      username,
+      address,
+      port,
+    ));
+
+    return session;
+  }
+
   Future<List<MailAccount>> getSessions() async {
     String request = '/imap/sessions';
 
