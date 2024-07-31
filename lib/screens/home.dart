@@ -4,7 +4,7 @@ import 'package:mail_app/services/inbox_service.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/message.dart';
 import 'package:mail_app/widgets/add_account.dart';
-import 'package:mail_app/widgets/inbox/inbox_list.dart';
+import 'package:mail_app/widgets/inbox/message_list.dart';
 import 'package:mail_app/widgets/mailbox/mailbox_header.dart';
 import 'package:mail_app/widgets/mailbox/mailbox_list.dart';
 import 'package:mail_app/widgets/message/message_content.dart';
@@ -30,9 +30,9 @@ class HomePageState extends State<HomePage> {
   int? _activeSession;
   int? _activeID;
 
-  double _messageListPosition = 0;
   List<Message> _messages = [];
   Map<int, List<MailboxInfo>> _mailboxTree = {};
+  double _messageListPosition = 0;
 
   @override
   void initState() {
@@ -47,7 +47,7 @@ class HomePageState extends State<HomePage> {
     final inboxes = await _inboxService.getMailboxes();
     _inboxService.setActiveMailbox(inboxes[0].path);
 
-    _messages = await _inboxService.getMessages(start: 1, end: 5);
+    _messages = await _inboxService.getMessages(start: 1, end: 10);
 
     setState(() {
       _messages = _messages;
@@ -63,11 +63,12 @@ class HomePageState extends State<HomePage> {
     });
   }
 
-  void _updateActiveID(int idx) {
+  void _updateActiveID(int idx, double messageListPosition) {
     if (_activeID == idx) return;
 
     setState(() {
       _activeID = idx;
+      _messageListPosition = messageListPosition;
       // message = _inboxService.getMessages().isNotEmpty
       //     ? _inboxService.getMessages()[_activeID]
       //     : MimeMessage();
@@ -97,8 +98,16 @@ class HomePageState extends State<HomePage> {
   //   });
   // }
 
-  void _updateMessageListPosition(double position) {
-    _messageListPosition = position;
+  void _updateMessagePage(int page, double messageListPosition) async {
+    final newMessages = await _inboxService.getMessages(
+        start: 1 + page * 10, end: 10 + page * 10);
+
+    setState(() {
+      _messageListPosition = messageListPosition;
+      _messages = _messages + newMessages;
+    });
+
+    // _messageListPosition = position;
   }
 
   Future<void> _updateMessageList(
@@ -110,14 +119,15 @@ class HomePageState extends State<HomePage> {
 
     _inboxService.setActiveSessionId(sessionId);
     _inboxService.setActiveMailbox(mailboxPath);
-    _updateMessageListPosition(0);
 
     setState(() {
       _activeMailbox = _inboxService.getActiveMailbox();
       _activeSession = _inboxService.getActiveSessionId();
     });
 
-    _messages = await _inboxService.getMessages(start: 1, end: 5);
+    _messages = await _inboxService.getMessages(start: 1, end: 10);
+
+    print('messages: $_messages');
 
     setState(() {
       _activeID = 0;
@@ -203,8 +213,8 @@ class HomePageState extends State<HomePage> {
                 activeID: _activeID ?? 0,
                 updateActiveID: _updateActiveID,
                 refreshAll: _refreshAll,
+                updatePage: _updateMessagePage,
                 listPosition: _messageListPosition,
-                updatePosition: _updateMessageListPosition,
                 key: UniqueKey(),
               ),
             ),

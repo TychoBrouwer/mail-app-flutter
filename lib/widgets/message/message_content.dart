@@ -85,6 +85,11 @@ class MessageContentState extends State<MessageContent> {
       document.body!.append(styleTag);
     });
 
+    var styleTag = parseFragment(
+        '<style>td {background-color: transparent !important}</style>');
+
+    document.body!.append(styleTag);
+
     final styledHtml = _styleHtml(document.body!.outerHtml);
 
     print(styledHtml);
@@ -93,18 +98,7 @@ class MessageContentState extends State<MessageContent> {
       styledHtml,
       key: UniqueKey(),
       textStyle: TextStyle(color: ProjectColors.main(false), fontSize: 14),
-      onErrorBuilder: (context, element, error) {
-        print(error);
-
-        return const SizedBox();
-      },
-      customStylesBuilder: (element) {
-        if (element.classes.contains('foo')) {
-          return {'color': 'red'};
-        }
-
-        return null;
-      },
+      renderMode: const ListViewMode(shrinkWrap: true),
     );
 
     setState(() {
@@ -138,10 +132,27 @@ class MessageContentState extends State<MessageContent> {
       return color.toRgba();
     });
 
-    final hexRegex = RegExp(r'#(\S{6})', caseSensitive: false);
+    final hexRegex = RegExp(r'#([0-9a-z]{6})', caseSensitive: false);
 
     output = output.replaceAllMapped(hexRegex, (Match match) {
       final color = HexColor.fromHex(match[1]!);
+
+      final newColor = Color.fromRGBO(
+        255 - color.red,
+        255 - color.green,
+        255 - color.blue,
+        1,
+      );
+
+      return newColor.toRgba();
+    });
+
+    final hexRegexShort = RegExp(r'#([0-9a-z]{3})', caseSensitive: false);
+
+    output = output.replaceAllMapped(hexRegexShort, (Match match) {
+      final fullHex =
+          match[1]!.split('').map((String char) => char + char).join('');
+      final color = HexColor.fromHex(fullHex);
 
       final newColor = Color.fromRGBO(
         255 - color.red,
@@ -189,8 +200,9 @@ class MessageContentState extends State<MessageContent> {
                             ),
                           ),
                           Opacity(
-                              opacity: _showHtml ? 1.0 : 0,
-                              child: _emailWidget),
+                            opacity: _showHtml ? 1.0 : 0,
+                            child: _emailWidget,
+                          ),
                         ],
                       ),
                     ),

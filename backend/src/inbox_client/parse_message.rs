@@ -183,7 +183,7 @@ fn parse_message_body(body: &str, uid: &u32) -> Message {
                 }
             }
             MimeParserState::Text => {
-                if line.starts_with(&(String::from("--") + boundary)) {
+                if line.starts_with(&(String::from("--"))) {
                     state = MimeParserState::BlankLine;
 
                     continue;
@@ -208,7 +208,7 @@ fn parse_message_body(body: &str, uid: &u32) -> Message {
                 }
             }
             MimeParserState::Html => {
-                if line.starts_with(&(String::from("--") + boundary)) {
+                if line.starts_with(&(String::from("--"))) {
                     state = MimeParserState::BlankLine;
 
                     continue;
@@ -217,9 +217,9 @@ fn parse_message_body(body: &str, uid: &u32) -> Message {
                 html.push_str(line);
             }
             MimeParserState::BlankLine => {
-                if line.starts_with("Content-Type: text/plain") {
+                if line.starts_with("Content-Type: text/plain") && text.is_empty() {
                     state = MimeParserState::TextHeader;
-                } else if line.starts_with("Content-Type: text/html") {
+                } else if line.starts_with("Content-Type: text/html") && html.is_empty() {
                     state = MimeParserState::HtmlHeader;
                 }
             }

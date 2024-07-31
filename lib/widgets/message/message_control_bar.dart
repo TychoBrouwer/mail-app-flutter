@@ -59,7 +59,7 @@ class ControlBarState extends State<ControlBar> {
                   ? control.function()
                   : control.function(control.argument),
               child: Padding(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(5),
                 child: SvgPicture.asset(
                   'assets/icons/${control.icon}.svg',
                   colorFilter: ColorFilter.mode(

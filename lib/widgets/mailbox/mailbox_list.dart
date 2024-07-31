@@ -49,7 +49,6 @@ class MailboxListState extends State<MailboxList> {
         mailboxTreeWidgets.add(
           GestureDetector(
             onTap: () => {
-              // int sessionId, String mailboxPath, String mailboxTitle
               _updateMessageList(session, inboxInfo.path, inboxInfo.display),
             },
             child: Container(

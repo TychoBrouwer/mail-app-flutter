@@ -40,10 +40,11 @@ class MailboxHeaderState extends State<MailboxHeader> {
           CustomButton(
             onTap: () => _addMailAccount(),
             child: Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(5),
               child: SvgPicture.asset(
                 'assets/icons/square-plus.svg',
-                color: ProjectColors.main(false),
+                colorFilter: ColorFilter.mode(
+                    ProjectColors.main(false), BlendMode.srcIn),
                 height: 20,
                 width: 20,
               ),
@@ -52,7 +53,7 @@ class MailboxHeaderState extends State<MailboxHeader> {
           CustomButton(
             onTap: () => _composeMessage(),
             child: Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(5),
               child: SvgPicture.asset(
                 'assets/icons/paper-plane.svg',
                 colorFilter: ColorFilter.mode(

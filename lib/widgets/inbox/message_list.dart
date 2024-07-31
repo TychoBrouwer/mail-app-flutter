@@ -4,7 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/custom_button.dart';
-import 'package:mail_app/widgets/inbox/inbox_preview.dart';
+import 'package:mail_app/widgets/inbox/message_preview.dart';
 
 class MessageList extends StatefulWidget {
   final List<Message> messages;
@@ -13,8 +13,8 @@ class MessageList extends StatefulWidget {
   final int activeID;
   final Function updateActiveID;
   final Future<void> Function() refreshAll;
+  final Function updatePage;
   final double listPosition;
-  final Function updatePosition;
 
   const MessageList({
     super.key,
@@ -24,8 +24,8 @@ class MessageList extends StatefulWidget {
     // required this.unseenMessages,
     required this.activeID,
     required this.refreshAll,
+    required this.updatePage,
     required this.listPosition,
-    required this.updatePosition,
   });
 
   @override
@@ -39,8 +39,10 @@ class MessageListState extends State<MessageList> {
   late int _activeID;
   late Function _updateActiveID;
   late Future<void> Function() _refreshAll;
+  late Function _updatePage;
   late ScrollController _listController;
-  late Function _updatePosition;
+
+  int _currentPage = 0;
 
   double turns = 0;
   bool rotatingFinished = true;
@@ -56,9 +58,11 @@ class MessageListState extends State<MessageList> {
     _activeID = widget.activeID;
     _updateActiveID = widget.updateActiveID;
     _refreshAll = widget.refreshAll;
+    _updatePage = widget.updatePage;
     _listController =
         ScrollController(initialScrollOffset: widget.listPosition);
-    _updatePosition = widget.updatePosition;
+
+    _listController.addListener(_loadMore);
   }
 
   void _refreshRotate() async {
@@ -75,6 +79,27 @@ class MessageListState extends State<MessageList> {
     rotatingFinished = true;
 
     if (!refreshFinished) _refreshRotate();
+  }
+
+  @override
+  void dispose() {
+    _listController.dispose();
+    super.dispose();
+  }
+
+  void _loadMore() {
+    if (_listController.position.pixels ==
+        _listController.position.maxScrollExtent) {
+      setState(() {
+        _currentPage++;
+
+        _updatePage(_currentPage, _listController.position.pixels);
+      });
+    }
+  }
+
+  void _updateActiveIDSaveScroll(int idx) {
+    _updateActiveID(idx, _listController.position.pixels);
   }
 
   bool _getActive(int idx) {
@@ -114,7 +139,7 @@ class MessageListState extends State<MessageList> {
                   turns: turns,
                   duration: const Duration(seconds: 1),
                   child: Padding(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(5),
                     child: SvgPicture.asset(
                       'assets/icons/arrows-rotate.svg',
                       colorFilter: ColorFilter.mode(
@@ -130,33 +155,25 @@ class MessageListState extends State<MessageList> {
         ),
         Expanded(
           child: Padding(
-            padding:
-                const EdgeInsets.only(left: 6, right: 6, top: 15, bottom: 15),
-            child: NotificationListener<ScrollUpdateNotification>(
-              onNotification: (notification) {
-                _updatePosition(notification.metrics.pixels);
-
-                return true;
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 15),
+            child: ListView.builder(
+              controller: _listController,
+              padding: const EdgeInsets.only(bottom: 200),
+              itemBuilder: (_, idx) {
+                return MailPreview(
+                  message: _messages[idx],
+                  idx: idx,
+                  unseen: false,
+                  // unseen: _unseenMessages.toList().contains(
+                  //     MessageSequence.fromMessage(_messages[idx])
+                  //         .toList()
+                  //         .last),
+                  getActive: _getActive,
+                  updateMessageID: _updateActiveIDSaveScroll,
+                  key: UniqueKey(),
+                );
               },
-              child: ListView.builder(
-                controller: _listController,
-                padding: const EdgeInsets.only(bottom: 200),
-                itemBuilder: (_, idx) {
-                  return MailPreview(
-                    message: _messages[idx],
-                    idx: idx,
-                    unseen: false,
-                    // unseen: _unseenMessages.toList().contains(
-                    //     MessageSequence.fromMessage(_messages[idx])
-                    //         .toList()
-                    //         .last),
-                    getActive: _getActive,
-                    updateMessageID: _updateActiveID,
-                    key: UniqueKey(),
-                  );
-                },
-                itemCount: _messages.length,
-              ),
+              itemCount: _messages.length,
             ),
           ),
         ),
