@@ -4,8 +4,22 @@ A new Flutter project for myself. Learning and creating a mail app for windows (
 
 I started it because the mail clients I used got updated and reworked, in my opinion for the worse. This wil be a simple replacement for viewing and sending email without any bullshit features I do not need like calenders, planners, or proprietary folders.
 
-The project uses the [enough mail client](https://github.com/Enough-Software/enough_mail_app) for dart, this may change in the future as I only want simple IMAP and SMTP features.
-
 In general I want support for multiple email addresses, options for showing unread at the top of the inbox, a shared inbox which combines the inboxes of all emails addresses, customization of the color pallet, and OAuth support for logging in.
 
-Run with ```flutter run -d windows```
+## Backend
+
+The backend is written in Rust and uses a websocket to communicate with the frontend. It uses the imap crate to connect to the email servers. It stores a local cache of the emails in a sqlite database.
+
+Run rust backend with ```cd backend && cargo run```
+
+## Frontend
+
+The frontend is written in Flutter and uses the web_socket_client package to communicate with the backend. The html emails are rendered with the flutter_widget_from_html package which converts html to flutter widgets.
+
+Run flutter frontend with ```flutter run -d windows```
+
+## Screenshots
+
+![Screenshot](assets/screenshots/screenshot-1.png)
+
+![Screenshot](assets/screenshots/screenshot-2.png)
