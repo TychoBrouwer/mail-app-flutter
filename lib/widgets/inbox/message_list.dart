@@ -42,8 +42,6 @@ class MessageListState extends State<MessageList> {
   late Function _updatePage;
   late ScrollController _listController;
 
-  int _currentPage = 0;
-
   double turns = 0;
   bool rotatingFinished = true;
   bool refreshFinished = false;
@@ -90,11 +88,7 @@ class MessageListState extends State<MessageList> {
   void _loadMore() {
     if (_listController.position.pixels ==
         _listController.position.maxScrollExtent) {
-      setState(() {
-        _currentPage++;
-
-        _updatePage(_currentPage, _listController.position.pixels);
-      });
+      _updatePage(_listController.position.pixels);
     }
   }
 

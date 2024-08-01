@@ -92,8 +92,6 @@ class MessageContentState extends State<MessageContent> {
 
     final styledHtml = _styleHtml(document.body!.outerHtml);
 
-    print(styledHtml);
-
     _emailWidget = HtmlWidget(
       styledHtml,
       key: UniqueKey(),
@@ -132,7 +130,7 @@ class MessageContentState extends State<MessageContent> {
       return color.toRgba();
     });
 
-    final hexRegex = RegExp(r'#([0-9a-z]{6})', caseSensitive: false);
+    final hexRegex = RegExp(r'#([0-9a-f]{6})', caseSensitive: false);
 
     output = output.replaceAllMapped(hexRegex, (Match match) {
       final color = HexColor.fromHex(match[1]!);
@@ -147,7 +145,7 @@ class MessageContentState extends State<MessageContent> {
       return newColor.toRgba();
     });
 
-    final hexRegexShort = RegExp(r'#([0-9a-z]{3})', caseSensitive: false);
+    final hexRegexShort = RegExp(r'#([0-9a-f]{3})', caseSensitive: false);
 
     output = output.replaceAllMapped(hexRegexShort, (Match match) {
       final fullHex =

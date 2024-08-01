@@ -29,6 +29,7 @@ class HomePageState extends State<HomePage> {
   String? _activeMailbox;
   int? _activeSession;
   int? _activeID;
+  int _currentPage = 0;
 
   List<Message> _messages = [];
   Map<int, List<MailboxInfo>> _mailboxTree = {};
@@ -98,16 +99,16 @@ class HomePageState extends State<HomePage> {
   //   });
   // }
 
-  void _updateMessagePage(int page, double messageListPosition) async {
+  void _updateMessagePage(double messageListPosition) async {
+    _currentPage++;
+
     final newMessages = await _inboxService.getMessages(
-        start: 1 + page * 10, end: 10 + page * 10);
+        start: 1 + _currentPage * 10, end: 10 + _currentPage * 10);
 
     setState(() {
       _messageListPosition = messageListPosition;
-      _messages = _messages + newMessages;
+      _messages.addAll(newMessages);
     });
-
-    // _messageListPosition = position;
   }
 
   Future<void> _updateMessageList(
@@ -127,10 +128,10 @@ class HomePageState extends State<HomePage> {
 
     _messages = await _inboxService.getMessages(start: 1, end: 10);
 
-    print('messages: $_messages');
-
     setState(() {
       _activeID = 0;
+      _currentPage = 0;
+      _messageListPosition = 0;
       _messages = _messages;
     });
   }
@@ -238,7 +239,9 @@ class HomePageState extends State<HomePage> {
                   Expanded(
                     child: MessageContent(
                       key: UniqueKey(),
-                      message: _activeID != null ? _messages[_activeID!] : null,
+                      message: _activeID != null && _messages.isNotEmpty
+                          ? _messages[_activeID!]
+                          : null,
                     ),
                   ),
                 ],

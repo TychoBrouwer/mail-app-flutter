@@ -14,7 +14,7 @@ impl InboxClient {
             Ok(ids) => ids,
             Err(e) => {
                 eprintln!("Error getting message IDs: {:?}", e);
-                return Err(String::from("{\"message\": \"Error getting message IDs\"}"));
+                return Err(String::from("Error getting message IDs"));
             }
         };
 
@@ -75,7 +75,7 @@ impl InboxClient {
                     }
                     Err(e) => {
                         eprintln!("Error getting message from IMAP: {:?}", e);
-                        return Err(String::from("{\"message\": \"Error getting message\"}"));
+                        return Err(String::from("Error getting message"));
                     }
                 }
             }
