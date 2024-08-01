@@ -20,6 +20,7 @@ pub struct Message {
     pub delivered_to: String,
     pub date: i64,
     pub received: i64,
+    pub flags: String,
     pub text: String,
     pub html: String,
 }
@@ -106,12 +107,6 @@ fn parse_message_body(body: &str, uid: &u32) -> Message {
     let mut text_encoding = String::from("utf-8");
 
     let lines = body.lines();
-
-    let re_boundary = Regex::new(r#"boundary="(.*)""#).unwrap();
-    let boundary = match re_boundary.captures(body) {
-        Some(c) => c.get(1).unwrap().as_str(),
-        None => "",
-    };
 
     let mut i = 0;
     while i < lines.clone().count() {
@@ -276,6 +271,7 @@ fn parse_message_body(body: &str, uid: &u32) -> Message {
         delivered_to: delivered_to.to_string(),
         date: date.timestamp_millis(),
         received: received.timestamp_millis(),
+        flags: String::from(""),
         text,
         html,
     };
@@ -300,6 +296,18 @@ pub fn parse_message(fetch: &Fetch) -> Result<Message, String> {
         None => return Err(String::from("Error getting body")),
     };
 
+    let flags = fetch.flags();
+    
+    let mut flags_str = String::from("[");
+    for (i, flag) in flags.iter().enumerate() {
+        flags_str.push_str(&format!("\"{:?}\"", flag));
+
+        if i < flags.len() - 1 {
+            flags_str.push_str(", ");
+        }
+    }
+    flags_str.push_str("]");
+
     let body_data = parse_message_body(body_str, &uid);
 
     return Ok(Message {
@@ -316,6 +324,7 @@ pub fn parse_message(fetch: &Fetch) -> Result<Message, String> {
         delivered_to: body_data.delivered_to,
         date: body_data.date,
         received: body_data.received,
+        flags: flags_str,
         text: body_data.text,
         html: body_data.html,
     });
@@ -337,6 +346,7 @@ pub fn message_to_string(message: &Message) -> String {
     result.push_str(&format!("\"delivered_to\": \"{}\",", message.delivered_to));
     result.push_str(&format!("\"date\": {},", message.date));
     result.push_str(&format!("\"received\": {},", message.received));
+    result.push_str(&format!("\"flags\": {},", message.flags));
     result.push_str(&format!("\"html\": \"{}\",", message.html));
     result.push_str(&format!("\"text\": \"{}\"", message.text));
 

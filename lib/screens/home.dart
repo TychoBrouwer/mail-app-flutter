@@ -214,7 +214,7 @@ class HomePageState extends State<HomePage> {
                 activeID: _activeID ?? 0,
                 updateActiveID: _updateActiveID,
                 refreshAll: _refreshAll,
-                updatePage: _updateMessagePage,
+                updateMessagePage: _updateMessagePage,
                 listPosition: _messageListPosition,
                 key: UniqueKey(),
               ),

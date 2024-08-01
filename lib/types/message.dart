@@ -28,6 +28,7 @@ class Message {
   late String deliveredTo;
   late int date;
   late int received;
+  late List<String> flags;
   late String text;
   late String html;
 
@@ -45,6 +46,7 @@ class Message {
     this.deliveredTo,
     this.date,
     this.received,
+    this.flags,
     this.text,
     this.html,
   );
@@ -67,6 +69,7 @@ class Message {
     final deliveredTo = data['delivered_to'];
     final date = data['date'] as int;
     final received = data['received'] as int;
+    final flags = data['flags'] as List<String>;
     final text = data['text'] as String;
     final html = data['html'] as String;
 
@@ -84,6 +87,7 @@ class Message {
       deliveredTo,
       date,
       received,
+      flags,
       text,
       html,
     );

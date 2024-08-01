@@ -9,7 +9,6 @@ import 'package:mail_app/types/project_colors.dart';
 class MailPreview extends StatefulWidget {
   final Message message;
   final int idx;
-  final bool unseen;
   final Function getActive;
   final Function updateMessageID;
 
@@ -17,7 +16,6 @@ class MailPreview extends StatefulWidget {
     super.key,
     required this.message,
     required this.idx,
-    required this.unseen,
     required this.getActive,
     required this.updateMessageID,
   });
@@ -29,12 +27,13 @@ class MailPreview extends StatefulWidget {
 class MailPreviewState extends State<MailPreview> {
   late Message _message;
   late int _idx;
-  late bool _unseen;
   late Function _getActive;
   late Function _updateMessageID;
 
   late String _from;
   late String _dateText;
+
+  final bool _unseen = false;
 
   @override
   void initState() {
@@ -42,7 +41,6 @@ class MailPreviewState extends State<MailPreview> {
 
     _message = widget.message;
     _idx = widget.idx;
-    _unseen = widget.unseen;
     _getActive = widget.getActive;
     _updateMessageID = widget.updateMessageID;
 

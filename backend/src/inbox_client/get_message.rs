@@ -66,8 +66,8 @@ impl InboxClient {
             }
         }
 
-        let envelope_fetch =
-            match session.uid_fetch(message_uid.to_string(), "(UID ENVELOPE BODY[])") {
+        let fetches =
+            match session.uid_fetch(message_uid.to_string(), "(UID ENVELOPE BODY[] FLAGS)") {
                 Ok(fetch) => fetch,
                 Err(e) => {
                     eprintln!("Error fetching message: {:?}", e);
@@ -75,7 +75,7 @@ impl InboxClient {
                 }
             };
 
-        let fetch = match envelope_fetch.first() {
+        let fetch = match fetches.first() {
             Some(e) => e,
             None => return Err(String::from("Message not found")),
         };

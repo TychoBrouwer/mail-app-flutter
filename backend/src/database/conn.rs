@@ -80,6 +80,7 @@ impl DBConnection {
                 delivered_to VARCHAR(500) NOT NULL,
                 date_ TIMESTAMP NOT NULL,
                 received TIMESTAMP NOT NULL,
+                flags VARCHAR(500) NOT NULL,
                 html TEXT NOT NULL,
                 text TEXT NOT NULL,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -186,9 +187,10 @@ impl DBConnection {
                 delivered_to,
                 date_,
                 received,
+                flags,
                 html,
                 text
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)",
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)",
             params![
                 message.uid,
                 username,
@@ -206,6 +208,7 @@ impl DBConnection {
                 message.delivered_to,
                 message.date,
                 message.received,
+                message.flags,
                 html,
                 text
             ],
@@ -303,8 +306,8 @@ impl DBConnection {
         };
 
         match stmt.query_row(params![username, address, mailbox_path, uid], |row| {
-            let html: String = row.get(16).unwrap();
-            let text: String = row.get(17).unwrap();
+            let html: String = row.get(17).unwrap();
+            let text: String = row.get(18).unwrap();
 
             Ok(Message {
                 uid: row.get(0).unwrap(),
@@ -320,6 +323,7 @@ impl DBConnection {
                 delivered_to: row.get(13).unwrap(),
                 date: row.get(14).unwrap(),
                 received: row.get(15).unwrap(),
+                flags: row.get(16).unwrap(),
                 html: BASE64_STANDARD.encode(html.as_bytes()),
                 text: BASE64_STANDARD.encode(text.as_bytes()),
             })

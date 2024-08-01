@@ -13,7 +13,7 @@ class MessageList extends StatefulWidget {
   final int activeID;
   final Function updateActiveID;
   final Future<void> Function() refreshAll;
-  final Function updatePage;
+  final Function updateMessagePage;
   final double listPosition;
 
   const MessageList({
@@ -24,7 +24,7 @@ class MessageList extends StatefulWidget {
     // required this.unseenMessages,
     required this.activeID,
     required this.refreshAll,
-    required this.updatePage,
+    required this.updateMessagePage,
     required this.listPosition,
   });
 
@@ -39,7 +39,7 @@ class MessageListState extends State<MessageList> {
   late int _activeID;
   late Function _updateActiveID;
   late Future<void> Function() _refreshAll;
-  late Function _updatePage;
+  late Function _updateMessagePage;
   late ScrollController _listController;
 
   double turns = 0;
@@ -56,7 +56,7 @@ class MessageListState extends State<MessageList> {
     _activeID = widget.activeID;
     _updateActiveID = widget.updateActiveID;
     _refreshAll = widget.refreshAll;
-    _updatePage = widget.updatePage;
+    _updateMessagePage = widget.updateMessagePage;
     _listController =
         ScrollController(initialScrollOffset: widget.listPosition);
 
@@ -86,14 +86,11 @@ class MessageListState extends State<MessageList> {
   }
 
   void _loadMore() {
-    if (_listController.position.pixels ==
-        _listController.position.maxScrollExtent) {
-      _updatePage(_listController.position.pixels);
-    }
-  }
+    final position = _listController.position;
 
-  void _updateActiveIDSaveScroll(int idx) {
-    _updateActiveID(idx, _listController.position.pixels);
+    if (position.pixels == position.maxScrollExtent) {
+      _updateMessagePage(position.pixels);
+    }
   }
 
   bool _getActive(int idx) {
@@ -157,13 +154,13 @@ class MessageListState extends State<MessageList> {
                 return MailPreview(
                   message: _messages[idx],
                   idx: idx,
-                  unseen: false,
                   // unseen: _unseenMessages.toList().contains(
                   //     MessageSequence.fromMessage(_messages[idx])
                   //         .toList()
                   //         .last),
                   getActive: _getActive,
-                  updateMessageID: _updateActiveIDSaveScroll,
+                  updateMessageID:
+                      _updateActiveID(idx, _listController.position.pixels),
                   key: UniqueKey(),
                 );
               },

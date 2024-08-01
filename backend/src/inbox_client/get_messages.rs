@@ -180,7 +180,7 @@ impl InboxClient {
             }
         };
 
-        let fetches = match session.fetch(&sequence_set_string, "(UID ENVELOPE BODY[])") {
+        let fetches = match session.fetch(&sequence_set_string, "(UID ENVELOPE BODY[] FLAGS)") {
             Ok(fetch) => fetch,
             Err(e) => {
                 eprintln!("Error fetching message: {:?}", e);
