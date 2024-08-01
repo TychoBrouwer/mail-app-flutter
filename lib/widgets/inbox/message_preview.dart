@@ -9,8 +9,8 @@ import 'package:mail_app/types/project_colors.dart';
 class MailPreview extends StatefulWidget {
   final Message message;
   final int idx;
-  final Function getActive;
-  final Function updateMessageID;
+  final bool Function(int) getActive;
+  final void Function(int) updateMessageID;
 
   const MailPreview({
     super.key,
@@ -27,13 +27,11 @@ class MailPreview extends StatefulWidget {
 class MailPreviewState extends State<MailPreview> {
   late Message _message;
   late int _idx;
-  late Function _getActive;
+  late bool Function(int) _getActive;
   late Function _updateMessageID;
 
   late String _from;
   late String _dateText;
-
-  final bool _unseen = false;
 
   @override
   void initState() {
@@ -83,12 +81,13 @@ class MailPreviewState extends State<MailPreview> {
                   width: 10,
                   height: 10,
                   decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(5),
-                      color: _unseen
-                          ? !_getActive(_idx)
-                              ? ProjectColors.accent
-                              : ProjectColors.main(true)
-                          : Colors.transparent),
+                    borderRadius: BorderRadius.circular(5),
+                    color: _message.flags.contains('Seen')
+                        ? Colors.transparent
+                        : !_getActive(_idx)
+                            ? ProjectColors.accent
+                            : ProjectColors.main(true),
+                  ),
                 ),
                 Expanded(
                   child: Container(

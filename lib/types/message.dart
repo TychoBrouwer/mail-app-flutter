@@ -69,7 +69,7 @@ class Message {
     final deliveredTo = data['delivered_to'];
     final date = data['date'] as int;
     final received = data['received'] as int;
-    final flags = data['flags'] as List<String>;
+    final flags = (data['flags'] as List).map((e) => e as String).toList();
     final text = data['text'] as String;
     final html = data['html'] as String;
 

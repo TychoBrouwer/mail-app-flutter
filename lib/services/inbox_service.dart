@@ -4,7 +4,7 @@ import 'package:mail_app/services/websocket_service.dart';
 import 'package:mail_app/types/mail_account.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/message.dart';
-import 'package:mail_app/types/message_data.dart';
+import 'package:mail_app/types/socket_message.dart';
 
 class InboxService {
   late WebsocketService _websocketService;
