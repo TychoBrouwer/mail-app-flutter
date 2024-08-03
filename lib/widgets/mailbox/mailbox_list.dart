@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/project_colors.dart';
+import 'package:mail_app/types/project_sizes.dart';
 
 class MailboxList extends StatefulWidget {
   final Map<int, List<MailboxInfo>> mailboxTree;
@@ -60,9 +61,7 @@ class MailboxListState extends State<MailboxList> {
                     )
                   : const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
               decoration: BoxDecoration(
-                borderRadius: const BorderRadius.all(
-                  Radius.circular(5),
-                ),
+                borderRadius: ProjectSizes.borderRadiusSmall,
                 color: _activeSession == session &&
                         _activeMailbox == inboxInfo.path
                     ? ProjectColors.accent
@@ -75,7 +74,7 @@ class MailboxListState extends State<MailboxList> {
                           _activeMailbox == inboxInfo.path
                       ? ProjectColors.main(true)
                       : ProjectColors.main(false),
-                  fontSize: 14,
+                  fontSize: ProjectSizes.fontSize,
                 ),
                 overflow: TextOverflow.clip,
                 softWrap: false,

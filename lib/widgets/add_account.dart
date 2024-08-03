@@ -5,6 +5,7 @@ import 'package:email_validator/email_validator.dart';
 import 'package:mail_app/services/inbox_service.dart';
 import 'package:mail_app/services/overlay_builder.dart';
 import 'package:mail_app/types/project_colors.dart';
+import 'package:mail_app/types/project_sizes.dart';
 import 'package:mail_app/widgets/custom_button.dart';
 import 'package:mail_app/widgets/custom_form_field.dart';
 
@@ -84,160 +85,135 @@ class AddAccountState extends State<AddAccount> {
     return SizedBox(
       width: MediaQuery.of(context).size.width,
       height: MediaQuery.of(context).size.height,
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: MediaQuery.of(context).size.width * 0.24,
-          vertical: MediaQuery.of(context).size.height * 0.06,
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: ProjectColors.main(false)),
-            color: const Color.fromRGBO(33, 33, 33, 1),
-            borderRadius: BorderRadius.circular(2),
-          ),
-          child: Form(
-            key: _formKey,
-            child: Padding(
-              padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.05),
-              child: ListView(
-                children: <Widget>[
-                  CustomFormField(
-                    onSaved: (val) => _username = val,
-                    labelText: 'Email address',
-                    validator: (String? value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
-                      } else if (!EmailValidator.validate(value)) {
-                        return 'Please enter a valid email';
-                      }
-                      return null;
-                    },
-                  ),
-                  CustomFormField(
-                    onSaved: (val) => _password = val,
-                    labelText: 'Password',
-                    obscureText: true,
-                    validator: (String? value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your password';
-                      }
-                      return null;
-                    },
-                  ),
-                  Row(
-                    children: [
-                      Flexible(
-                        flex: 2,
-                        child: CustomFormField(
-                          onSaved: (val) => _address = val,
-                          labelText: 'SMTP address',
-                          validator: (String? value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter an SMTP address';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      Flexible(
-                        child: CustomFormField(
-                          onSaved: (val) =>
-                              _port = (val != null) ? int.parse(val) : 0,
-                          labelText: 'SMTP port',
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly
-                          ],
-                          validator: (String? value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Enter SMTP Port';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Flexible(
-                        flex: 2,
-                        child: CustomFormField(
-                          onSaved: (val) => _address = val,
-                          labelText: 'IMAP address',
-                          validator: (String? value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter an IMAP address';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      Flexible(
-                        child: CustomFormField(
-                          onSaved: (val) =>
-                              _port = (val != null) ? int.parse(val) : 0,
-                          labelText: 'IMAP port',
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly
-                          ],
-                          validator: (String? value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Enter IMAP port';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 20, left: 5),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            height: 400,
+            width: 550,
+            decoration: BoxDecoration(
+              border: Border.all(color: ProjectColors.main(false)),
+              color: const Color.fromRGBO(33, 33, 33, 1),
+              borderRadius: ProjectSizes.borderRadiusExtraSmall,
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black,
+                  blurRadius: 10,
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: Form(
+              key: _formKey,
+              child: Padding(
+                padding:
+                    EdgeInsets.all(MediaQuery.of(context).size.width * 0.05),
+                child: ListView(
+                  children: <Widget>[
+                    CustomFormField(
+                      onSaved: (val) => _username = val,
+                      labelText: 'Email address',
+                      validator: (String? value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your email';
+                        } else if (!EmailValidator.validate(value)) {
+                          return 'Please enter a valid email';
+                        }
+                        return null;
+                      },
+                    ),
+                    CustomFormField(
+                      onSaved: (val) => _password = val,
+                      labelText: 'Password',
+                      obscureText: true,
+                      validator: (String? value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your password';
+                        }
+                        return null;
+                      },
+                    ),
+                    Row(
                       children: [
-                        CustomButton(
-                          onTap: _cancel,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 15, vertical: 5),
-                            child: Text(
-                              'CANCEL',
-                              style: TextStyle(
-                                color: ProjectColors.main(false),
-                                decoration: TextDecoration.none,
-                                fontSize: 18,
-                                fontWeight: FontWeight.normal,
-                              ),
-                            ),
+                        Flexible(
+                          flex: 2,
+                          child: CustomFormField(
+                            onSaved: (val) => _address = val,
+                            labelText: 'IMAP address',
+                            validator: (String? value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter an IMAP address';
+                              }
+                              return null;
+                            },
                           ),
                         ),
-                        CustomButton(
-                          onTap: _confirm,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 15, vertical: 5),
-                            child: Text(
-                              'CONFIRM',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: ProjectColors.main(false),
-                                decoration: TextDecoration.none,
-                                fontSize: 18,
-                                fontWeight: FontWeight.normal,
-                              ),
-                            ),
+                        Flexible(
+                          child: CustomFormField(
+                            onSaved: (val) =>
+                                _port = (val != null) ? int.parse(val) : 0,
+                            labelText: 'IMAP port',
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly
+                            ],
+                            validator: (String? value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Enter IMAP Port';
+                              }
+                              return null;
+                            },
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20, left: 5),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          CustomButton(
+                            onTap: _cancel,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 15, vertical: 5),
+                              child: Text(
+                                'CANCEL',
+                                style: TextStyle(
+                                  color: ProjectColors.main(false),
+                                  decoration: TextDecoration.none,
+                                  fontSize: ProjectSizes.fontSizeLarge,
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
+                            ),
+                          ),
+                          CustomButton(
+                            onTap: _confirm,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 15, vertical: 5),
+                              child: Text(
+                                'CONFIRM',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: ProjectColors.main(false),
+                                  decoration: TextDecoration.none,
+                                  fontSize: ProjectSizes.fontSizeLarge,
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

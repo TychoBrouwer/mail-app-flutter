@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/project_colors.dart';
+import 'package:mail_app/types/project_sizes.dart';
 
 class MailPreview extends StatefulWidget {
   final Message message;
@@ -66,9 +67,7 @@ class MailPreviewState extends State<MailPreview> {
       onTap: () => _updateMessageID(_idx),
       child: Container(
           decoration: BoxDecoration(
-            borderRadius: const BorderRadius.all(
-              Radius.circular(10),
-            ),
+            borderRadius: ProjectSizes.borderRadius,
             color: _getActive(_idx) ? ProjectColors.accent : Colors.transparent,
           ),
           child: Container(
@@ -81,7 +80,7 @@ class MailPreviewState extends State<MailPreview> {
                   width: 10,
                   height: 10,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(5),
+                    borderRadius: ProjectSizes.borderRadiusSmall,
                     color: _message.flags.contains('Seen')
                         ? Colors.transparent
                         : !_getActive(_idx)
@@ -116,7 +115,7 @@ class MailPreviewState extends State<MailPreview> {
                                       overflow: TextOverflow.fade,
                                       softWrap: false,
                                       style: TextStyle(
-                                        fontSize: 14,
+                                        fontSize: ProjectSizes.fontSize,
                                         fontWeight: FontWeight.bold,
                                         color: ProjectColors.main(
                                             _getActive(_idx)),
@@ -129,7 +128,7 @@ class MailPreviewState extends State<MailPreview> {
                                   style: TextStyle(
                                     color: ProjectColors.secondary(
                                         _getActive(_idx)),
-                                    fontSize: 12,
+                                    fontSize: ProjectSizes.fontSize,
                                   ),
                                 ),
                               ],
@@ -142,7 +141,7 @@ class MailPreviewState extends State<MailPreview> {
                               overflow: TextOverflow.fade,
                               softWrap: false,
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: ProjectSizes.fontSize,
                                 color: ProjectColors.main(_getActive(_idx)),
                                 fontWeight: FontWeight.w500,
                               ),
@@ -155,7 +154,7 @@ class MailPreviewState extends State<MailPreview> {
                               overflow: TextOverflow.fade,
                               softWrap: false,
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: ProjectSizes.fontSize,
                                 color:
                                     ProjectColors.secondary(_getActive(_idx)),
                                 fontWeight: FontWeight.w500,

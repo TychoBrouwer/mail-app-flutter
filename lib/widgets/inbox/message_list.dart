@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/project_colors.dart';
+import 'package:mail_app/types/project_sizes.dart';
 import 'package:mail_app/widgets/custom_button.dart';
 import 'package:mail_app/widgets/inbox/message_preview.dart';
 
@@ -117,7 +118,7 @@ class MessageListState extends State<MessageList> {
                       : _mailboxTitle.toUpperCase(),
                   textAlign: TextAlign.left,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: ProjectSizes.fontSizeLarge,
                     fontWeight: FontWeight.bold,
                     color: ProjectColors.main(false),
                   ),

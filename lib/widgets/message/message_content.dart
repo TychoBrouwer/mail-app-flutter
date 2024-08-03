@@ -5,6 +5,7 @@ import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:html/parser.dart';
 
 import 'package:mail_app/types/message.dart';
+import 'package:mail_app/types/project_sizes.dart';
 import 'package:mail_app/utils/to_rgba.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/message/message_header.dart';
@@ -95,7 +96,8 @@ class MessageContentState extends State<MessageContent> {
     _emailWidget = HtmlWidget(
       styledHtml,
       key: UniqueKey(),
-      textStyle: TextStyle(color: ProjectColors.main(false), fontSize: 14),
+      textStyle: TextStyle(
+          color: ProjectColors.main(false), fontSize: ProjectSizes.fontSize),
       renderMode: const ListViewMode(shrinkWrap: true),
     );
 

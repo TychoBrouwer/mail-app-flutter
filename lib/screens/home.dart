@@ -8,7 +8,7 @@ import 'package:mail_app/widgets/inbox/message_list.dart';
 import 'package:mail_app/widgets/mailbox/mailbox_header.dart';
 import 'package:mail_app/widgets/mailbox/mailbox_list.dart';
 import 'package:mail_app/widgets/message/message_content.dart';
-import 'package:mail_app/widgets/message/message_control_bar.dart';
+import 'package:mail_app/widgets/control_bar.dart';
 import 'package:mail_app/services/overlay_builder.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/vertical_split.dart';

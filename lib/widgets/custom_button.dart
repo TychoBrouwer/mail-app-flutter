@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:mail_app/types/project_colors.dart';
+import 'package:mail_app/types/project_sizes.dart';
 
 class CustomButton extends StatelessWidget {
   final void Function() onTap;
@@ -17,7 +18,7 @@ class CustomButton extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(2),
+        borderRadius: ProjectSizes.borderRadiusExtraSmall,
         hoverColor: ProjectColors.secondary(true),
         highlightColor: ProjectColors.secondary(true),
         splashColor: ProjectColors.secondary(true),

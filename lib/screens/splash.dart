@@ -5,6 +5,7 @@ import 'package:mail_app/services/inbox_service.dart';
 import 'package:mail_app/services/websocket_service.dart';
 import 'package:mail_app/screens/home.dart';
 import 'package:mail_app/types/project_colors.dart';
+import 'package:mail_app/types/project_sizes.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -73,7 +74,7 @@ class SplashPageState extends State<SplashPage> {
                 child: Text(
                   _status,
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: ProjectSizes.fontSizeExtraLarge,
                     color: ProjectColors.main(false),
                   ),
                 ),

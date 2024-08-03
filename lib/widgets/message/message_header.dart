@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:mail_app/types/project_colors.dart';
+import 'package:mail_app/types/project_sizes.dart';
 
 class MessageHeader extends StatefulWidget {
   final String from;
@@ -53,83 +54,84 @@ class MessageHeaderState extends State<MessageHeader> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 80,
-          height: 80,
+          width: 70,
+          height: 70,
           margin: const EdgeInsets.only(right: 15),
-          decoration: const BoxDecoration(color: Colors.black),
+          decoration: const BoxDecoration(
+            color: Colors.black,
+            borderRadius: ProjectSizes.borderRadiusLarge,
+          ),
         ),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 15),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 7),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
                       child: Text(
                         _from,
                         overflow: TextOverflow.fade,
                         softWrap: false,
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: ProjectSizes.fontSize,
                           fontWeight: FontWeight.bold,
                           color: ProjectColors.main(false),
                         ),
                       ),
                     ),
-                  ),
-                  Text(
-                    _dateText,
+                    Text(
+                      _dateText,
+                      style: TextStyle(
+                        fontSize: ProjectSizes.fontSize,
+                        color: ProjectColors.main(false),
+                      ),
+                    ),
+                  ],
+                ),
+                RichText(
+                  overflow: TextOverflow.fade,
+                  softWrap: false,
+                  text: TextSpan(
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: ProjectSizes.fontSize,
                       color: ProjectColors.main(false),
                     ),
-                  ),
-                ],
-              ),
-              RichText(
-                overflow: TextOverflow.fade,
-                softWrap: false,
-                text: TextSpan(
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: ProjectColors.main(false),
-                  ),
-                  children: [
-                    const TextSpan(text: 'To: '),
-                    TextSpan(
-                      text: _to,
-                      style: TextStyle(
-                        color: ProjectColors.secondary(false),
+                    children: [
+                      const TextSpan(text: 'To: '),
+                      TextSpan(
+                        text: _to,
+                        style: TextStyle(
+                          color: ProjectColors.secondary(false),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              RichText(
-                overflow: TextOverflow.fade,
-                softWrap: false,
-                text: TextSpan(
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: ProjectColors.main(false),
+                    ],
                   ),
-                  children: [
-                    const TextSpan(text: 'Subject: '),
-                    TextSpan(
-                      text: _subject,
-                      style: TextStyle(
-                        color: ProjectColors.secondary(false),
-                      ),
-                    ),
-                  ],
                 ),
-              ),
-            ],
+                RichText(
+                  overflow: TextOverflow.fade,
+                  softWrap: false,
+                  text: TextSpan(
+                    style: TextStyle(
+                      fontSize: ProjectSizes.fontSize,
+                      color: ProjectColors.main(false),
+                    ),
+                    children: [
+                      const TextSpan(text: 'Subject: '),
+                      TextSpan(
+                        text: _subject,
+                        style: TextStyle(
+                          color: ProjectColors.secondary(false),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
