@@ -187,8 +187,8 @@ class HomePageState extends State<HomePage> {
           child: VerticalSplitView(
             left: Container(
               decoration: BoxDecoration(
-                border: Border(
-                    right: BorderSide(color: ProjectColors.secondary(false))),
+                border:
+                    Border(right: BorderSide(color: ProjectColors.main(false))),
               ),
               height: double.infinity,
               child: MailboxList(
@@ -221,8 +221,8 @@ class HomePageState extends State<HomePage> {
             ),
             right: Container(
               decoration: BoxDecoration(
-                border: Border(
-                    left: BorderSide(color: ProjectColors.secondary(false))),
+                border:
+                    Border(left: BorderSide(color: ProjectColors.main(false))),
               ),
               height: double.infinity,
               child: Column(

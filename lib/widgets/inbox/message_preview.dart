@@ -68,7 +68,9 @@ class MailPreviewState extends State<MailPreview> {
       child: Container(
           decoration: BoxDecoration(
             borderRadius: ProjectSizes.borderRadius,
-            color: _getActive(_idx) ? ProjectColors.accent : Colors.transparent,
+            color: _getActive(_idx)
+                ? ProjectColors.accent(true)
+                : Colors.transparent,
           ),
           child: Container(
             margin: const EdgeInsets.only(left: 10, right: 30),
@@ -84,7 +86,7 @@ class MailPreviewState extends State<MailPreview> {
                     color: _message.flags.contains('Seen')
                         ? Colors.transparent
                         : !_getActive(_idx)
-                            ? ProjectColors.accent
+                            ? ProjectColors.accent(true)
                             : ProjectColors.main(true),
                   ),
                 ),

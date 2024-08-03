@@ -8,7 +8,7 @@ class MessageHeader extends StatefulWidget {
   final String from;
   final String to;
   final String subject;
-  final DateTime? date;
+  final DateTime date;
 
   const MessageHeader({
     super.key,
@@ -36,15 +36,13 @@ class MessageHeaderState extends State<MessageHeader> {
     _to = widget.to;
     _subject = widget.subject;
 
-    DateTime? date = widget.date;
+    DateTime date = widget.date;
 
-    _dateText = date == null
-        ? "Unknown date"
-        : DateTime.now().difference(date).inDays == 0
-            ? DateFormat('HH:mm').format(date)
-            : DateTime.now().difference(date).inDays == -1
-                ? 'Yesterday'
-                : DateFormat('dd/MM/yy').format(date);
+    _dateText = DateTime.now().difference(date).inDays == 0
+        ? DateFormat('HH:mm').format(date)
+        : DateTime.now().difference(date).inDays == -1
+            ? 'Yesterday'
+            : DateFormat('dd/MM/yy').format(date);
   }
 
   @override
@@ -57,8 +55,8 @@ class MessageHeaderState extends State<MessageHeader> {
           width: 70,
           height: 70,
           margin: const EdgeInsets.only(right: 15),
-          decoration: const BoxDecoration(
-            color: Colors.black,
+          decoration: BoxDecoration(
+            color: ProjectColors.secondary(true),
             borderRadius: ProjectSizes.borderRadiusLarge,
           ),
         ),
@@ -87,7 +85,7 @@ class MessageHeaderState extends State<MessageHeader> {
                       _dateText,
                       style: TextStyle(
                         fontSize: ProjectSizes.fontSize,
-                        color: ProjectColors.main(false),
+                        color: ProjectColors.secondary(false),
                       ),
                     ),
                   ],
@@ -98,7 +96,7 @@ class MessageHeaderState extends State<MessageHeader> {
                   text: TextSpan(
                     style: TextStyle(
                       fontSize: ProjectSizes.fontSize,
-                      color: ProjectColors.main(false),
+                      color: ProjectColors.secondary(false),
                     ),
                     children: [
                       const TextSpan(text: 'To: '),
@@ -117,7 +115,7 @@ class MessageHeaderState extends State<MessageHeader> {
                   text: TextSpan(
                     style: TextStyle(
                       fontSize: ProjectSizes.fontSize,
-                      color: ProjectColors.main(false),
+                      color: ProjectColors.secondary(false),
                     ),
                     children: [
                       const TextSpan(text: 'Subject: '),

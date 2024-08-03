@@ -65,24 +65,26 @@ class CustomFormFieldState extends State<CustomFormField> {
           inputFormatters: _inputFormatters,
           validator: _validator,
           style: TextStyle(color: ProjectColors.main(false)),
-          cursorColor: ProjectColors.accent,
+          cursorColor: ProjectColors.accent(true),
           cursorWidth: 0.6,
           decoration: InputDecoration(
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(
-                  width: 2, color: ProjectColors.accent.withOpacity(0.5)),
+              borderSide:
+                  BorderSide(width: 2, color: ProjectColors.accent(false)),
             ),
             focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(width: 2, color: ProjectColors.accent),
+              borderSide:
+                  BorderSide(width: 2, color: ProjectColors.accent(true)),
             ),
             errorBorder: UnderlineInputBorder(
-              borderSide: BorderSide(
-                  width: 2, color: ProjectColors.accent.withOpacity(0.5)),
+              borderSide:
+                  BorderSide(width: 2, color: ProjectColors.accent(false)),
             ),
             focusedErrorBorder: UnderlineInputBorder(
-              borderSide: BorderSide(width: 2, color: ProjectColors.accent),
+              borderSide:
+                  BorderSide(width: 2, color: ProjectColors.accent(true)),
             ),
-            errorStyle: TextStyle(color: ProjectColors.accent),
+            errorStyle: TextStyle(color: ProjectColors.accent(true)),
             labelStyle: TextStyle(color: ProjectColors.main(false)),
             hintStyle: TextStyle(color: ProjectColors.main(false)),
             errorMaxLines: 1,
@@ -96,7 +98,7 @@ class CustomFormFieldState extends State<CustomFormField> {
                       !_passwordVisible
                           ? Icons.visibility
                           : Icons.visibility_off,
-                      color: ProjectColors.accent,
+                      color: ProjectColors.accent(true),
                     ),
                     onPressed: () {
                       setState(() {

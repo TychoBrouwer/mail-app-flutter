@@ -64,7 +64,7 @@ class MailboxListState extends State<MailboxList> {
                 borderRadius: ProjectSizes.borderRadiusSmall,
                 color: _activeSession == session &&
                         _activeMailbox == inboxInfo.path
-                    ? ProjectColors.accent
+                    ? ProjectColors.accent(true)
                     : Colors.transparent,
               ),
               child: Text(

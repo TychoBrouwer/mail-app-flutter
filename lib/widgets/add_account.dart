@@ -93,7 +93,7 @@ class AddAccountState extends State<AddAccount> {
             width: 550,
             decoration: BoxDecoration(
               border: Border.all(color: ProjectColors.main(false)),
-              color: const Color.fromRGBO(33, 33, 33, 1),
+              color: ProjectColors.secondary(true),
               borderRadius: ProjectSizes.borderRadiusExtraSmall,
               boxShadow: const [
                 BoxShadow(

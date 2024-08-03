@@ -16,7 +16,6 @@ class MailApp extends StatelessWidget {
     return MaterialApp(
       title: 'Mail App',
       theme: ThemeData(
-        primarySwatch: ProjectColors.accent,
         scrollbarTheme: ScrollbarThemeData(
           thumbColor: WidgetStateProperty.all(ProjectColors.main(false)),
           thickness: WidgetStateProperty.all(6),
