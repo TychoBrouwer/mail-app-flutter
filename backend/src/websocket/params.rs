@@ -21,6 +21,13 @@ pub fn get_u32(uri_param: Option<&String>) -> Option<u32> {
     }
 }
 
+pub fn get_bool(uri_param: Option<&String>) -> Option<bool> {
+    match uri_param {
+        Some(param) => Some(param.parse::<bool>().unwrap()),
+        None => None,
+    }
+}
+
 pub fn parse_params(uri: String) -> HashMap<String, String> {
     let uri_parts: Vec<&str> = uri.split("\n").collect();
 

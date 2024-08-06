@@ -6,6 +6,7 @@ mod inbox_client {
     pub mod get_mailboxes;
     pub mod get_message;
     pub mod get_messages;
+    pub mod modify_flags;
     pub mod inbox_client;
     pub mod parse_message;
 }
@@ -54,3 +55,4 @@ fn main() {
 
     websocket::websocket::create_server(&mut inbox_client);
 }
+

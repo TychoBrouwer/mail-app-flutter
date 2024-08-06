@@ -156,6 +156,43 @@ pub fn message(uri: &str, inbox_client: &mut InboxClient) -> String {
     }
 }
 
+pub fn modify_flags(uri: &str, inbox_client: &mut InboxClient) -> String {
+    let uri_params = params::parse_params(String::from(uri));
+
+    let session_id = params::get_usize(uri_params.get("session_id"));
+    let mailbox = uri_params.get("mailbox");
+    let message_uid = params::get_u32(uri_params.get("message_uid"));
+    let flags = uri_params.get("flags");
+    let add = params::get_bool(uri_params.get("add"));
+
+    if session_id.is_none() || mailbox.is_none() || message_uid.is_none() || flags.is_none() || add.is_none() { 
+        eprintln!(
+            "Provide session_id, mailbox and message_id GET parameters: {}",
+            uri
+        );
+        return String::from("{\"success\": false, \"message\": \"Provide session_id, mailbox and message_uid GET parameters\"}");
+    }
+ 
+    let session_id = session_id.unwrap();
+    let mailbox = mailbox.unwrap();
+    let message_uid = message_uid.unwrap();
+    let flags = flags.unwrap();
+    let add = add.unwrap();
+
+    match inbox_client.modify_flag(session_id, mailbox, &message_uid, flags, add) {
+        Ok(message) => {
+            return format!(
+                "{{\"success\": true, \"message\": \"Flags successfully updated\", \"data\": {}}}",
+                message
+            )
+        }
+        Err(e) => {
+            eprintln!("Error getting message: {:?}", e);
+            return format!("{{\"success\": false, \"message\": {}}}", e);
+        }
+    }
+}
+
 pub fn messages(uri: &str, inbox_client: &mut InboxClient) -> String {
     let uri_params = params::parse_params(String::from(uri));
 

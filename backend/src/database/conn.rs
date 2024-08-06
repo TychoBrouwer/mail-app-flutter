@@ -103,7 +103,7 @@ impl DBConnection {
 
     pub fn insert_connection(&mut self, session: &Session) {
         match self.conn.execute(
-            "INSERT OR IGNORE INTO connections (
+            "INSERT OR REPLACE INTO connections (
                 username,
                 password,
                 address,
@@ -120,7 +120,7 @@ impl DBConnection {
 
     pub fn insert_mailbox(&mut self, username: &str, address: &str, mailbox_path: &str) {
         match self.conn.execute(
-            "INSERT OR IGNORE INTO mailboxes (
+            "INSERT OR REPLACE INTO mailboxes (
                 c_username,
                 c_address,
                 path
@@ -170,7 +170,7 @@ impl DBConnection {
         };
 
         match self.conn.execute(
-            "INSERT OR IGNORE INTO messages (
+            "INSERT OR REPLACE INTO messages (
                 uid,
                 c_username,
                 c_address,
@@ -217,7 +217,29 @@ impl DBConnection {
             Err(e) => {
                 eprintln!("Error inserting message: {}", e);
 
-                return Err(String::from("Error inserting message"));
+                return Err(String::from("Error inserting message into local database"));
+            }
+        }
+    }
+    
+    pub fn update_message_flags(
+        &mut self,    
+        username: &str,
+        address: &str,
+        mailbox_path: &str,
+        message_uid: &u32, 
+        flags: &str,
+    ) -> Result<(), String> {
+        match self.conn.execute(
+            "UPDATE connections
+             SET flags = ?1
+             WHERE uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
+            params![flags, message_uid, username, address, mailbox_path]
+        ) {
+            Ok(_) => Ok({}),
+            Err(e) => {
+                eprintln!("Error updating flags column: {}", e);
+                return Err(String::from("Error updating flags column"));
             }
         }
     }
