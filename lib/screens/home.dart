@@ -32,6 +32,8 @@ class HomePageState extends State<HomePage> {
   int? _activeID;
   int _currentPage = 0;
 
+  int messageLoadCount = 25;
+
   List<Message> _messages = [];
   Map<int, List<MailboxInfo>> _mailboxTree = {};
 
@@ -48,7 +50,8 @@ class HomePageState extends State<HomePage> {
     final inboxes = await _inboxService.getMailboxes();
     _inboxService.setActiveMailbox(inboxes[0].path);
 
-    _messages = await _inboxService.getMessages(start: 1, end: 10);
+    _messages =
+        await _inboxService.getMessages(start: 1, end: messageLoadCount);
 
     setState(() {
       _messages = _messages;
@@ -76,8 +79,8 @@ class HomePageState extends State<HomePage> {
     _currentPage++;
 
     final newMessages = await _inboxService.getMessages(
-      start: 1 + _currentPage * 10,
-      end: 10 + _currentPage * 10,
+      start: 1 + _currentPage * messageLoadCount,
+      end: messageLoadCount + _currentPage * messageLoadCount,
     );
 
     setState(() {
@@ -117,7 +120,7 @@ class HomePageState extends State<HomePage> {
   //       .getUnseenMessages()
   //       .toList()
   //       .contains(MessageSequence.fromMessage(message).toList().first)) {
-  //     await _inboxService.currentClient().markMessage(
+  //     await _inboxService.currentClient().flagMessage(
   //         _inboxService.getMessages()[_activeID], MessageUpdate.seen);
   //   }
 
@@ -141,38 +144,28 @@ class HomePageState extends State<HomePage> {
     print('composing a message');
   }
 
-  void _markMessage() async {
-    print('mark message');
-    // await _inboxService
-    //     .currentClient()
-    //     .markMessage(_inboxService.getMessages()[_activeID], messageUpdate);
-
-    // setState(() {
-    //   message = _inboxService.getMessages()[_activeID];
-    // });
-  }
-
-  Future<void> _readMessage() async {
-    print('read message');
-
+  void _flagMessage(MessageFlag flag) async {
     if (_activeID == null) return;
 
-    final add = !_messages[_activeID!].flags.contains(MessageFlag.seen);
-    final messageUid = _messages[_activeID!].uid;
+    final message = _messages[_activeID!];
 
-    print(add);
-    print(messageUid);
+    final add = !message.flags.contains(flag);
+    final messageUid = message.uid;
 
     final flags = await _inboxService.updateFlags(
-        messageUid: messageUid, flags: [MessageFlag.seen], add: add);
+        messageUid: messageUid, flags: [flag], add: add);
 
     setState(() {
-      if (flags.contains(MessageFlag.seen)) {
-        _messages[_activeID!].flags.add(MessageFlag.seen);
+      if (flags.contains(flag)) {
+        message.flags.add(flag);
       } else {
-        _messages[_activeID!].flags.remove(MessageFlag.seen);
+        message.flags.remove(flag);
       }
     });
+  }
+
+  Future<void> _archive() async {
+    print('archive message');
   }
 
   Future<void> _reply() async {
@@ -185,6 +178,10 @@ class HomePageState extends State<HomePage> {
 
   Future<void> _share() async {
     print('share message');
+  }
+
+  Future<void> _settings() async {
+    print('settings');
   }
 
   @override
@@ -227,8 +224,6 @@ class HomePageState extends State<HomePage> {
                 updateActiveID: _updateActiveID,
                 refreshAll: _refreshAll,
                 loadMoreMessages: _loadMoreMessages,
-                // updateMessagePage: _updateMessagePage,
-                // listPosition: _messageListPosition,
               ),
             ),
             right: Container(
@@ -242,11 +237,12 @@ class HomePageState extends State<HomePage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ControlBar(
-                    markMessage: _markMessage,
-                    readMessage: _readMessage,
+                    flagMessage: _flagMessage,
+                    archive: _archive,
                     reply: _reply,
                     replyAll: _replyAll,
                     share: _share,
+                    settings: _settings,
                     key: UniqueKey(),
                   ),
                   Expanded(

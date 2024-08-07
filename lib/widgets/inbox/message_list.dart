@@ -155,16 +155,6 @@ class MessageListState extends State<MessageList> {
                     key: UniqueKey(),
                   ),
               ],
-              // itemBuilder: (_, idx) {
-              //   return MailPreview(
-              //     message: _messages[idx],
-              //     idx: idx,
-              //     getActive: _getActive,
-              //     updateMessageID: _updateActiveID(idx),
-              //     key: UniqueKey(),
-              //   );
-              // },
-              // itemCount: _messages.length,
             ),
           ),
         ),

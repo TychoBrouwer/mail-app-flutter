@@ -1,23 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import 'package:mail_app/types/message_flag.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/custom_button.dart';
 
 class ControlBar extends StatefulWidget {
-  final void Function() markMessage;
-  final void Function() readMessage;
+  final void Function(MessageFlag) flagMessage;
+  final void Function() archive;
   final void Function() reply;
   final void Function() replyAll;
   final void Function() share;
+  final void Function() settings;
 
   const ControlBar({
     super.key,
-    required this.markMessage,
-    required this.readMessage,
+    required this.flagMessage,
+    required this.archive,
     required this.reply,
     required this.replyAll,
     required this.share,
+    required this.settings,
   });
 
   @override
@@ -25,32 +28,35 @@ class ControlBar extends StatefulWidget {
 }
 
 class ControlBarState extends State<ControlBar> {
-  late void Function() _markMessage;
-  late void Function() _readMessage;
+  late void Function(MessageFlag) _flagMessage;
+  late void Function() _archive;
   late void Function() _reply;
   late void Function() _replyAll;
   late void Function() _share;
+  late void Function() _settings;
 
   @override
   void initState() {
     super.initState();
 
-    _markMessage = widget.markMessage;
-    _readMessage = widget.readMessage;
+    _flagMessage = widget.flagMessage;
+    _archive = widget.archive;
     _reply = widget.reply;
     _replyAll = widget.replyAll;
     _share = widget.share;
+    _settings = widget.settings;
   }
 
   List<Widget> buildControls() {
     final List<Control> controls = [
-      Control('box-archive', _markMessage),
-      Control('circle-exclamation', _markMessage),
-      Control('trash-can', _markMessage),
-      Control('envelope-dot', _readMessage),
+      Control('box-archive', _archive),
+      Control('circle-exclamation', () => _flagMessage(MessageFlag.flagged)),
+      Control('trash-can', () => _flagMessage(MessageFlag.deleted)),
+      Control('envelope-dot', () => _flagMessage(MessageFlag.seen)),
       Control('reply', _reply),
       Control('reply-all', _replyAll),
       Control('share', _share),
+      Control('settings', _settings),
     ];
 
     return controls
