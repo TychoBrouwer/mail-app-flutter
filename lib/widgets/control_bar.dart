@@ -47,48 +47,50 @@ class ControlBarState extends State<ControlBar> {
     _settings = widget.settings;
   }
 
-  List<Widget> buildControls() {
-    final List<Control> controls = [
-      Control('box-archive', _archive),
-      Control('circle-exclamation', () => _flagMessage(MessageFlag.flagged)),
-      Control('trash-can', () => _flagMessage(MessageFlag.deleted)),
-      Control('envelope-dot', () => _flagMessage(MessageFlag.seen)),
-      Control('reply', _reply),
-      Control('reply-all', _replyAll),
-      Control('share', _share),
-      Control('settings', _settings),
-    ];
-
-    return controls
-        .map(
-          (control) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: CustomButton(
-              onTap: () => control.function(),
-              child: Padding(
-                padding: const EdgeInsets.all(5),
-                child: SvgPicture.asset(
-                  'assets/icons/${control.icon}.svg',
-                  colorFilter: ColorFilter.mode(
-                      ProjectColors.main(false), BlendMode.srcIn),
-                  alignment: Alignment.centerRight,
-                  height: 20,
-                  width: 20,
-                ),
-              ),
-            ),
+  Widget controlWidget(Control control) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      child: CustomButton(
+        onTap: () => control.function(),
+        child: Padding(
+          padding: const EdgeInsets.all(5),
+          child: SvgPicture.asset(
+            'assets/icons/${control.icon}.svg',
+            colorFilter:
+                ColorFilter.mode(ProjectColors.main(false), BlendMode.srcIn),
+            alignment: Alignment.centerRight,
+            height: 20,
+            width: 20,
           ),
-        )
-        .toList();
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(top: 10, bottom: 15, left: 50),
+      margin: const EdgeInsets.only(top: 10, bottom: 15, left: 50, right: 50),
       alignment: Alignment.center,
       child: Row(
-        children: buildControls(),
+        children: [
+          controlWidget(Control('box-archive', _archive)),
+          controlWidget(
+            Control(
+                'circle-exclamation', () => _flagMessage(MessageFlag.flagged)),
+          ),
+          controlWidget(
+            Control('trash-can', () => _flagMessage(MessageFlag.deleted)),
+          ),
+          controlWidget(
+            Control('envelope-dot', () => _flagMessage(MessageFlag.seen)),
+          ),
+          controlWidget(Control('reply', _reply)),
+          controlWidget(Control('reply-all', _replyAll)),
+          controlWidget(Control('share', _share)),
+          const Spacer(),
+          controlWidget(Control('settings', _settings)),
+        ],
       ),
     );
   }

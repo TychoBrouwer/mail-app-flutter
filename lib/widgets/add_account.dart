@@ -89,7 +89,7 @@ class AddAccountState extends State<AddAccount> {
         alignment: Alignment.center,
         children: [
           Container(
-            height: 400,
+            height: 420,
             width: 550,
             decoration: BoxDecoration(
               border: Border.all(color: ProjectColors.main(false)),
@@ -175,8 +175,8 @@ class AddAccountState extends State<AddAccount> {
                           CustomButton(
                             onTap: _cancel,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 15, vertical: 5),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 15),
                               child: Text(
                                 'CANCEL',
                                 style: TextStyle(
@@ -191,8 +191,8 @@ class AddAccountState extends State<AddAccount> {
                           CustomButton(
                             onTap: _confirm,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 15, vertical: 5),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 15),
                               child: Text(
                                 'CONFIRM',
                                 textAlign: TextAlign.center,
