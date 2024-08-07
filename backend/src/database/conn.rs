@@ -1,6 +1,6 @@
 use crate::inbox_client::{inbox_client::Session, parse_message::Message};
 
-use rusqlite::{params, Connection, OpenFlags};
+use rusqlite::{params, vtab, Connection, OpenFlags};
 use base64::{prelude::BASE64_STANDARD, Engine};
 
 pub struct DBConnection {
@@ -19,6 +19,14 @@ impl DBConnection {
                 return Err(String::from("Error opening database"));
             }
         };
+
+        match vtab::array::load_module(&conn) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Error loading array module: {}", e);
+                return Err(String::from("Error loading array module"));
+            }
+        }
 
         return Ok(DBConnection { conn });
     }
@@ -103,7 +111,7 @@ impl DBConnection {
 
     pub fn insert_connection(&mut self, session: &Session) {
         match self.conn.execute(
-            "INSERT OR REPLACE INTO connections (
+            "INSERT OR IGNORE INTO connections (
                 username,
                 password,
                 address,
@@ -120,7 +128,7 @@ impl DBConnection {
 
     pub fn insert_mailbox(&mut self, username: &str, address: &str, mailbox_path: &str) {
         match self.conn.execute(
-            "INSERT OR REPLACE INTO mailboxes (
+            "INSERT OR IGNORE INTO mailboxes (
                 c_username,
                 c_address,
                 path
@@ -170,7 +178,7 @@ impl DBConnection {
         };
 
         match self.conn.execute(
-            "INSERT OR REPLACE INTO messages (
+            "INSERT OR IGNORE INTO messages (
                 uid,
                 c_username,
                 c_address,
@@ -366,4 +374,71 @@ impl DBConnection {
             }
         };
     }
+
+    pub fn get_messages_with_uid(
+        &mut self,
+        username: &str,
+        address: &str,
+        mailbox_path: &str,
+        uid: &Vec<u32>,
+    ) -> Result<Vec<Message>, String> {        
+        let mut stmt = match self.conn.prepare(
+            "SELECT * FROM messages WHERE uid IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
+        ) {
+            Ok(stmt) => stmt,
+            Err(e) => {
+                eprintln!("Error preparing statement: {}", e);
+                return Err(String::from("Error preparing statement"));
+            }
+        };
+
+        let uid_list: vtab::array::Array = std::rc::Rc::new(
+            uid
+                .into_iter()
+                .map(|uid| rusqlite::types::Value::from(*uid))
+                .collect::<Vec<rusqlite::types::Value>>(),
+        );
+
+        match stmt.query_map(params![uid_list, username, address, mailbox_path], |row| {
+            let html: String = row.get(17).unwrap();
+            let text: String = row.get(18).unwrap();
+
+            Ok(Message {
+                uid: row.get(0).unwrap(),
+                message_id: row.get(4).unwrap(),
+                subject: row.get(5).unwrap(),
+                from: row.get(6).unwrap(),
+                sender: row.get(7).unwrap(),
+                to: row.get(8).unwrap(),
+                cc: row.get(9).unwrap(),
+                bcc: row.get(10).unwrap(),
+                reply_to: row.get(11).unwrap(),
+                in_reply_to: row.get(12).unwrap(),
+                delivered_to: row.get(13).unwrap(),
+                date: row.get(14).unwrap(),
+                received: row.get(15).unwrap(),
+                flags: row.get(16).unwrap(),
+                html: BASE64_STANDARD.encode(html.as_bytes()),
+                text: BASE64_STANDARD.encode(text.as_bytes()),
+            })
+        }) {
+            Ok(messages) => {
+                let mut messages_list: Vec<Message> = Vec::new();
+
+                for message in messages {
+                    match message {
+                        Ok(message) => messages_list.push(message),
+                        Err(_) => continue,
+                    }
+                }
+
+                return Ok(messages_list);
+            }
+            Err(e) => {
+                eprintln!("Error getting message: {}", e);
+                return Err(String::from("Error getting message from local database"));
+            }
+        };
+    }
+
 }

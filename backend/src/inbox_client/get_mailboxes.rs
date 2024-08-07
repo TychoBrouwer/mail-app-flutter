@@ -65,7 +65,7 @@ impl InboxClient {
             Ok(m) => m,
             Err(e) => {
                 eprintln!("Error getting mailboxes: {:?}", e);
-                return Err(String::from("Error getting mailboxes"));
+                return Err(e);
             }
         };
 

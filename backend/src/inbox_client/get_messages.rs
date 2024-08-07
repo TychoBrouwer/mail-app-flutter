@@ -64,9 +64,7 @@ impl InboxClient {
                                         e
                                     );
 
-                                    return Err(String::from(
-                                        "Error inserting message into local database",
-                                    ));
+                                    return Err(e);
                                 }
                             }
                         }
@@ -218,26 +216,23 @@ impl InboxClient {
         let username = &self.sessions[session_id].username;
         let address = &self.sessions[session_id].address;
 
-        let mut messages: Vec<parse_message::Message> = Vec::new();
-        let mut failed_message_uids: Vec<u32> = Vec::new();
+        let messages = match self.database_conn.get_messages_with_uid(
+            username,
+            address,
+            mailbox_path,
+            message_uids,
+        ) {
+            Ok(m) => m,
+            Err(e) => {
+                return Err(e);
+            }
+        };
 
-        for message_uid in message_uids {
-            let message = match self.database_conn.get_message_with_uid(
-                username,
-                address,
-                mailbox_path,
-                *message_uid,
-            ) {
-                Ok(m) => m,
-                Err(_) => {
-                    failed_message_uids.push(*message_uid);
-
-                    continue;
-                }
-            };
-
-            messages.push(message);
-        }
+        let failed_message_uids = message_uids
+            .iter()
+            .filter(|uid| !messages.iter().any(|m| m.uid == **uid))
+            .map(|x| *x)
+            .collect();
 
         return Ok((messages, failed_message_uids));
     }

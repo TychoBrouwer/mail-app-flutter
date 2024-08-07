@@ -112,7 +112,7 @@ impl InboxClient {
         ) {
             Ok(m) => m,
             Err(e) => {                
-                return Err(String::from("Error getting message from local database"));
+                return Err(e);
             }
         };
 
