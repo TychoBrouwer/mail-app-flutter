@@ -26,7 +26,7 @@ fn main() {
         Err(e) => {
             panic!("Error opening database: {}", e);
         }
-    };
+    };    
 
     match database_conn.initialise() {
         Ok(_) => {}

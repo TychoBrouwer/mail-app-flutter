@@ -231,7 +231,7 @@ impl DBConnection {
         flags: &str,
     ) -> Result<(), String> {
         match self.conn.execute(
-            "UPDATE connections
+            "UPDATE messages
              SET flags = ?1
              WHERE uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
             params![flags, message_uid, username, address, mailbox_path]
@@ -318,7 +318,7 @@ impl DBConnection {
         uid: &u32,
     ) -> Result<Message, String> {
         let mut stmt = match self.conn.prepare(
-            "SELECT * FROM messages WHERE c_username = ?1 AND c_address = ?2 AND m_path = ?3 AND uid = ?4",
+            "SELECT * FROM messages WHERE c_username = ?1 AND c_address = ?2 AND m_path = ?3 AND uid = ?4 LIMIT 1",
         ) {
             Ok(stmt) => stmt,
             Err(e) => {
@@ -327,7 +327,7 @@ impl DBConnection {
             }
         };
 
-        match stmt.query_row(params![username, address, mailbox_path, uid], |row| {
+        match stmt.query_map(params![username, address, mailbox_path, uid], |row| {
             let html: String = row.get(17).unwrap();
             let text: String = row.get(18).unwrap();
 
@@ -350,8 +350,16 @@ impl DBConnection {
                 text: BASE64_STANDARD.encode(text.as_bytes()),
             })
         }) {
-            Ok(message) => {
-                return Ok(message);
+            Ok(mut messages) => {
+                match messages.next() {
+                    Some(message) => {
+                        match message {
+                            Ok(e) => return Ok(e),
+                            Err(_) => return Err(String::from("Message not present in local database"))
+                        }
+                    },
+                    None => return Err(String::from("Message not present in local database"))
+                }
             }
             Err(e) => {
                 eprintln!("Error getting message: {}", e);

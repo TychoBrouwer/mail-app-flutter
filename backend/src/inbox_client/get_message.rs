@@ -67,7 +67,7 @@ impl InboxClient {
         }
 
         let fetches =
-            match session.uid_fetch(message_uid.to_string(), "(UID ENVELOPE BODY[] FLAGS)") {
+            match session.uid_fetch(message_uid.to_string(), "(UID ENVELOPE BODY.PEEK[] FLAGS)") {
                 Ok(fetch) => fetch,
                 Err(e) => {
                     eprintln!("Error fetching message: {:?}", e);

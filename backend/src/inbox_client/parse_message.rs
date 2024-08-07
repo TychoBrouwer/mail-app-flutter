@@ -1,6 +1,6 @@
 use base64::{prelude::BASE64_STANDARD, Engine};
 use chrono::{DateTime, FixedOffset};
-use imap::types::Fetch;
+use imap::types::{Fetch, Flag};
 use imap_proto::types::Address;
 use regex::Regex;
 use std::collections::HashMap;
@@ -298,15 +298,7 @@ pub fn parse_message(fetch: &Fetch) -> Result<Message, String> {
 
     let flags = fetch.flags();
     
-    let mut flags_str = String::from("[");
-    for (i, flag) in flags.iter().enumerate() {
-        flags_str.push_str(&format!("\"{:?}\"", flag));
-
-        if i < flags.len() - 1 {
-            flags_str.push_str(", ");
-        }
-    }
-    flags_str.push_str("]");
+    let flags_str = flags_to_string(flags);
 
     let body_data = parse_message_body(body_str, &uid);
 
@@ -328,6 +320,20 @@ pub fn parse_message(fetch: &Fetch) -> Result<Message, String> {
         text: body_data.text,
         html: body_data.html,
     });
+}
+
+pub fn flags_to_string(flags: &[Flag]) -> String {
+    let mut flags_str = String::from("[");
+    for (i, flag) in flags.iter().enumerate() {
+        flags_str.push_str(&format!("\"{:?}\"", flag));
+
+        if i < flags.len() - 1 {
+            flags_str.push_str(", ");
+        }
+    }
+    flags_str.push_str("]");
+
+    return flags_str;
 }
 
 pub fn message_to_string(message: &Message) -> String {
