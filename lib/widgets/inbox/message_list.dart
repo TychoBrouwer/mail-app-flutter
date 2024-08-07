@@ -9,24 +9,20 @@ import 'package:mail_app/widgets/inbox/message_preview.dart';
 
 class MessageList extends StatefulWidget {
   final List<Message> messages;
-  // final MessageSequence unseenMessages;
   final String mailboxTitle;
   final int activeID;
-  final void Function(int, double) updateActiveID;
+  final void Function(int) updateActiveID;
   final Future<void> Function() refreshAll;
-  final void Function(double) updateMessagePage;
-  final double listPosition;
+  final void Function() loadMoreMessages;
 
   const MessageList({
     super.key,
     required this.updateActiveID,
     required this.mailboxTitle,
     required this.messages,
-    // required this.unseenMessages,
     required this.activeID,
     required this.refreshAll,
-    required this.updateMessagePage,
-    required this.listPosition,
+    required this.loadMoreMessages,
   });
 
   @override
@@ -35,13 +31,13 @@ class MessageList extends StatefulWidget {
 
 class MessageListState extends State<MessageList> {
   late List<Message> _messages;
-  // late MessageSequence _unseenMessages;
   late String _mailboxTitle;
   late int _activeID;
-  late void Function(int, double) _updateActiveIDSaveScroll;
+  late void Function(int) _updateActiveID;
   late Future<void> Function() _refreshAll;
-  late void Function(double) _updateMessagePage;
-  late ScrollController _listController;
+  late void Function() _loadMoreMessages;
+
+  final ScrollController _listController = ScrollController();
 
   double turns = 0;
   bool rotatingFinished = true;
@@ -54,11 +50,9 @@ class MessageListState extends State<MessageList> {
     _messages = widget.messages;
     _mailboxTitle = widget.mailboxTitle;
     _activeID = widget.activeID;
-    _updateActiveIDSaveScroll = widget.updateActiveID;
+    _updateActiveID = widget.updateActiveID;
     _refreshAll = widget.refreshAll;
-    _updateMessagePage = widget.updateMessagePage;
-    _listController =
-        ScrollController(initialScrollOffset: widget.listPosition);
+    _loadMoreMessages = widget.loadMoreMessages;
 
     _listController.addListener(_loadMore);
   }
@@ -85,18 +79,12 @@ class MessageListState extends State<MessageList> {
     super.dispose();
   }
 
-  void _loadMore() {
+  void _loadMore() async {
     final position = _listController.position;
 
     if (position.pixels == position.maxScrollExtent) {
-      _updateMessagePage(position.pixels);
+      _loadMoreMessages();
     }
-  }
-
-  void Function(int) _updateActiveID(int idx) {
-    return (int idx) {
-      _updateActiveIDSaveScroll(idx, _listController.position.pixels);
-    };
   }
 
   bool _getActive(int idx) {
@@ -153,19 +141,30 @@ class MessageListState extends State<MessageList> {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 15),
-            child: ListView.builder(
+            child: ListView(
+              key: PageStorageKey<String>(_mailboxTitle),
               controller: _listController,
               padding: const EdgeInsets.only(bottom: 200),
-              itemBuilder: (_, idx) {
-                return MailPreview(
-                  message: _messages[idx],
-                  idx: idx,
-                  getActive: _getActive,
-                  updateMessageID: _updateActiveID(idx),
-                  key: UniqueKey(),
-                );
-              },
-              itemCount: _messages.length,
+              children: [
+                for (int idx = 0; idx < _messages.length; idx++)
+                  MailPreview(
+                    message: _messages[idx],
+                    idx: idx,
+                    getActive: _getActive,
+                    updateMessageID: _updateActiveID,
+                    key: UniqueKey(),
+                  ),
+              ],
+              // itemBuilder: (_, idx) {
+              //   return MailPreview(
+              //     message: _messages[idx],
+              //     idx: idx,
+              //     getActive: _getActive,
+              //     updateMessageID: _updateActiveID(idx),
+              //     key: UniqueKey(),
+              //   );
+              // },
+              // itemCount: _messages.length,
             ),
           ),
         ),

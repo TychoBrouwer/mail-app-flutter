@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import 'package:mail_app/types/message_update.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/custom_button.dart';
 
 class ControlBar extends StatefulWidget {
-  final Function markMessage;
-  final Function reply;
-  final Function replyAll;
-  final Function share;
+  final void Function() markMessage;
+  final void Function() readMessage;
+  final void Function() reply;
+  final void Function() replyAll;
+  final void Function() share;
 
   const ControlBar({
     super.key,
     required this.markMessage,
+    required this.readMessage,
     required this.reply,
     required this.replyAll,
     required this.share,
@@ -24,16 +25,18 @@ class ControlBar extends StatefulWidget {
 }
 
 class ControlBarState extends State<ControlBar> {
-  late Function _markMessage;
-  late Function _reply;
-  late Function _replyAll;
-  late Function _share;
+  late void Function() _markMessage;
+  late void Function() _readMessage;
+  late void Function() _reply;
+  late void Function() _replyAll;
+  late void Function() _share;
 
   @override
   void initState() {
     super.initState();
 
     _markMessage = widget.markMessage;
+    _readMessage = widget.readMessage;
     _reply = widget.reply;
     _replyAll = widget.replyAll;
     _share = widget.share;
@@ -41,10 +44,10 @@ class ControlBarState extends State<ControlBar> {
 
   List<Widget> buildControls() {
     final List<Control> controls = [
-      Control('box-archive', _markMessage, MessageUpdate.archive),
-      Control('circle-exclamation', _markMessage, MessageUpdate.flag),
-      Control('trash-can', _markMessage, MessageUpdate.delete),
-      Control('envelope-dot', _markMessage, MessageUpdate.seen),
+      Control('box-archive', _markMessage),
+      Control('circle-exclamation', _markMessage),
+      Control('trash-can', _markMessage),
+      Control('envelope-dot', _readMessage),
       Control('reply', _reply),
       Control('reply-all', _replyAll),
       Control('share', _share),
@@ -55,9 +58,7 @@ class ControlBarState extends State<ControlBar> {
           (control) => Padding(
             padding: const EdgeInsets.symmetric(horizontal: 5),
             child: CustomButton(
-              onTap: () => control.argument == MessageUpdate.none
-                  ? control.function()
-                  : control.function(control.argument),
+              onTap: () => control.function(),
               child: Padding(
                 padding: const EdgeInsets.all(5),
                 child: SvgPicture.asset(
@@ -89,8 +90,7 @@ class ControlBarState extends State<ControlBar> {
 
 class Control {
   final String icon;
-  final Function function;
-  final MessageUpdate argument;
+  final void Function() function;
 
-  Control(this.icon, this.function, [this.argument = MessageUpdate.none]);
+  Control(this.icon, this.function);
 }

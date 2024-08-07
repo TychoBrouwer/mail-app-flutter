@@ -1,9 +1,11 @@
 import 'dart:convert';
 
+import 'package:mail_app/extensions/string_extension.dart';
 import 'package:mail_app/services/websocket_service.dart';
 import 'package:mail_app/types/mail_account.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/message.dart';
+import 'package:mail_app/types/message_flag.dart';
 import 'package:mail_app/types/socket_message.dart';
 
 class InboxService {
@@ -73,7 +75,7 @@ class InboxService {
     final response = await _websocketService.sendMessage(request);
 
     final decode = jsonDecode(response);
-    final messageData = MessageData.fromJson(decode);
+    final messageData = SocketMessage.fromJson(decode);
 
     if (!messageData.success) return -1;
 
@@ -96,7 +98,7 @@ class InboxService {
 
     final decode = jsonDecode(response);
 
-    final messageData = MessageData.fromJson(decode);
+    final messageData = SocketMessage.fromJson(decode);
 
     if (!messageData.success) return [];
 
@@ -118,7 +120,7 @@ class InboxService {
 
     final response = await _websocketService.sendMessage(request);
 
-    final messageData = MessageData.fromJson(jsonDecode(response));
+    final messageData = SocketMessage.fromJson(jsonDecode(response));
 
     if (!messageData.success) return [];
 
@@ -126,17 +128,19 @@ class InboxService {
 
     for (var mailbox in (messageData.data as List)) {
       if ((mailbox as String).endsWith(']')) continue;
-      _mailboxes.add(MailboxInfo.fromJson(mailbox));
+      _mailboxes
+          .add(MailboxInfo.fromJson(mailbox, getActiveSessionDisplay() ?? ''));
     }
 
     return _mailboxes;
   }
 
-  Future<List<Message>> getMessages(
-      {int? session,
-      String? mailbox,
-      required int start,
-      required int end}) async {
+  Future<List<Message>> getMessages({
+    int? session,
+    String? mailbox,
+    required int start,
+    required int end,
+  }) async {
     if (session == null) {
       session = _activeSession;
 
@@ -152,7 +156,7 @@ class InboxService {
         '/imap/messages\r\nsession_id=$_activeSession\nmailbox=$_activeMailbox\nstart=$start\nend=$end';
 
     final response = await _websocketService.sendMessage(request);
-    final messageData = MessageData.fromJson(jsonDecode(response));
+    final messageData = SocketMessage.fromJson(jsonDecode(response));
 
     if (!messageData.success) return [];
 
@@ -162,6 +166,38 @@ class InboxService {
     }
 
     return messages;
+  }
+
+  Future<List<MessageFlag>> updateFlags({
+    int? session,
+    String? mailbox,
+    required int messageUid,
+    required List<MessageFlag> flags,
+    required bool add,
+  }) async {
+    if (session == null) {
+      session = _activeSession;
+
+      if (_activeSession == null) return [];
+    }
+    if (mailbox == null) {
+      mailbox = _activeMailbox;
+
+      if (_activeMailbox == null) return [];
+    }
+
+    final flagsString = flags.map((e) => e.name.capitalize()).join(',');
+    final addString = add.toString();
+
+    String request =
+        '/imap/modify_flags\r\nsession_id=$session\nmailbox=$mailbox\nmessage_uid=$messageUid\nflags=$flagsString\nadd=$addString';
+
+    final response = await _websocketService.sendMessage(request);
+    final messageData = SocketMessage.fromJson(jsonDecode(response));
+
+    if (!messageData.success) return [];
+
+    return messageFlagsFromJsonList(messageData.data);
   }
 
   // Future<String> getMessage(int messageUid) async {

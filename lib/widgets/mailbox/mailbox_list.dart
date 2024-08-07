@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/types/project_sizes.dart';
+import 'package:mail_app/widgets/custom_button.dart';
 
 class MailboxList extends StatefulWidget {
   final Map<int, List<MailboxInfo>> mailboxTree;
@@ -48,7 +49,7 @@ class MailboxListState extends State<MailboxList> {
     _mailboxTree.forEach((int session, List<MailboxInfo> account) {
       for (MailboxInfo inboxInfo in account) {
         mailboxTreeWidgets.add(
-          GestureDetector(
+          CustomButton(
             onTap: () => {
               _updateMessageList(session, inboxInfo.path, inboxInfo.display),
             },
@@ -56,10 +57,11 @@ class MailboxListState extends State<MailboxList> {
               padding: inboxInfo.indent
                   ? const EdgeInsets.only(
                       left: 30,
-                      top: 5,
-                      bottom: 5,
+                      right: 5,
+                      top: 3,
+                      bottom: 3,
                     )
-                  : const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  : const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 borderRadius: ProjectSizes.borderRadiusSmall,
                 color: _activeSession == session &&
@@ -75,6 +77,7 @@ class MailboxListState extends State<MailboxList> {
                       ? ProjectColors.main(true)
                       : ProjectColors.main(false),
                   fontSize: ProjectSizes.fontSize,
+                  fontWeight: FontWeight.normal,
                 ),
                 overflow: TextOverflow.clip,
                 softWrap: false,
@@ -82,6 +85,10 @@ class MailboxListState extends State<MailboxList> {
             ),
           ),
         );
+        mailboxTreeWidgets.add(const SizedBox(
+          height: 3,
+          width: double.infinity,
+        ));
       }
     });
 
@@ -93,6 +100,7 @@ class MailboxListState extends State<MailboxList> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
       child: ListView(
+        key: UniqueKey(),
         children: [_header, ...mailboxTreeBuilder()],
       ),
     );

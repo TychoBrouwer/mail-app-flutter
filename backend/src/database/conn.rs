@@ -227,7 +227,7 @@ impl DBConnection {
         username: &str,
         address: &str,
         mailbox_path: &str,
-        message_uid: &u32, 
+        message_uid: u32, 
         flags: &str,
     ) -> Result<(), String> {
         match self.conn.execute(
@@ -245,7 +245,7 @@ impl DBConnection {
     }
 
     pub fn get_connections(&mut self) -> Result<Vec<Session>, String> {
-        let mut stmt = match self.conn.prepare("SELECT * FROM connections") {
+        let mut stmt = match self.conn.prepare_cached("SELECT * FROM connections") {
             Ok(stmt) => stmt,
             Err(e) => {
                 eprintln!("Error preparing statement at connections: {}", e);
@@ -284,7 +284,7 @@ impl DBConnection {
     pub fn get_mailboxes(&mut self, username: &str, address: &str) -> Result<Vec<String>, String> {
         let mut stmt = match self
             .conn
-            .prepare("SELECT * FROM mailboxes WHERE c_username = ?1 AND c_address = ?2")
+            .prepare_cached("SELECT * FROM mailboxes WHERE c_username = ?1 AND c_address = ?2")
         {
             Ok(stmt) => stmt,
             Err(e) => {
@@ -315,9 +315,9 @@ impl DBConnection {
         username: &str,
         address: &str,
         mailbox_path: &str,
-        uid: &u32,
+        uid: u32,
     ) -> Result<Message, String> {
-        let mut stmt = match self.conn.prepare(
+        let mut stmt = match self.conn.prepare_cached(
             "SELECT * FROM messages WHERE c_username = ?1 AND c_address = ?2 AND m_path = ?3 AND uid = ?4 LIMIT 1",
         ) {
             Ok(stmt) => stmt,
@@ -327,7 +327,9 @@ impl DBConnection {
             }
         };
 
-        match stmt.query_map(params![username, address, mailbox_path, uid], |row| {
+        let uid_str =  uid.to_string();
+
+        match stmt.query_map(params![username, address, mailbox_path, uid_str], |row| {
             let html: String = row.get(17).unwrap();
             let text: String = row.get(18).unwrap();
 

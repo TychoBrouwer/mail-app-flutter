@@ -62,7 +62,7 @@ class SplashPageState extends State<SplashPage> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          color: ProjectColors.secondary(true),
+          color: ProjectColors.main(true),
         ),
         child: Center(
           child: Column(

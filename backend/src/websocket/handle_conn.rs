@@ -142,7 +142,7 @@ pub fn message(uri: &str, inbox_client: &mut InboxClient) -> String {
     let mailbox = mailbox.unwrap();
     let message_uid = message_uid.unwrap();
 
-    match inbox_client.get_message(session_id, mailbox, &message_uid) {
+    match inbox_client.get_message(session_id, mailbox, message_uid) {
         Ok(message) => {
             return format!(
                 "{{\"success\": true, \"message\": \"Message retrieved\", \"data\": {}}}",
@@ -179,7 +179,7 @@ pub fn modify_flags(uri: &str, inbox_client: &mut InboxClient) -> String {
     let flags = flags.unwrap();
     let add = add.unwrap();
 
-    match inbox_client.modify_flag(session_id, mailbox, &message_uid, flags, add) {
+    match inbox_client.modify_flag(session_id, mailbox, message_uid, flags, add) {
         Ok(message) => {
             return format!(
                 "{{\"success\": true, \"message\": \"Flags successfully updated\", \"data\": {}}}",

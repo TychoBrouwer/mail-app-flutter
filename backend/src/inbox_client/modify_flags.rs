@@ -7,7 +7,7 @@ impl InboxClient {
         &mut self,
         session_id: usize,
         mailbox_path: &str,
-        message_uid: &u32,
+        message_uid: u32,
         flags: &str,
         add: bool,
     ) -> Result<String, String> { 
@@ -68,7 +68,7 @@ impl InboxClient {
         &mut self,
         session_id: usize,
         mailbox_path: &str,
-        message_uid: &u32,
+        message_uid: u32,
         flags: &[Flag],
     ) -> Result<String, String> {
         let flags_str = flags_to_string(flags);

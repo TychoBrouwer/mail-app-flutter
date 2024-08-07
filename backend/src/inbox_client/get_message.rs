@@ -8,7 +8,7 @@ impl InboxClient {
         &mut self,
         session_id: usize,
         mailbox_path: &str,
-        message_uid: &u32,
+        message_uid: u32,
     ) -> Result<String, String> {
         let message_db = self.get_message_db(session_id, mailbox_path, message_uid);
 
@@ -47,7 +47,7 @@ impl InboxClient {
         &mut self,
         session_id: usize,
         mailbox_path: &str,
-        message_uid: &u32,
+        message_uid: u32,
     ) -> Result<Message, String> {
         if session_id >= self.sessions.len() {
             return Err(String::from("Invalid session ID"));
@@ -95,7 +95,7 @@ impl InboxClient {
         &mut self,
         session_id: usize,
         mailbox_path: &str,
-        message_uid: &u32,
+        message_uid: u32,
     ) -> Result<Message, String> {
         if session_id >= self.sessions.len() {
             return Err(String::from("Invalid session ID"));
@@ -104,18 +104,18 @@ impl InboxClient {
         let username = &self.sessions[session_id].username;
         let address = &self.sessions[session_id].address;
 
-        let message = match self.database_conn.get_message_with_uid(
+        match self.database_conn.get_message_with_uid(
             username,
             address,
             mailbox_path,
             message_uid,
         ) {
-            Ok(m) => m,
+            Ok(message) => {
+                return Ok(message);
+            },
             Err(_) => {
                 return Err(String::from("Error getting message from local database"));
             }
         };
-
-        return Ok(message);
     }
 }

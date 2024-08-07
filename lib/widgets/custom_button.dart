@@ -6,11 +6,13 @@ import 'package:mail_app/types/project_sizes.dart';
 class CustomButton extends StatelessWidget {
   final void Function() onTap;
   final Widget child;
+  final BorderRadius borderRadius;
 
   const CustomButton({
     super.key,
     required this.onTap,
     required this.child,
+    this.borderRadius = ProjectSizes.borderRadiusSmall,
   });
 
   @override
@@ -18,7 +20,7 @@ class CustomButton extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: ProjectSizes.borderRadiusExtraSmall,
+        borderRadius: borderRadius,
         hoverColor: ProjectColors.secondary(true),
         highlightColor: ProjectColors.secondary(true),
         splashColor: ProjectColors.secondary(true),

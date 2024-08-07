@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:mail_app/types/message.dart';
+import 'package:mail_app/types/message_flag.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/types/project_sizes.dart';
+import 'package:mail_app/widgets/custom_button.dart';
 
 class MailPreview extends StatefulWidget {
   final Message message;
@@ -56,16 +58,18 @@ class MailPreviewState extends State<MailPreview> {
 
   String _textPreview() {
     var decoded = utf8.decode(base64Decode(_message.text));
-    decoded = decoded.replaceAll(RegExp(r"\n"), " ");
 
-    return decoded.split(RegExp(r"\n"))[0];
+    return decoded.replaceAll(RegExp(r"\n"), " ");
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _updateMessageID(_idx),
-      child: Container(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 3),
+      child: CustomButton(
+        onTap: () => _updateMessageID(_idx),
+        borderRadius: ProjectSizes.borderRadius,
+        child: Container(
           decoration: BoxDecoration(
             borderRadius: ProjectSizes.borderRadius,
             color: _getActive(_idx)
@@ -83,7 +87,7 @@ class MailPreviewState extends State<MailPreview> {
                   height: 10,
                   decoration: BoxDecoration(
                     borderRadius: ProjectSizes.borderRadiusSmall,
-                    color: _message.flags.contains('Seen')
+                    color: _message.flags.contains(MessageFlag.seen)
                         ? Colors.transparent
                         : !_getActive(_idx)
                             ? ProjectColors.accent(true)
@@ -145,7 +149,7 @@ class MailPreviewState extends State<MailPreview> {
                               style: TextStyle(
                                 fontSize: ProjectSizes.fontSize,
                                 color: ProjectColors.main(_getActive(_idx)),
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.normal,
                               ),
                             ),
                           ),
@@ -159,7 +163,7 @@ class MailPreviewState extends State<MailPreview> {
                                 fontSize: ProjectSizes.fontSize,
                                 color:
                                     ProjectColors.secondary(_getActive(_idx)),
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.normal,
                               ),
                             ),
                           ),
@@ -170,7 +174,9 @@ class MailPreviewState extends State<MailPreview> {
                 ),
               ],
             ),
-          )),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -1,18 +1,5 @@
-class Address {
-  late String name;
-  late String mailbox;
-  late String host;
-
-  Address(this.name, this.mailbox, this.host);
-
-  factory Address.fromJson(Map<String, dynamic> data) {
-    final name = data['name'] as String;
-    final mailbox = data['mailbox'] as String;
-    final host = data['host'] as String;
-
-    return Address(name, mailbox, host);
-  }
-}
+import 'package:mail_app/types/message_account.dart';
+import 'package:mail_app/types/message_flag.dart';
 
 class Message {
   late int uid;
@@ -28,7 +15,7 @@ class Message {
   late String deliveredTo;
   late int date;
   late int received;
-  late List<String> flags;
+  late List<MessageFlag> flags;
   late String text;
   late String html;
 
@@ -52,24 +39,20 @@ class Message {
   );
 
   factory Message.fromJson(Map<String, dynamic> data) {
-    fromJsonList(List<dynamic> data) {
-      return data.map((e) => Address.fromJson(e)).toList();
-    }
-
     final uid = data['uid'] as int;
     final messageId = data['message_id'] as String;
     final subject = data['subject'] as String;
-    final from = fromJsonList(data['from']);
-    final sender = fromJsonList(data['sender']);
-    final to = fromJsonList(data['to']);
-    final cc = fromJsonList(data['cc']);
-    final bcc = fromJsonList(data['bcc']);
-    final replyTo = fromJsonList(data['reply_to']);
+    final from = addressesFromJsonList(data['from']);
+    final sender = addressesFromJsonList(data['sender']);
+    final to = addressesFromJsonList(data['to']);
+    final cc = addressesFromJsonList(data['cc']);
+    final bcc = addressesFromJsonList(data['bcc']);
+    final replyTo = addressesFromJsonList(data['reply_to']);
     final inReplyTo = data['in_reply_to'];
     final deliveredTo = data['delivered_to'];
     final date = data['date'] as int;
     final received = data['received'] as int;
-    final flags = (data['flags'] as List).map((e) => e as String).toList();
+    final flags = messageFlagsFromJsonList(data['flags']);
     final text = data['text'] as String;
     final html = data['html'] as String;
 

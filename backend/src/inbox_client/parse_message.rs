@@ -95,7 +95,7 @@ fn address_to_string(address: &Option<Vec<Address>>) -> String {
     }
 }
 
-fn parse_message_body(body: &str, uid: &u32) -> Message {
+fn parse_message_body(body: &str, uid: u32) -> Message {
     let mut state = MimeParserState::HeaderKey;
 
     let mut header_key = String::from("");
@@ -300,7 +300,7 @@ pub fn parse_message(fetch: &Fetch) -> Result<Message, String> {
     
     let flags_str = flags_to_string(flags);
 
-    let body_data = parse_message_body(body_str, &uid);
+    let body_data = parse_message_body(body_str, uid);
 
     return Ok(Message {
         uid,
@@ -324,6 +324,7 @@ pub fn parse_message(fetch: &Fetch) -> Result<Message, String> {
 
 pub fn flags_to_string(flags: &[Flag]) -> String {
     let mut flags_str = String::from("[");
+
     for (i, flag) in flags.iter().enumerate() {
         flags_str.push_str(&format!("\"{:?}\"", flag));
 

@@ -5,7 +5,7 @@ class ProjectColors {
       ? const Color.fromRGBO(33, 33, 33, 1)
       : const Color.fromRGBO(200, 200, 200, 1);
   static Color Function(bool) secondary = (bool active) => active
-      ? const Color.fromRGBO(33, 33, 33, 1)
+      ? const Color.fromRGBO(62, 62, 62, 1)
       : const Color.fromRGBO(120, 120, 120, 1);
 
   static Color Function(bool) accent = (bool active) => active

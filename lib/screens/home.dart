@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mail_app/services/inbox_service.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/message.dart';
+import 'package:mail_app/types/message_flag.dart';
 import 'package:mail_app/widgets/add_account.dart';
 import 'package:mail_app/widgets/inbox/message_list.dart';
 import 'package:mail_app/widgets/mailbox/mailbox_header.dart';
@@ -33,7 +34,6 @@ class HomePageState extends State<HomePage> {
 
   List<Message> _messages = [];
   Map<int, List<MailboxInfo>> _mailboxTree = {};
-  double _messageListPosition = 0;
 
   @override
   void initState() {
@@ -64,19 +64,46 @@ class HomePageState extends State<HomePage> {
     });
   }
 
-  void _updateActiveID(int idx, double messageListPosition) {
+  void _updateActiveID(int idx) {
     if (_activeID == idx) return;
 
     setState(() {
       _activeID = idx;
-      _messageListPosition = messageListPosition;
-      // message = _inboxService.getMessages().isNotEmpty
-      //     ? _inboxService.getMessages()[_activeID]
-      //     : MimeMessage();
+    });
+  }
 
-      // if (!message.isSeen) {
-      //   _readMessage();
-      // }
+  void _loadMoreMessages() async {
+    _currentPage++;
+
+    final newMessages = await _inboxService.getMessages(
+      start: 1 + _currentPage * 10,
+      end: 10 + _currentPage * 10,
+    );
+
+    setState(() {
+      _messages.addAll(newMessages);
+    });
+  }
+
+  Future<void> _changeMailbox(
+      int sessionId, String mailboxPath, String mailboxTitle) async {
+    if (sessionId == _inboxService.getActiveSessionId() &&
+        mailboxPath == _inboxService.getActiveMailbox()) {
+      return;
+    }
+
+    _inboxService.setActiveSessionId(sessionId);
+    _inboxService.setActiveMailbox(mailboxPath);
+
+    _messages = await _inboxService.getMessages(start: 1, end: 10);
+
+    setState(() {
+      _activeMailbox = _inboxService.getActiveMailbox();
+      _activeSession = _inboxService.getActiveSessionId();
+
+      _activeID = 0;
+      _currentPage = 0;
+      _messages = _messages;
     });
   }
 
@@ -98,43 +125,6 @@ class HomePageState extends State<HomePage> {
   //     message = _inboxService.getMessages()[_activeID];
   //   });
   // }
-
-  void _updateMessagePage(double messageListPosition) async {
-    _currentPage++;
-
-    final newMessages = await _inboxService.getMessages(
-        start: 1 + _currentPage * 10, end: 10 + _currentPage * 10);
-
-    setState(() {
-      _messageListPosition = messageListPosition;
-      _messages.addAll(newMessages);
-    });
-  }
-
-  Future<void> _updateMessageList(
-      int sessionId, String mailboxPath, String mailboxTitle) async {
-    if (sessionId == _inboxService.getActiveSessionId() &&
-        mailboxPath == _inboxService.getActiveMailbox()) {
-      return;
-    }
-
-    _inboxService.setActiveSessionId(sessionId);
-    _inboxService.setActiveMailbox(mailboxPath);
-
-    setState(() {
-      _activeMailbox = _inboxService.getActiveMailbox();
-      _activeSession = _inboxService.getActiveSessionId();
-    });
-
-    _messages = await _inboxService.getMessages(start: 1, end: 10);
-
-    setState(() {
-      _activeID = 0;
-      _currentPage = 0;
-      _messageListPosition = 0;
-      _messages = _messages;
-    });
-  }
 
   Future<void> _refreshAll() async {
     // await _inboxService.updateInbox();
@@ -162,6 +152,29 @@ class HomePageState extends State<HomePage> {
     // });
   }
 
+  Future<void> _readMessage() async {
+    print('read message');
+
+    if (_activeID == null) return;
+
+    final add = !_messages[_activeID!].flags.contains(MessageFlag.seen);
+    final messageUid = _messages[_activeID!].uid;
+
+    print(add);
+    print(messageUid);
+
+    final flags = await _inboxService.updateFlags(
+        messageUid: messageUid, flags: [MessageFlag.seen], add: add);
+
+    setState(() {
+      if (flags.contains(MessageFlag.seen)) {
+        _messages[_activeID!].flags.add(MessageFlag.seen);
+      } else {
+        _messages[_activeID!].flags.remove(MessageFlag.seen);
+      }
+    });
+  }
+
   Future<void> _reply() async {
     print('reply to message');
   }
@@ -181,7 +194,7 @@ class HomePageState extends State<HomePage> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          color: ProjectColors.secondary(true),
+          color: ProjectColors.main(true),
         ),
         child: Center(
           child: VerticalSplitView(
@@ -193,7 +206,7 @@ class HomePageState extends State<HomePage> {
               height: double.infinity,
               child: MailboxList(
                 mailboxTree: _mailboxTree,
-                updateMessageList: _updateMessageList,
+                updateMessageList: _changeMailbox,
                 activeMailbox: _activeMailbox ?? '',
                 activeSession: _activeSession ?? 0,
                 header: MailboxHeader(
@@ -207,16 +220,15 @@ class HomePageState extends State<HomePage> {
             middle: SizedBox(
               height: double.infinity,
               child: MessageList(
+                key: UniqueKey(),
                 messages: _messages,
-                // unseenMessages:
-                //     _inboxService.currentClient().getUnseenMessages(),
                 mailboxTitle: _inboxService.getActiveMailboxDisplay() ?? '',
                 activeID: _activeID ?? 0,
                 updateActiveID: _updateActiveID,
                 refreshAll: _refreshAll,
-                updateMessagePage: _updateMessagePage,
-                listPosition: _messageListPosition,
-                key: UniqueKey(),
+                loadMoreMessages: _loadMoreMessages,
+                // updateMessagePage: _updateMessagePage,
+                // listPosition: _messageListPosition,
               ),
             ),
             right: Container(
@@ -231,6 +243,7 @@ class HomePageState extends State<HomePage> {
                 children: [
                   ControlBar(
                     markMessage: _markMessage,
+                    readMessage: _readMessage,
                     reply: _reply,
                     replyAll: _replyAll,
                     share: _share,

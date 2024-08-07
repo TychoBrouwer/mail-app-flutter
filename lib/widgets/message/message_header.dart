@@ -56,7 +56,7 @@ class MessageHeaderState extends State<MessageHeader> {
           height: 70,
           margin: const EdgeInsets.only(right: 15),
           decoration: BoxDecoration(
-            color: ProjectColors.secondary(true),
+            color: ProjectColors.main(true),
             borderRadius: ProjectSizes.borderRadiusLarge,
           ),
         ),
