@@ -428,7 +428,10 @@ impl DBConnection {
                 for message in messages {
                     match message {
                         Ok(message) => messages_list.push(message),
-                        Err(_) => continue,
+                        Err(_) => {
+                            eprintln!("Message not present in local database");
+                            continue;
+                        },
                     }
                 }
 
