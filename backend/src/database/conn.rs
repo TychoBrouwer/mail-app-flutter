@@ -245,7 +245,7 @@ impl DBConnection {
     }
 
     pub fn get_connections(&mut self) -> Result<Vec<Session>, String> {
-        let mut stmt = match self.conn.prepare_cached("SELECT * FROM connections") {
+        let mut stmt = match self.conn.prepare("SELECT * FROM connections") {
             Ok(stmt) => stmt,
             Err(e) => {
                 eprintln!("Error preparing statement at connections: {}", e);
@@ -284,7 +284,7 @@ impl DBConnection {
     pub fn get_mailboxes(&mut self, username: &str, address: &str) -> Result<Vec<String>, String> {
         let mut stmt = match self
             .conn
-            .prepare_cached("SELECT * FROM mailboxes WHERE c_username = ?1 AND c_address = ?2")
+            .prepare("SELECT * FROM mailboxes WHERE c_username = ?1 AND c_address = ?2")
         {
             Ok(stmt) => stmt,
             Err(e) => {
@@ -317,8 +317,8 @@ impl DBConnection {
         mailbox_path: &str,
         uid: u32,
     ) -> Result<Message, String> {
-        let mut stmt = match self.conn.prepare_cached(
-            "SELECT * FROM messages WHERE c_username = ?1 AND c_address = ?2 AND m_path = ?3 AND uid = ?4 LIMIT 1",
+        let mut stmt = match self.conn.prepare(
+            "SELECT * FROM messages WHERE uid = ?1 AND c_username = ?2 AND c_address = ?3 AND m_path = ?4 LIMIT 1",
         ) {
             Ok(stmt) => stmt,
             Err(e) => {
@@ -327,9 +327,7 @@ impl DBConnection {
             }
         };
 
-        let uid_str =  uid.to_string();
-
-        match stmt.query_map(params![username, address, mailbox_path, uid_str], |row| {
+        match stmt.query_map(params![uid, username, address, mailbox_path], |row| {
             let html: String = row.get(17).unwrap();
             let text: String = row.get(18).unwrap();
 
@@ -352,16 +350,15 @@ impl DBConnection {
                 text: BASE64_STANDARD.encode(text.as_bytes()),
             })
         }) {
-            Ok(mut messages) => {
-                match messages.next() {
-                    Some(message) => {
-                        match message {
-                            Ok(e) => return Ok(e),
-                            Err(_) => return Err(String::from("Message not present in local database"))
-                        }
-                    },
-                    None => return Err(String::from("Message not present in local database"))
+            Ok(messages) => {
+                for message in messages {
+                    match message {
+                        Ok(message) => return Ok(message),
+                        Err(_) => continue,
+                    }
                 }
+
+                return Err(String::from("Message not found"));
             }
             Err(e) => {
                 eprintln!("Error getting message: {}", e);

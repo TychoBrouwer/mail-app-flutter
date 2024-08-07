@@ -218,8 +218,8 @@ impl InboxClient {
         let username = &self.sessions[session_id].username;
         let address = &self.sessions[session_id].address;
 
-        let mut failed_message_uids: Vec<u32> = Vec::new();
         let mut messages: Vec<parse_message::Message> = Vec::new();
+        let mut failed_message_uids: Vec<u32> = Vec::new();
 
         for message_uid in message_uids {
             let message = match self.database_conn.get_message_with_uid(
@@ -235,32 +235,10 @@ impl InboxClient {
                     continue;
                 }
             };
-    
+
             messages.push(message);
         }
 
-        dbg!(&failed_message_uids);
-
         return Ok((messages, failed_message_uids));
-
-        // for message_uid in message_uids {
-        //     let message = match self.database_conn.get_message_with_uid(
-        //         username,
-        //         address,
-        //         mailbox_path,
-        //         message_uid,
-        //     ) {
-        //         Ok(m) => m,
-        //         Err(_) => {
-        //             failed_message_uids.push(*message_uid);
-
-        //             continue;
-        //         }
-        //     };
-
-        //     messages.push(message);
-        // }
-
-        // return Ok((messages, failed_message_uids));
     }
 }

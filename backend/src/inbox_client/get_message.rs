@@ -104,18 +104,18 @@ impl InboxClient {
         let username = &self.sessions[session_id].username;
         let address = &self.sessions[session_id].address;
 
-        match self.database_conn.get_message_with_uid(
+        let message = match self.database_conn.get_message_with_uid(
             username,
             address,
             mailbox_path,
             message_uid,
         ) {
-            Ok(message) => {
-                return Ok(message);
-            },
-            Err(_) => {
+            Ok(m) => m,
+            Err(e) => {                
                 return Err(String::from("Error getting message from local database"));
             }
         };
+
+        return Ok(message);
     }
 }

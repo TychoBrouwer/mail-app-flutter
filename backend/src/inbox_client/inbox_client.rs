@@ -77,7 +77,17 @@ impl InboxClient {
                 Ok(s) => {
                     self.sessions[idx].stream = Some(s);
 
-                    return Ok(());
+                    match self.get_mailboxes(idx) {
+                        Ok(_) => {
+                            return Ok(());
+                        }
+                        Err(e) => {
+                            eprintln!("Error getting mailboxes: {:?}", e);
+                            return Err(String::from("Error getting mailboxes"));
+                        }
+                    }
+
+                    // return Ok(());
                 }
                 Err(e) => {
                     eprintln!("Error logging in: {:?}", e);
