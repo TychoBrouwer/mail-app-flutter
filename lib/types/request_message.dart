@@ -6,8 +6,6 @@ class RequestMessage {
   RequestMessage(this.success, this.data, this.message);
 
   factory RequestMessage.fromJson(Map<String, dynamic> jsonData) {
-    print(jsonData);
-
     final success = jsonData['success'] as bool;
     final data = jsonData['data'] as dynamic;
     final message = jsonData['message'] as String;

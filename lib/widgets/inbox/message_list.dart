@@ -46,6 +46,8 @@ class MessageListState extends State<MessageList> {
   bool rotatingFinished = true;
   bool refreshFinished = false;
 
+  bool _scrollUpdated = false;
+
   @override
   void initState() {
     super.initState();
@@ -58,7 +60,7 @@ class MessageListState extends State<MessageList> {
     _loadMoreMessages = widget.loadMoreMessages;
     _messageListKey = widget.messageListKey;
 
-    _listController.addListener(_loadMore);
+    _listController.addListener(_scrollUpdate);
   }
 
   void _refreshRotate() async {
@@ -83,20 +85,21 @@ class MessageListState extends State<MessageList> {
     super.dispose();
   }
 
-  void _loadMore() async {
+  void _scrollUpdate() async {
     final position = _listController.position;
 
-    if (position.pixels == position.maxScrollExtent) {
+    if (position.pixels >= position.maxScrollExtent - 500 && !_scrollUpdated) {
       _loadMoreMessages();
+      _scrollUpdated = true;
+    }
+
+    if (position.pixels < position.maxScrollExtent - 500) {
+      _scrollUpdated = false;
     }
   }
 
   bool _getActive(int idx) {
     return _activeID == idx;
-  }
-
-  void resetScroll() {
-    _listController.jumpTo(0);
   }
 
   @override

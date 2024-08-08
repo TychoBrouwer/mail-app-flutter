@@ -15,8 +15,6 @@ class HttpService {
 
     final url = '$address/${request.name}$query';
 
-    print(url);
-
     final response = await client.get(Uri.parse(url));
 
     return response.body;
