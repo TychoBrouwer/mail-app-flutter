@@ -14,6 +14,7 @@ class MessageList extends StatefulWidget {
   final void Function(int) updateActiveID;
   final Future<void> Function() refreshAll;
   final void Function() loadMoreMessages;
+  final PageStorageKey<int> messageListKey;
 
   const MessageList({
     super.key,
@@ -23,6 +24,7 @@ class MessageList extends StatefulWidget {
     required this.activeID,
     required this.refreshAll,
     required this.loadMoreMessages,
+    required this.messageListKey,
   });
 
   @override
@@ -36,6 +38,7 @@ class MessageListState extends State<MessageList> {
   late void Function(int) _updateActiveID;
   late Future<void> Function() _refreshAll;
   late void Function() _loadMoreMessages;
+  late PageStorageKey<int> _messageListKey;
 
   final ScrollController _listController = ScrollController();
 
@@ -53,6 +56,7 @@ class MessageListState extends State<MessageList> {
     _updateActiveID = widget.updateActiveID;
     _refreshAll = widget.refreshAll;
     _loadMoreMessages = widget.loadMoreMessages;
+    _messageListKey = widget.messageListKey;
 
     _listController.addListener(_loadMore);
   }
@@ -89,6 +93,10 @@ class MessageListState extends State<MessageList> {
 
   bool _getActive(int idx) {
     return _activeID == idx;
+  }
+
+  void resetScroll() {
+    _listController.jumpTo(0);
   }
 
   @override
@@ -142,7 +150,7 @@ class MessageListState extends State<MessageList> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 15),
             child: ListView(
-              key: PageStorageKey<String>(_mailboxTitle),
+              key: _messageListKey,
               controller: _listController,
               padding: const EdgeInsets.only(bottom: 200),
               children: [

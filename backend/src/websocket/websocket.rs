@@ -43,6 +43,9 @@ fn handle_connection(msg: &str, inbox_client: &mut InboxClient) -> String {
     let request = uri_parts.get(0).unwrap_or(&"").to_owned();
     let data = uri_parts.get(1).unwrap_or(&"").to_owned();
 
+    dbg!(&request);
+    dbg!(&data);
+
     match request {
         "login" => handle_conn::login(data, inbox_client),
         "logout" => handle_conn::logout(data, inbox_client),

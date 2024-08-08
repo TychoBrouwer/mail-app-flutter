@@ -1,19 +1,18 @@
 import 'dart:convert';
 
-// import 'package:mail_app/services/websocket_service.dart';
 import 'package:mail_app/services/http_service.dart';
 import 'package:mail_app/types/http_request.dart';
 import 'package:mail_app/types/mail_account.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/message_flag.dart';
-import 'package:mail_app/types/socket_message.dart';
+import 'package:mail_app/types/request_message.dart';
 
 class InboxService {
-  // late WebsocketService _websocketService;
-
   int? _activeSession;
   String? _activeMailbox;
+
+  final HttpService httpService = HttpService();
 
   final List<MailAccount> _sessions = [];
   final List<MailboxInfo> _mailboxes = [];
@@ -80,7 +79,7 @@ class InboxService {
     final response = await HttpService().sendRequest(HttpRequest.login, body);
 
     final decode = jsonDecode(response);
-    final messageData = SocketMessage.fromJson(decode);
+    final messageData = RequestMessage.fromJson(decode);
 
     if (!messageData.success) return -1;
 
@@ -97,15 +96,11 @@ class InboxService {
   }
 
   Future<List<MailAccount>> getSessions() async {
-    final response = await HttpService().sendRequest(HttpRequest.sessions, {});
-
-    print(response);
+    final response = await httpService.sendRequest(HttpRequest.sessions, {});
 
     final decode = jsonDecode(response);
 
-    print(decode);
-
-    final messageData = SocketMessage.fromJson(decode);
+    final messageData = RequestMessage.fromJson(decode);
 
     if (!messageData.success) return [];
 
@@ -130,7 +125,7 @@ class InboxService {
     final response =
         await HttpService().sendRequest(HttpRequest.mailboxes, body);
 
-    final messageData = SocketMessage.fromJson(jsonDecode(response));
+    final messageData = RequestMessage.fromJson(jsonDecode(response));
 
     if (!messageData.success) return [];
 
@@ -172,7 +167,7 @@ class InboxService {
     final response =
         await HttpService().sendRequest(HttpRequest.messages, body);
 
-    final messageData = SocketMessage.fromJson(jsonDecode(response));
+    final messageData = RequestMessage.fromJson(jsonDecode(response));
 
     if (!messageData.success) return [];
 
@@ -216,7 +211,7 @@ class InboxService {
     final response =
         await HttpService().sendRequest(HttpRequest.modify_flags, body);
 
-    final messageData = SocketMessage.fromJson(jsonDecode(response));
+    final messageData = RequestMessage.fromJson(jsonDecode(response));
 
     if (!messageData.success) return [];
 

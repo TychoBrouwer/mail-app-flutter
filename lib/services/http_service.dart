@@ -4,16 +4,20 @@ import 'package:mail_app/types/http_request.dart';
 
 class HttpService {
   final address = 'http://localhost:9001';
+  final client = http.Client();
 
   Future<String> sendRequest(
     HttpRequest request,
     Map<String, String> params,
   ) async {
-    final query = params.entries.map((e) => '${e.key}=${e.value}').join('&');
+    String query = params.entries.map((e) => '${e.key}=${e.value}').join('&');
+    if (query.isNotEmpty) query = '?$query';
 
-    final url = '$address/${request.name}?$query';
+    final url = '$address/${request.name}$query';
 
-    final response = await http.get(Uri.parse(url));
+    print(url);
+
+    final response = await client.get(Uri.parse(url));
 
     return response.body;
   }

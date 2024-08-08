@@ -41,7 +41,7 @@ async fn handle_connection(mut stream: TcpStream, inbox_client: Arc<Mutex<InboxC
         "/message" => handle_conn::message(params, inbox_client),
         "/messages" => handle_conn::messages(params, inbox_client),
         "/modify_flags" => handle_conn::modify_flags(params, inbox_client),
-        _ => String::from("{\"succes\": false, \"message\": \"Not Found\"}"),
+        _ => String::from("{\"success\": false, \"message\": \"Not Found\"}"),
     };
 
     let response = format!(

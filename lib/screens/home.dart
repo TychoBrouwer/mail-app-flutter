@@ -37,6 +37,8 @@ class HomePageState extends State<HomePage> {
   List<Message> _messages = [];
   Map<int, List<MailboxInfo>> _mailboxTree = {};
 
+  int _messageListKeyIndex = 0;
+
   @override
   void initState() {
     super.initState();
@@ -47,28 +49,18 @@ class HomePageState extends State<HomePage> {
   }
 
   void _initMessages() async {
+    if (_inboxService.getActiveSessionId() == null) {
+      return;
+    }
+
     final inboxes = await _inboxService.getMailboxes();
 
     await _changeMailbox(0, inboxes[0].path);
 
-    // final inboxes = await _inboxService.getMailboxes();
-
-    // _inboxService.setActiveMailbox(inboxes[0].path);
-
-    // _messages =
-    //     await _inboxService.getMessages(start: 1, end: _messageLoadCount);
-
-    // setState(() {
-    //   _messages = _messages;
-    // });
-
     _mailboxTree = await _inboxService.getMailboxTree();
 
     setState(() {
-      // _activeID = 0;
       _mailboxTree = _mailboxTree;
-      // _activeMailbox = _inboxService.getActiveMailbox();
-      // _activeSession = _inboxService.getActiveSessionId();
     });
   }
 
@@ -85,6 +77,8 @@ class HomePageState extends State<HomePage> {
         await _inboxService.getMessages(start: 1, end: _messageLoadCount);
 
     setState(() {
+      _messageListKeyIndex += 1;
+
       _activeMailbox = _inboxService.getActiveMailbox();
       _activeSession = _inboxService.getActiveSessionId();
 
@@ -214,7 +208,6 @@ class HomePageState extends State<HomePage> {
                 header: MailboxHeader(
                   addMailAccount: _addMailAccount,
                   composeMessage: _composeMessage,
-                  key: UniqueKey(),
                 ),
                 key: UniqueKey(),
               ),
@@ -229,6 +222,7 @@ class HomePageState extends State<HomePage> {
                 updateActiveID: _updateActiveID,
                 refreshAll: _refreshAll,
                 loadMoreMessages: _loadMoreMessages,
+                messageListKey: PageStorageKey<int>(_messageListKeyIndex),
               ),
             ),
             right: Container(
@@ -248,7 +242,6 @@ class HomePageState extends State<HomePage> {
                     replyAll: _replyAll,
                     share: _share,
                     settings: _settings,
-                    key: UniqueKey(),
                   ),
                   Expanded(
                     child: MessageContent(
