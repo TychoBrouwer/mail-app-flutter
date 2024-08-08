@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:mail_app/services/inbox_service.dart';
-import 'package:mail_app/services/websocket_service.dart';
 import 'package:mail_app/screens/home.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/types/project_sizes.dart';
@@ -43,11 +42,7 @@ class SplashPageState extends State<SplashPage> {
   }
 
   Future<InboxService> _loadInboxService() async {
-    final WebsocketService websocketService = WebsocketService();
-
-    await websocketService.connect();
-
-    final inboxService = InboxService(websocketService);
+    final inboxService = InboxService();
     final sessions = await inboxService.getSessions();
 
     if (sessions.isNotEmpty) {

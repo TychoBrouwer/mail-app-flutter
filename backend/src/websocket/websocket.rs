@@ -44,14 +44,14 @@ fn handle_connection(msg: &str, inbox_client: &mut InboxClient) -> String {
     let data = uri_parts.get(1).unwrap_or(&"").to_owned();
 
     match request {
-        "/imap/login" => handle_conn::login(data, inbox_client),
-        "/imap/logout" => handle_conn::logout(data, inbox_client),
-        "/imap/sessions" => handle_conn::sessions(inbox_client),
-        "/imap/mailboxes" => handle_conn::mailboxes(data, inbox_client),
-        "/imap/message" => handle_conn::message(data, inbox_client),
-        "/imap/messages" => handle_conn::messages(data, inbox_client),
-        "/imap/modify_flags" => handle_conn::modify_flags(data, inbox_client),
-        // "/imap/message_envelopes" => handle_conn::message_envelopes(data, inbox_client),
+        "login" => handle_conn::login(data, inbox_client),
+        "logout" => handle_conn::logout(data, inbox_client),
+        "sessions" => handle_conn::sessions(inbox_client),
+        "mailboxes" => handle_conn::mailboxes(data, inbox_client),
+        "message" => handle_conn::message(data, inbox_client),
+        "messages" => handle_conn::messages(data, inbox_client),
+        "modify_flags" => handle_conn::modify_flags(data, inbox_client),
+        // "message_envelopes" => handle_conn::message_envelopes(data, inbox_client),
         _ => String::from("{\"succes\": false, \"message\": \"Not Found\"}"),
     }
 }

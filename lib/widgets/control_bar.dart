@@ -77,13 +77,13 @@ class ControlBarState extends State<ControlBar> {
           controlWidget(Control('box-archive', _archive)),
           controlWidget(
             Control(
-                'circle-exclamation', () => _flagMessage(MessageFlag.flagged)),
+                'circle-exclamation', () => _flagMessage(MessageFlag.Flagged)),
           ),
           controlWidget(
-            Control('trash-can', () => _flagMessage(MessageFlag.deleted)),
+            Control('trash-can', () => _flagMessage(MessageFlag.Deleted)),
           ),
           controlWidget(
-            Control('envelope-dot', () => _flagMessage(MessageFlag.seen)),
+            Control('envelope-dot', () => _flagMessage(MessageFlag.Seen)),
           ),
           controlWidget(Control('reply', _reply)),
           controlWidget(Control('reply-all', _replyAll)),

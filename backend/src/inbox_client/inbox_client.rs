@@ -42,6 +42,12 @@ impl InboxClient {
         &mut self,
         session: Session,
     ) -> Result<usize, String> {
+        if (self.sessions.iter().position(|x| {
+            x.username == session.username && x.address == session.address
+        })).is_some() {
+            return Err(String::from("Already connected to IMAP server"));
+        }
+
         self.sessions.push(session);
 
         let idx = self.sessions.len() - 1;

@@ -87,7 +87,7 @@ class MailPreviewState extends State<MailPreview> {
                   height: 10,
                   decoration: BoxDecoration(
                     borderRadius: ProjectSizes.borderRadiusSmall,
-                    color: _message.flags.contains(MessageFlag.seen)
+                    color: _message.flags.contains(MessageFlag.Seen)
                         ? Colors.transparent
                         : !_getActive(_idx)
                             ? ProjectColors.accent(true)

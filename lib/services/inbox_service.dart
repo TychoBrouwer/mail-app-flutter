@@ -1,7 +1,8 @@
 import 'dart:convert';
 
-import 'package:mail_app/extensions/string_extension.dart';
-import 'package:mail_app/services/websocket_service.dart';
+// import 'package:mail_app/services/websocket_service.dart';
+import 'package:mail_app/services/http_service.dart';
+import 'package:mail_app/types/http_request.dart';
 import 'package:mail_app/types/mail_account.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/message.dart';
@@ -9,17 +10,13 @@ import 'package:mail_app/types/message_flag.dart';
 import 'package:mail_app/types/socket_message.dart';
 
 class InboxService {
-  late WebsocketService _websocketService;
+  // late WebsocketService _websocketService;
 
   int? _activeSession;
   String? _activeMailbox;
 
   final List<MailAccount> _sessions = [];
   final List<MailboxInfo> _mailboxes = [];
-
-  InboxService(WebsocketService websocketService) {
-    _websocketService = websocketService;
-  }
 
   void setActiveSessionId(int session) {
     _activeSession = session;
@@ -68,11 +65,19 @@ class InboxService {
   }
 
   Future<int> newSession(
-      String username, String password, String address, int port) async {
-    String request =
-        '/imap/login\r\nemail=$username\npassword=$password\naddress=$address\nport=$port';
+    String username,
+    String password,
+    String address,
+    int port,
+  ) async {
+    final body = {
+      'email': username,
+      'password': password,
+      'address': address,
+      'port': port.toString(),
+    };
 
-    final response = await _websocketService.sendMessage(request);
+    final response = await HttpService().sendRequest(HttpRequest.login, body);
 
     final decode = jsonDecode(response);
     final messageData = SocketMessage.fromJson(decode);
@@ -92,11 +97,13 @@ class InboxService {
   }
 
   Future<List<MailAccount>> getSessions() async {
-    String request = '/imap/sessions';
+    final response = await HttpService().sendRequest(HttpRequest.sessions, {});
 
-    final response = await _websocketService.sendMessage(request);
+    print(response);
 
     final decode = jsonDecode(response);
+
+    print(decode);
 
     final messageData = SocketMessage.fromJson(decode);
 
@@ -116,9 +123,12 @@ class InboxService {
       if (_activeSession == null) return [];
     }
 
-    String request = '/imap/mailboxes\r\nsession_id=$_activeSession';
+    final body = {
+      'session_id': session.toString(),
+    };
 
-    final response = await _websocketService.sendMessage(request);
+    final response =
+        await HttpService().sendRequest(HttpRequest.mailboxes, body);
 
     final messageData = SocketMessage.fromJson(jsonDecode(response));
 
@@ -152,10 +162,16 @@ class InboxService {
       if (_activeMailbox == null) return [];
     }
 
-    String request =
-        '/imap/messages\r\nsession_id=$_activeSession\nmailbox=$_activeMailbox\nstart=$start\nend=$end';
+    final body = {
+      'session_id': session.toString(),
+      'mailbox': mailbox!,
+      'start': start.toString(),
+      'end': end.toString(),
+    };
 
-    final response = await _websocketService.sendMessage(request);
+    final response =
+        await HttpService().sendRequest(HttpRequest.messages, body);
+
     final messageData = SocketMessage.fromJson(jsonDecode(response));
 
     if (!messageData.success) return [];
@@ -186,13 +202,20 @@ class InboxService {
       if (_activeMailbox == null) return [];
     }
 
-    final flagsString = flags.map((e) => e.name.capitalize()).join(',');
+    final flagsString = flags.map((e) => e.name).join(',');
     final addString = add.toString();
 
-    String request =
-        '/imap/modify_flags\r\nsession_id=$session\nmailbox=$mailbox\nmessage_uid=$messageUid\nflags=$flagsString\nadd=$addString';
+    final body = {
+      'session_id': session.toString(),
+      'mailbox': mailbox!,
+      'message_uid': messageUid.toString(),
+      'flags': flagsString,
+      'add': addString,
+    };
 
-    final response = await _websocketService.sendMessage(request);
+    final response =
+        await HttpService().sendRequest(HttpRequest.modify_flags, body);
+
     final messageData = SocketMessage.fromJson(jsonDecode(response));
 
     if (!messageData.success) return [];
@@ -202,7 +225,7 @@ class InboxService {
 
   // Future<String> getMessage(int messageUid) async {
   //   String request =
-  //       '/imap/message\r\nsession_id=$_activeSession\nmailbox=$_activeMailbox\nmessage_uid=$messageUid';
+  //       'message\r\nsession_id=$_activeSession\nmailbox=$_activeMailbox\nmessage_uid=$messageUid';
 
   //   final response = await _websocketService.sendMessage(request);
   //   return response;

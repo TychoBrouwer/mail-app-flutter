@@ -11,16 +11,25 @@ mod inbox_client {
     pub mod parse_message;
 }
 
-mod websocket {
+// mod websocket {
+//     pub mod handle_conn;
+//     pub mod params;
+//     pub mod websocket;
+// }
+
+mod http_server {
+    pub mod http_server;
     pub mod handle_conn;
     pub mod params;
-    pub mod websocket;
 }
+
+use std::sync::{Arc, Mutex};
 
 use crate::database::conn::DBConnection;
 use crate::inbox_client::inbox_client::InboxClient;
 
-fn main() {
+#[async_std::main]
+async fn main() {
     let mut database_conn = match DBConnection::new("mail.db") {
         Ok(conn) => conn,
         Err(e) => {
@@ -35,17 +44,18 @@ fn main() {
         }
     };
 
-    let connections = match database_conn.get_connections() {
-        Ok(connections) => connections,
+    let sessions = match database_conn.get_connections() {
+        Ok(sessions) => sessions,
         Err(e) => {
             panic!("Error getting connections: {}", e);
         }
     };
 
-    let mut inbox_client = InboxClient::new(database_conn);
+    let inbox_client = Arc::new(Mutex::new(InboxClient::new(database_conn)));
 
-    for connection in connections {
-        match inbox_client.connect(connection) {
+    for session in sessions {
+        let mut locked_inbox_client = inbox_client.lock().unwrap();
+        match locked_inbox_client.connect(session) {
             Ok(_) => {}
             Err(e) => {
                 eprintln!("Error connecting to IMAP stored in local database: {:?}", e);
@@ -53,6 +63,7 @@ fn main() {
         }
     }
 
-    websocket::websocket::create_server(&mut inbox_client);
+    http_server::http_server::create_server(inbox_client).await;
+    // websocket::websocket::create_server(&mut inbox_client);
 }
 

@@ -32,7 +32,7 @@ class HomePageState extends State<HomePage> {
   int? _activeID;
   int _currentPage = 0;
 
-  int messageLoadCount = 25;
+  final _messageLoadCount = 25;
 
   List<Message> _messages = [];
   Map<int, List<MailboxInfo>> _mailboxTree = {};
@@ -48,22 +48,49 @@ class HomePageState extends State<HomePage> {
 
   void _initMessages() async {
     final inboxes = await _inboxService.getMailboxes();
-    _inboxService.setActiveMailbox(inboxes[0].path);
 
-    _messages =
-        await _inboxService.getMessages(start: 1, end: messageLoadCount);
+    await _changeMailbox(0, inboxes[0].path);
 
-    setState(() {
-      _messages = _messages;
-    });
+    // final inboxes = await _inboxService.getMailboxes();
+
+    // _inboxService.setActiveMailbox(inboxes[0].path);
+
+    // _messages =
+    //     await _inboxService.getMessages(start: 1, end: _messageLoadCount);
+
+    // setState(() {
+    //   _messages = _messages;
+    // });
 
     _mailboxTree = await _inboxService.getMailboxTree();
 
     setState(() {
-      _activeID = 0;
+      // _activeID = 0;
       _mailboxTree = _mailboxTree;
+      // _activeMailbox = _inboxService.getActiveMailbox();
+      // _activeSession = _inboxService.getActiveSessionId();
+    });
+  }
+
+  Future<void> _changeMailbox(int sessionId, String mailboxPath) async {
+    if (sessionId == _inboxService.getActiveSessionId() &&
+        mailboxPath == _inboxService.getActiveMailbox()) {
+      return;
+    }
+
+    _inboxService.setActiveSessionId(sessionId);
+    _inboxService.setActiveMailbox(mailboxPath);
+
+    _messages =
+        await _inboxService.getMessages(start: 1, end: _messageLoadCount);
+
+    setState(() {
       _activeMailbox = _inboxService.getActiveMailbox();
       _activeSession = _inboxService.getActiveSessionId();
+
+      _activeID = 0;
+      _currentPage = 0;
+      _messages = _messages;
     });
   }
 
@@ -79,34 +106,12 @@ class HomePageState extends State<HomePage> {
     _currentPage++;
 
     final newMessages = await _inboxService.getMessages(
-      start: 1 + _currentPage * messageLoadCount,
-      end: messageLoadCount + _currentPage * messageLoadCount,
+      start: 1 + _currentPage * _messageLoadCount,
+      end: _messageLoadCount + _currentPage * _messageLoadCount,
     );
 
     setState(() {
       _messages.addAll(newMessages);
-    });
-  }
-
-  Future<void> _changeMailbox(
-      int sessionId, String mailboxPath, String mailboxTitle) async {
-    if (sessionId == _inboxService.getActiveSessionId() &&
-        mailboxPath == _inboxService.getActiveMailbox()) {
-      return;
-    }
-
-    _inboxService.setActiveSessionId(sessionId);
-    _inboxService.setActiveMailbox(mailboxPath);
-
-    _messages = await _inboxService.getMessages(start: 1, end: 10);
-
-    setState(() {
-      _activeMailbox = _inboxService.getActiveMailbox();
-      _activeSession = _inboxService.getActiveSessionId();
-
-      _activeID = 0;
-      _currentPage = 0;
-      _messages = _messages;
     });
   }
 

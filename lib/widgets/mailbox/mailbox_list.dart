@@ -7,7 +7,7 @@ import 'package:mail_app/widgets/custom_button.dart';
 
 class MailboxList extends StatefulWidget {
   final Map<int, List<MailboxInfo>> mailboxTree;
-  final Function updateMessageList;
+  final void Function(int, String) updateMessageList;
   final String activeMailbox;
   final int activeSession;
   final Widget header;
@@ -27,7 +27,7 @@ class MailboxList extends StatefulWidget {
 
 class MailboxListState extends State<MailboxList> {
   late Map<int, List<MailboxInfo>> _mailboxTree;
-  late Function _updateMessageList;
+  late void Function(int, String) _updateMessageList;
   late String _activeMailbox;
   late int _activeSession;
   late Widget _header;
@@ -51,7 +51,7 @@ class MailboxListState extends State<MailboxList> {
         mailboxTreeWidgets.add(
           CustomButton(
             onTap: () => {
-              _updateMessageList(session, inboxInfo.path, inboxInfo.display),
+              _updateMessageList(session, inboxInfo.path),
             },
             child: Container(
               padding: inboxInfo.indent
