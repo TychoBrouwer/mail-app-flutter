@@ -12,7 +12,7 @@ import 'package:mail_app/widgets/message/message_content.dart';
 import 'package:mail_app/widgets/control_bar.dart';
 import 'package:mail_app/services/overlay_builder.dart';
 import 'package:mail_app/types/project_colors.dart';
-import 'package:mail_app/widgets/vertical_split.dart';
+import 'package:mail_app/widgets/vertical_split_view.dart';
 
 class HomePage extends StatefulWidget {
   final InboxService inboxService;

@@ -65,7 +65,7 @@ class MessagePreviewState extends State<MessagePreview> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 3),
+      margin: const EdgeInsets.only(bottom: 3, right: 13),
       child: CustomButton(
         onTap: () => _updateMessageID(_idx),
         borderRadius: ProjectSizes.borderRadius,

@@ -6,7 +6,7 @@ import 'package:html/parser.dart';
 
 import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/project_sizes.dart';
-import 'package:mail_app/utils/to_rgba.dart';
+import 'package:mail_app/utils/hex_color.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/message/message_header.dart';
 
