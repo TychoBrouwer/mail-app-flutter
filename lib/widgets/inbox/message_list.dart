@@ -158,7 +158,7 @@ class MessageListState extends State<MessageList> {
               padding: const EdgeInsets.only(bottom: 200),
               children: [
                 for (int idx = 0; idx < _messages.length; idx++)
-                  MailPreview(
+                  MessagePreview(
                     message: _messages[idx],
                     idx: idx,
                     getActive: _getActive,

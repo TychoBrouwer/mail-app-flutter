@@ -6,7 +6,7 @@ import 'package:mail_app/types/mail_account.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/message_flag.dart';
-import 'package:mail_app/types/request_message.dart';
+import 'package:mail_app/types/message_request.dart';
 
 class InboxService {
   int? _activeSession;
@@ -79,7 +79,7 @@ class InboxService {
     final response = await HttpService().sendRequest(HttpRequest.login, body);
 
     final decode = jsonDecode(response);
-    final messageData = RequestMessage.fromJson(decode);
+    final messageData = MessageResponse.fromJson(decode);
 
     if (!messageData.success) return -1;
 
@@ -100,7 +100,7 @@ class InboxService {
 
     final decode = jsonDecode(response);
 
-    final messageData = RequestMessage.fromJson(decode);
+    final messageData = MessageResponse.fromJson(decode);
 
     if (!messageData.success) return [];
 
@@ -125,7 +125,7 @@ class InboxService {
     final response =
         await HttpService().sendRequest(HttpRequest.mailboxes, body);
 
-    final messageData = RequestMessage.fromJson(jsonDecode(response));
+    final messageData = MessageResponse.fromJson(jsonDecode(response));
 
     if (!messageData.success) return [];
 
@@ -167,7 +167,7 @@ class InboxService {
     final response =
         await HttpService().sendRequest(HttpRequest.messages, body);
 
-    final messageData = RequestMessage.fromJson(jsonDecode(response));
+    final messageData = MessageResponse.fromJson(jsonDecode(response));
 
     if (!messageData.success) return [];
 
@@ -211,7 +211,7 @@ class InboxService {
     final response =
         await HttpService().sendRequest(HttpRequest.modify_flags, body);
 
-    final messageData = RequestMessage.fromJson(jsonDecode(response));
+    final messageData = MessageResponse.fromJson(jsonDecode(response));
 
     if (!messageData.success) return [];
 

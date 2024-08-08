@@ -9,13 +9,13 @@ import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/types/project_sizes.dart';
 import 'package:mail_app/widgets/custom_button.dart';
 
-class MailPreview extends StatefulWidget {
+class MessagePreview extends StatefulWidget {
   final Message message;
   final int idx;
   final bool Function(int) getActive;
   final void Function(int) updateMessageID;
 
-  const MailPreview({
+  const MessagePreview({
     super.key,
     required this.message,
     required this.idx,
@@ -24,10 +24,10 @@ class MailPreview extends StatefulWidget {
   });
 
   @override
-  MailPreviewState createState() => MailPreviewState();
+  MessagePreviewState createState() => MessagePreviewState();
 }
 
-class MailPreviewState extends State<MailPreview> {
+class MessagePreviewState extends State<MessagePreview> {
   late Message _message;
   late int _idx;
   late bool Function(int) _getActive;

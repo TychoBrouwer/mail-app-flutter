@@ -1,16 +1,16 @@
-import 'package:mail_app/types/message_account.dart';
+import 'package:mail_app/types/message_address.dart';
 import 'package:mail_app/types/message_flag.dart';
 
 class Message {
   late int uid;
   late String messageId;
   late String subject;
-  late List<Address> from;
-  late List<Address> sender;
-  late List<Address> to;
-  late List<Address> cc;
-  late List<Address> bcc;
-  late List<Address> replyTo;
+  late List<MessageAddress> from;
+  late List<MessageAddress> sender;
+  late List<MessageAddress> to;
+  late List<MessageAddress> cc;
+  late List<MessageAddress> bcc;
+  late List<MessageAddress> replyTo;
   late String inReplyTo;
   late String deliveredTo;
   late int date;
