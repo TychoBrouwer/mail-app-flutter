@@ -3,7 +3,7 @@ use crate::inbox_client::inbox_client::InboxClient;
 use super::my_error::MyError;
 
 impl InboxClient {
-    pub fn get_mailboxes(&mut self, session_id: usize) -> Result<String, String> {
+    pub fn get_mailboxes(&mut self, session_id: usize) -> Result<String, MyError> {
         let mailboxes_db = self.get_mailboxes_db(session_id);
 
         let mailboxes: Vec<String> = match mailboxes_db {
@@ -18,10 +18,7 @@ impl InboxClient {
                         Ok(mailboxes_imap) => mailboxes_imap,
                         Err(e) => {
                             eprintln!("Error getting mailboxes from IMAP: {:?}", e);
-                            return Err(format!(
-                                "{{\"success\": false, \"message\": \"{:?}\"}}",
-                                e
-                            ));
+                            return Err(e);
                         }
                     }
                 }
@@ -29,7 +26,7 @@ impl InboxClient {
             Err(e) => {
                 eprintln!("Error getting mailboxes from local database: {:?}", e);
 
-                return Err(format!("{{\"success\": false, \"message\": \"{:?}\"}}", e));
+                return Err(e);
             }
         };
 
@@ -92,7 +89,43 @@ impl InboxClient {
             }
         };
 
-        let mailboxes = session.list(Some(""), Some("*")).unwrap();
+        let mailboxes = match session.list(Some(""), Some("*")) {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("Error getting mailboxes from IMAP: {:?}", e);
+
+                match e {
+                    imap::Error::ConnectionLost => {
+                        eprintln!("Reconnecting to IMAP server");
+
+                        match self.connect_imap(session_id) {
+                            Ok(_) => {}
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
+
+                        return self.get_mailboxes_imap(session_id);
+                    }
+                    imap::Error::Io(_) => {
+                        eprintln!("Reconnecting to IMAP server");
+
+                        match self.connect_imap(session_id) {
+                            Ok(_) => {}
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
+
+                        return self.get_mailboxes_imap(session_id);
+                    }
+
+                    _ => {}
+                }
+
+                return Err(MyError::Imap(e));
+            }
+        };
 
         let mailboxes: Vec<String> = mailboxes
             .iter()

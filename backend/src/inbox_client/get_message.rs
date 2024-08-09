@@ -11,7 +11,7 @@ impl InboxClient {
         session_id: usize,
         mailbox_path: &str,
         message_uid: u32,
-    ) -> Result<String, String> {
+    ) -> Result<String, MyError> {
         let message_db = self.get_message_db(session_id, mailbox_path, message_uid);
 
         match message_db {
@@ -23,7 +23,7 @@ impl InboxClient {
                     Ok(m) => m,
                     Err(e) => {
                         eprintln!("Error getting message from IMAP: {:?}", e);
-                        return Err(format!("{{\"success\": false, \"message\": \"{:?}\"}}", e));
+                        return Err(e);
                     }
                 };
 
@@ -38,7 +38,7 @@ impl InboxClient {
                         return Ok(message_to_string(&message));
                     }
                     Err(e) => {
-                        return Err(format!("{{\"success\": false, \"message\": \"{:?}\"}}", e));
+                        return Err(e);
                     }
                 }
             }
@@ -64,6 +64,35 @@ impl InboxClient {
             Ok(_) => {}
             Err(e) => {
                 eprintln!("Error selecting mailbox: {:?}", e);
+
+                match e {
+                    imap::Error::ConnectionLost => {
+                        eprintln!("Reconnecting to IMAP server");
+
+                        match self.connect_imap(session_id) {
+                            Ok(_) => {}
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
+
+                        return self.get_message_imap(session_id, mailbox_path, message_uid);
+                    }
+                    imap::Error::Io(_) => {
+                        eprintln!("Reconnecting to IMAP server");
+
+                        match self.connect_imap(session_id) {
+                            Ok(_) => {}
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
+
+                        return self.get_message_imap(session_id, mailbox_path, message_uid);
+                    }
+                    _ => {}
+                }
+
                 return Err(MyError::Imap(e));
             }
         }

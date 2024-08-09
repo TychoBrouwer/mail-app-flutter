@@ -26,6 +26,23 @@ impl InboxClient {
             Ok(_) => {}
             Err(e) => {
                 eprintln!("Error selecting mailbox: {:?}", e);
+
+                match e {
+                    imap::Error::ConnectionLost => {
+                        eprintln!("Reconnecting to IMAP server");
+
+                        match self.connect_imap(session_id) {
+                            Ok(_) => {}
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
+
+                        return self.modify_flag(session_id, mailbox_path, message_uid, flags, add);
+                    }
+                    _ => {}
+                }
+
                 return Err(MyError::Imap(e));
             }
         }

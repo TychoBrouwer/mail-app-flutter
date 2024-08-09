@@ -73,26 +73,30 @@ impl InboxClient {
         }
     }
 
-    fn connect_imap(&mut self, idx: usize) -> Result<(), MyError> {
+    pub fn connect_imap(&mut self, session_id: usize) -> Result<(), MyError> {
         let tls = TlsConnector::builder().build().unwrap();
 
-        let address = &self.sessions[idx].address;
-        let port = self.sessions[idx].port;
-        let username = &self.sessions[idx].username;
-        let password = &self.sessions[idx].password;
+        if session_id >= self.sessions.len() {
+            return Err(MyError::String("Session not found".to_string()));
+        }
+
+        let address = &self.sessions[session_id].address;
+        let port = self.sessions[session_id].port;
+        let username = &self.sessions[session_id].username;
+        let password = &self.sessions[session_id].password;
 
         match imap::connect((address.as_str(), port), address, &tls) {
             Ok(c) => match c.login(username, password) {
                 Ok(s) => {
-                    self.sessions[idx].stream = Some(s);
+                    self.sessions[session_id].stream = Some(s);
 
-                    match self.get_mailboxes(idx) {
+                    match self.get_mailboxes(session_id) {
                         Ok(_) => {
                             return Ok(());
                         }
                         Err(e) => {
                             eprintln!("Error getting mailboxes: {:?}", e);
-                            return Err(MyError::String(e));
+                            return Err(MyError::String(e.to_string()));
                         }
                     }
 

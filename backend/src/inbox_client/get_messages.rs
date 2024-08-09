@@ -11,19 +11,20 @@ impl InboxClient {
         session_id: usize,
         mailbox_path: &str,
         sequence_set: SequenceSet,
-    ) -> Result<String, String> {
-        let message_uids = match self.get_messages_id(session_id, mailbox_path, &sequence_set) {
+    ) -> Result<String, MyError> {
+        let message_uids = match self.get_messages_id_imap(session_id, mailbox_path, &sequence_set)
+        {
             Ok(ids) => ids,
             Err(e) => {
                 eprintln!("Error getting message IDs: {:?}", e);
-                return Err(format!("{{\"message\": \"{:?}\"}}", e));
+                return Err(e);
             }
         };
 
         let messages_db_result = match self.get_messages_db(session_id, mailbox_path, &message_uids)
         {
             Ok(messages) => messages,
-            Err(e) => return Err(format!("{{\"success\": false, \"message\": \"{:?}\"}}", e)),
+            Err(e) => return Err(e),
         };
 
         let mut messages = messages_db_result.0;
@@ -63,10 +64,7 @@ impl InboxClient {
                             Err(e) => {
                                 eprintln!("Error inserting message into local database: {:?}", e);
 
-                                return Err(format!(
-                                    "{{\"success\": false, \"message\": \"{:?}\"}}",
-                                    e
-                                ));
+                                return Err(e);
                             }
                         }
                     }
@@ -75,7 +73,7 @@ impl InboxClient {
                 }
                 Err(e) => {
                     eprintln!("Error getting message from IMAP: {:?}", e);
-                    return Err(format!("{{\"success\": false, \"message\": \"{:?}\"}}", e));
+                    return Err(e);
                 }
             },
         };
@@ -95,7 +93,7 @@ impl InboxClient {
         return Ok(response);
     }
 
-    fn get_messages_id(
+    fn get_messages_id_imap(
         &mut self,
         session_id: usize,
         mailbox_path: &str,
@@ -114,6 +112,23 @@ impl InboxClient {
             Ok(_) => {}
             Err(e) => {
                 eprintln!("Error selecting mailbox: {:?}", e);
+
+                match e {
+                    imap::Error::ConnectionLost => {
+                        eprintln!("Reconnecting to IMAP server");
+
+                        match self.connect_imap(session_id) {
+                            Ok(_) => {}
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
+
+                        return self.get_messages_id_imap(session_id, mailbox_path, sequence_set);
+                    }
+                    _ => {}
+                }
+
                 return Err(MyError::Imap(e));
             }
         }
@@ -167,6 +182,35 @@ impl InboxClient {
             Ok(_) => {}
             Err(e) => {
                 eprintln!("Error selecting mailbox: {:?}", e);
+
+                match e {
+                    imap::Error::ConnectionLost => {
+                        eprintln!("Reconnecting to IMAP server");
+
+                        match self.connect_imap(session_id) {
+                            Ok(_) => {}
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
+
+                        return self.get_messages_imap(session_id, mailbox_path, sequence_set);
+                    }
+                    imap::Error::Io(_) => {
+                        eprintln!("Reconnecting to IMAP server");
+
+                        match self.connect_imap(session_id) {
+                            Ok(_) => {}
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
+
+                        return self.get_messages_imap(session_id, mailbox_path, sequence_set);
+                    }
+                    _ => {}
+                }
+
                 return Err(MyError::Imap(e));
             }
         }
