@@ -5,7 +5,7 @@ use imap_proto::types::Address;
 use regex::Regex;
 use std::collections::HashMap;
 
-use super::my_error::MyError;
+use crate::my_error::MyError;
 
 #[derive(Debug)]
 pub struct Message {

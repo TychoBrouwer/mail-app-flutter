@@ -1,5 +1,5 @@
 use crate::database::conn::DBConnection;
-use crate::inbox_client::my_error::MyError;
+use crate::my_error::MyError;
 
 use imap;
 use native_tls::{TlsConnector, TlsStream};

@@ -1,8 +1,7 @@
 use imap::types::Flag;
 
-use crate::inbox_client::{
-    inbox_client::InboxClient, my_error::MyError, parse_message::flags_to_string,
-};
+use crate::inbox_client::{inbox_client::InboxClient, parse_message::flags_to_string};
+use crate::my_error::MyError;
 
 impl InboxClient {
     pub fn modify_flag(

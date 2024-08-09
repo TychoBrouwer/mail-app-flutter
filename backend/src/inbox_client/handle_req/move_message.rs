@@ -1,4 +1,5 @@
-use crate::inbox_client::{inbox_client::InboxClient, my_error::MyError};
+use crate::inbox_client::inbox_client::InboxClient;
+use crate::my_error::MyError;
 
 impl InboxClient {
     pub fn move_message(

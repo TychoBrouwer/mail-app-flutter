@@ -11,7 +11,6 @@ mod inbox_client {
         pub mod move_message;
     }
     pub mod inbox_client;
-    pub mod my_error;
     pub mod parse_message;
 }
 
@@ -20,6 +19,8 @@ mod http_server {
     pub mod http_server;
     pub mod params;
 }
+
+mod my_error;
 
 use std::sync::{Arc, Mutex};
 

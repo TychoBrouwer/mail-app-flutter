@@ -1,8 +1,8 @@
 use crate::inbox_client::{
     inbox_client::InboxClient,
-    my_error::MyError,
     parse_message::{message_to_string, parse_message, Message},
 };
+use crate::my_error::MyError;
 
 impl InboxClient {
     pub fn get_message(

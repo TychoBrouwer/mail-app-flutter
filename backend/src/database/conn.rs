@@ -1,4 +1,5 @@
-use crate::inbox_client::{inbox_client::Session, my_error::MyError, parse_message::Message};
+use crate::inbox_client::{inbox_client::Session, parse_message::Message};
+use crate::my_error::MyError;
 
 use base64::{prelude::BASE64_STANDARD, Engine};
 use rusqlite::{params, vtab, Connection, OpenFlags};
