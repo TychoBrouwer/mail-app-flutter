@@ -73,6 +73,28 @@ impl InboxClient {
             }
         };
 
-        return Ok(mailbox_path_dest.to_string());
+        return self.move_message_db(session_id, mailbox_path, message_uid, mailbox_path_dest);
+    }
+
+    fn move_message_db(
+        &mut self,
+        session_id: usize,
+        mailbox_path: &str,
+        message_uid: u32,
+        mailbox_path_dest: &str,
+    ) -> Result<String, MyError> {
+        let username = &self.sessions[session_id].username;
+        let address = &self.sessions[session_id].address;
+
+        match self.database_conn.move_message(
+            username,
+            address,
+            mailbox_path,
+            message_uid,
+            mailbox_path_dest,
+        ) {
+            Ok(_) => return Ok(mailbox_path_dest.to_string()),
+            Err(e) => return Err(e),
+        };
     }
 }

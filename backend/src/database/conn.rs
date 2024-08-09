@@ -265,6 +265,34 @@ impl DBConnection {
         }
     }
 
+    pub fn move_message(
+        &mut self,
+        username: &str,
+        address: &str,
+        mailbox_path: &str,
+        message_uid: u32,
+        mailbox_path_dest: &str,
+    ) -> Result<(), MyError> {
+        match self.conn.execute(
+            "UPDATE messages
+             SET m_path = ?1
+             WHERE uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
+            params![
+                mailbox_path_dest,
+                message_uid,
+                username,
+                address,
+                mailbox_path
+            ],
+        ) {
+            Ok(_) => Ok({}),
+            Err(e) => {
+                eprintln!("Error moving message: {}", e);
+                return Err(MyError::Sqlite(e));
+            }
+        }
+    }
+
     pub fn get_connections(&mut self) -> Result<Vec<Session>, MyError> {
         let mut stmt = match self.conn.prepare("SELECT * FROM connections") {
             Ok(stmt) => stmt,
