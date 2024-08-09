@@ -3,9 +3,10 @@
 enum HttpRequestPath {
   login,
   logout,
-  sessions,
-  message,
-  messages,
-  mailboxes,
+  get_sessions,
+  get_message,
+  get_messages,
+  get_mailboxes,
   modify_flags,
+  move_message,
 }

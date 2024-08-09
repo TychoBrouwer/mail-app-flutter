@@ -151,7 +151,7 @@ class HomePageState extends State<HomePage> {
     final add = !message.flags.contains(flag);
     final messageUid = message.uid;
 
-    final flags = await _inboxService.updateFlags(
+    final flags = await _inboxService.modifyFlags(
         messageUid: messageUid, flags: [flag], add: add);
 
     setState(() {

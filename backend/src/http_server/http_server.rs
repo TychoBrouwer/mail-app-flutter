@@ -40,11 +40,12 @@ async fn handle_connection(mut stream: TcpStream, inbox_client: Arc<Mutex<InboxC
     let data = match path {
         "/login" => handle_conn::login(params, inbox_client),
         "/logout" => handle_conn::logout(params, inbox_client),
-        "/sessions" => handle_conn::sessions(inbox_client),
-        "/mailboxes" => handle_conn::mailboxes(params, inbox_client),
-        "/message" => handle_conn::message(params, inbox_client),
-        "/messages" => handle_conn::messages(params, inbox_client),
+        "/get_sessions" => handle_conn::get_sessions(inbox_client),
+        "/get_mailboxes" => handle_conn::get_mailboxes(params, inbox_client),
+        "/get_message" => handle_conn::get_message(params, inbox_client),
+        "/get_messages" => handle_conn::get_messages(params, inbox_client),
         "/modify_flags" => handle_conn::modify_flags(params, inbox_client),
+        "/move_message" => handle_conn::move_message(params, inbox_client),
         _ => String::from("{\"success\": false, \"message\": \"Not Found\"}"),
     };
 

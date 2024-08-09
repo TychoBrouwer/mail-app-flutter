@@ -1,9 +1,8 @@
 use crate::inbox_client::{
     inbox_client::{InboxClient, SequenceSet},
+    my_error::MyError,
     parse_message,
 };
-
-use super::my_error::MyError;
 
 impl InboxClient {
     pub fn get_messages(

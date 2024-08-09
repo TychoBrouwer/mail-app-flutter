@@ -92,7 +92,7 @@ class InboxService {
 
   Future<List<MailAccount>> getSessions() async {
     final messageData =
-        await httpService.sendRequest(HttpRequestPath.sessions, {});
+        await httpService.sendRequest(HttpRequestPath.get_sessions, {});
 
     if (!messageData.success) return [];
 
@@ -115,7 +115,7 @@ class InboxService {
     };
 
     final messageData =
-        await HttpService().sendRequest(HttpRequestPath.mailboxes, body);
+        await HttpService().sendRequest(HttpRequestPath.get_mailboxes, body);
 
     if (!messageData.success) return [];
 
@@ -149,13 +149,13 @@ class InboxService {
 
     final body = {
       'session_id': session.toString(),
-      'mailbox': mailbox!,
+      'mailbox_path': mailbox!,
       'start': start.toString(),
       'end': end.toString(),
     };
 
     final messageData =
-        await HttpService().sendRequest(HttpRequestPath.messages, body);
+        await HttpService().sendRequest(HttpRequestPath.get_messages, body);
 
     if (!messageData.success) return [];
 
@@ -167,7 +167,7 @@ class InboxService {
     return messages;
   }
 
-  Future<List<MessageFlag>> updateFlags({
+  Future<List<MessageFlag>> modifyFlags({
     int? session,
     String? mailbox,
     required int messageUid,
@@ -190,7 +190,7 @@ class InboxService {
 
     final body = {
       'session_id': session.toString(),
-      'mailbox': mailbox!,
+      'mailbox_path': mailbox!,
       'message_uid': messageUid.toString(),
       'flags': flagsString,
       'add': addString,
@@ -204,11 +204,35 @@ class InboxService {
     return messageFlagsFromJsonList(messageData.data);
   }
 
-  // Future<String> getMessage(int messageUid) async {
-  //   String request =
-  //       'message\r\nsession_id=$_activeSession\nmailbox=$_activeMailbox\nmessage_uid=$messageUid';
+  Future<String> moveMessage({
+    int? session,
+    String? mailbox,
+    required int messageUid,
+    required String mailboxDest,
+  }) async {
+    if (session == null) {
+      session = _activeSession;
 
-  //   final response = await _websocketService.sendMessage(request);
-  //   return response;
-  // }
+      if (_activeSession == null) return '';
+    }
+    if (mailbox == null) {
+      mailbox = _activeMailbox;
+
+      if (_activeMailbox == null) return '';
+    }
+
+    final body = {
+      'session_id': session.toString(),
+      'mailbox_path': mailbox!,
+      'message_uid': messageUid.toString(),
+      'mailbox_path_dest': mailboxDest,
+    };
+
+    final messageData =
+        await HttpService().sendRequest(HttpRequestPath.move_message, body);
+
+    if (!messageData.success) return '';
+
+    return messageData.data;
+  }
 }

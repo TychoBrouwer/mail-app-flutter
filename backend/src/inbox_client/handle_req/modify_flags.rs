@@ -1,8 +1,8 @@
 use imap::types::Flag;
 
-use crate::inbox_client::{inbox_client::InboxClient, parse_message::flags_to_string};
-
-use super::my_error::MyError;
+use crate::inbox_client::{
+    inbox_client::InboxClient, my_error::MyError, parse_message::flags_to_string,
+};
 
 impl InboxClient {
     pub fn modify_flag(
@@ -29,6 +29,18 @@ impl InboxClient {
 
                 match e {
                     imap::Error::ConnectionLost => {
+                        eprintln!("Reconnecting to IMAP server");
+
+                        match self.connect_imap(session_id) {
+                            Ok(_) => {}
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
+
+                        return self.modify_flag(session_id, mailbox_path, message_uid, flags, add);
+                    }
+                    imap::Error::Io(_) => {
                         eprintln!("Reconnecting to IMAP server");
 
                         match self.connect_imap(session_id) {

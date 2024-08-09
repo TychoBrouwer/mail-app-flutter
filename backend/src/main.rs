@@ -3,11 +3,14 @@ mod database {
 }
 
 mod inbox_client {
-    pub mod get_mailboxes;
-    pub mod get_message;
-    pub mod get_messages;
+    mod handle_req {
+        pub mod get_mailboxes;
+        pub mod get_message;
+        pub mod get_messages;
+        pub mod modify_flags;
+        pub mod move_message;
+    }
     pub mod inbox_client;
-    pub mod modify_flags;
     pub mod my_error;
     pub mod parse_message;
 }
