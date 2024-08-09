@@ -3,11 +3,12 @@ import 'package:flutter_svg/flutter_svg.dart' show SvgPicture;
 
 import 'package:mail_app/types/message_flag.dart';
 import 'package:mail_app/types/project_colors.dart';
+import 'package:mail_app/types/special_mailbox.dart';
 import 'package:mail_app/widgets/custom_button.dart';
 
 class ControlBar extends StatefulWidget {
   final void Function(MessageFlag) flagMessage;
-  final void Function() archive;
+  final void Function(SpecialMailbox) moveMessage;
   final void Function() reply;
   final void Function() replyAll;
   final void Function() share;
@@ -16,7 +17,7 @@ class ControlBar extends StatefulWidget {
   const ControlBar({
     super.key,
     required this.flagMessage,
-    required this.archive,
+    required this.moveMessage,
     required this.reply,
     required this.replyAll,
     required this.share,
@@ -29,7 +30,7 @@ class ControlBar extends StatefulWidget {
 
 class ControlBarState extends State<ControlBar> {
   late void Function(MessageFlag) _flagMessage;
-  late void Function() _archive;
+  late void Function(SpecialMailbox) _moveMessage;
   late void Function() _reply;
   late void Function() _replyAll;
   late void Function() _share;
@@ -40,7 +41,7 @@ class ControlBarState extends State<ControlBar> {
     super.initState();
 
     _flagMessage = widget.flagMessage;
-    _archive = widget.archive;
+    _moveMessage = widget.moveMessage;
     _reply = widget.reply;
     _replyAll = widget.replyAll;
     _share = widget.share;
@@ -74,13 +75,15 @@ class ControlBarState extends State<ControlBar> {
       alignment: Alignment.center,
       child: Row(
         children: [
-          controlWidget(Control('box-archive', _archive)),
+          controlWidget(
+            Control('box-archive', () => _moveMessage(ArchiveMailbox())),
+          ),
           controlWidget(
             Control(
                 'circle-exclamation', () => _flagMessage(MessageFlag.Flagged)),
           ),
           controlWidget(
-            Control('trash-can', () => _flagMessage(MessageFlag.Deleted)),
+            Control('trash-can', () => _moveMessage(TrashMailbox())),
           ),
           controlWidget(
             Control('envelope-dot', () => _flagMessage(MessageFlag.Seen)),

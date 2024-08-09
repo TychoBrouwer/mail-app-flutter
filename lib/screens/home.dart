@@ -4,6 +4,7 @@ import 'package:mail_app/services/inbox_service.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/message_flag.dart';
+import 'package:mail_app/types/special_mailbox.dart';
 import 'package:mail_app/widgets/add_account.dart';
 import 'package:mail_app/widgets/inbox/message_list.dart';
 import 'package:mail_app/widgets/mailbox/mailbox_header.dart';
@@ -163,8 +164,20 @@ class HomePageState extends State<HomePage> {
     });
   }
 
-  Future<void> _archive() async {
-    print('archive message');
+  Future<void> _moveMessage(SpecialMailbox mailbox) async {
+    if (_activeID == null) return;
+
+    final message = _messages[_activeID!];
+
+    final mailboxDest = mailbox.path;
+    final messageUid = message.uid;
+
+    await _inboxService.moveMessage(
+        messageUid: messageUid, mailboxDest: mailboxDest);
+
+    setState(() {
+      _messages.removeAt(_activeID!);
+    });
   }
 
   Future<void> _reply() async {
@@ -237,7 +250,7 @@ class HomePageState extends State<HomePage> {
                 children: [
                   ControlBar(
                     flagMessage: _flagMessage,
-                    archive: _archive,
+                    moveMessage: _moveMessage,
                     reply: _reply,
                     replyAll: _replyAll,
                     share: _share,
