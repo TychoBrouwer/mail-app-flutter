@@ -20,56 +20,25 @@ impl InboxClient {
 
         match session.select(mailbox_path) {
             Ok(_) => {}
-            Err(e) => {
-                eprintln!("Error selecting mailbox: {:?}", e);
-
-                match e {
-                    imap::Error::ConnectionLost => {
-                        eprintln!("Reconnecting to IMAP server");
-
-                        match self.connect_imap(session_id) {
-                            Ok(_) => {}
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-
-                        return self.move_message(
-                            session_id,
-                            mailbox_path,
-                            message_uid,
-                            mailbox_path_dest,
-                        );
-                    }
-                    imap::Error::Io(_) => {
-                        eprintln!("Reconnecting to IMAP server");
-
-                        match self.connect_imap(session_id) {
-                            Ok(_) => {}
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-
-                        return self.move_message(
-                            session_id,
-                            mailbox_path,
-                            message_uid,
-                            mailbox_path_dest,
-                        );
-                    }
-                    _ => {}
+            Err(e) => match self.handle_disconnect(session_id, e) {
+                Ok(_) => {
+                    return self.move_message(
+                        session_id,
+                        mailbox_path,
+                        message_uid,
+                        mailbox_path_dest,
+                    );
                 }
-
-                return Err(MyError::Imap(e));
-            }
+                Err(e) => {
+                    return Err(e);
+                }
+            },
         };
 
-        match session.uid_copy(message_uid.to_string(), mailbox_path_dest) {
+        match session.uid_mv(message_uid.to_string(), mailbox_path_dest) {
             Ok(e) => e,
             Err(e) => {
                 eprintln!("Error moving message");
-
                 return Err(MyError::Imap(e));
             }
         };
@@ -94,7 +63,7 @@ impl InboxClient {
             message_uid,
             mailbox_path_dest,
         ) {
-            Ok(_) => return Ok(mailbox_path_dest.to_string()),
+            Ok(_) => return Ok(format!("\"{}\"", mailbox_path_dest)),
             Err(e) => return Err(e),
         };
     }

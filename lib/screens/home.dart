@@ -164,16 +164,21 @@ class HomePageState extends State<HomePage> {
     });
   }
 
-  Future<void> _moveMessage(SpecialMailbox mailbox) async {
+  Future<void> _moveMessage(SpecialMailboxType mailbox) async {
     if (_activeID == null) return;
 
     final message = _messages[_activeID!];
 
-    final mailboxDest = mailbox.path;
+    final mailboxDest = _inboxService.getSpecialMailbox(mailbox);
     final messageUid = message.uid;
 
-    await _inboxService.moveMessage(
+    final mailboxNew = await _inboxService.moveMessage(
         messageUid: messageUid, mailboxDest: mailboxDest);
+
+    if (mailboxNew == '') {
+      print('failed to move message');
+      return;
+    }
 
     setState(() {
       _messages.removeAt(_activeID!);

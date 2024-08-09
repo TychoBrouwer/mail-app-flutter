@@ -10,15 +10,16 @@ impl InboxClient {
         session_id: usize,
         mailbox_path: &str,
         sequence_set: SequenceSet,
+        reversed: bool,
     ) -> Result<String, MyError> {
-        let message_uids = match self.get_messages_id_imap(session_id, mailbox_path, &sequence_set)
-        {
-            Ok(ids) => ids,
-            Err(e) => {
-                eprintln!("Error getting message IDs: {:?}", e);
-                return Err(e);
-            }
-        };
+        let message_uids =
+            match self.get_message_ids_imap(session_id, mailbox_path, &sequence_set, reversed) {
+                Ok(ids) => ids,
+                Err(e) => {
+                    eprintln!("Error getting message IDs: {:?}", e);
+                    return Err(e);
+                }
+            };
 
         let messages_db_result = match self.get_messages_db(session_id, mailbox_path, &message_uids)
         {
@@ -42,12 +43,22 @@ impl InboxClient {
         let failed_sequence_set: SequenceSet = SequenceSet {
             nr_messages: None,
             start_end: None,
-            idx: Some(failed_sequence_idx.iter().map(|x| x + offset + 1).collect()),
+            idx: Some(
+                failed_sequence_idx
+                    .iter()
+                    .map(|x| *x as u32 + offset + 1)
+                    .collect(),
+            ),
         };
 
         match failed_message_uids.len() {
             0 => {}
-            _ => match self.get_messages_imap(session_id, mailbox_path, failed_sequence_set) {
+            _ => match self.get_messages_imap(
+                session_id,
+                mailbox_path,
+                failed_sequence_set,
+                reversed,
+            ) {
                 Ok(messages_imap) => {
                     let username = &self.sessions[session_id].username;
                     let address = &self.sessions[session_id].address;
@@ -79,7 +90,7 @@ impl InboxClient {
 
         let mut response = String::from("[");
 
-        for (i, message) in messages.iter().enumerate() {
+        for (i, message) in messages.iter().rev().enumerate() {
             response.push_str(&parse_message::message_to_string(&message));
 
             if i < messages.len() - 1 {
@@ -92,11 +103,12 @@ impl InboxClient {
         return Ok(response);
     }
 
-    fn get_messages_id_imap(
+    fn get_message_ids_imap(
         &mut self,
         session_id: usize,
         mailbox_path: &str,
         sequence_set: &SequenceSet,
+        reversed: bool,
     ) -> Result<Vec<u32>, MyError> {
         if session_id >= self.sessions.len() {
             return Err(MyError::String("Invalid session ID".to_string()));
@@ -107,38 +119,31 @@ impl InboxClient {
             None => return Err(MyError::String("Session not found".to_string())),
         };
 
-        match session.select(mailbox_path) {
-            Ok(_) => {}
-            Err(e) => {
-                eprintln!("Error selecting mailbox: {:?}", e);
-
-                match e {
-                    imap::Error::ConnectionLost => {
-                        eprintln!("Reconnecting to IMAP server");
-
-                        match self.connect_imap(session_id) {
-                            Ok(_) => {}
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-
-                        return self.get_messages_id_imap(session_id, mailbox_path, sequence_set);
-                    }
-                    _ => {}
+        let mailbox = match session.select(mailbox_path) {
+            Ok(m) => m,
+            Err(e) => match self.handle_disconnect(session_id, e) {
+                Ok(_) => {
+                    return self.get_message_ids_imap(
+                        session_id,
+                        mailbox_path,
+                        sequence_set,
+                        reversed,
+                    );
                 }
-
-                return Err(MyError::Imap(e));
-            }
-        }
-
-        let sequence_set_string: String = match InboxClient::sequence_set_to_string(&sequence_set) {
-            Ok(s) => s,
-            Err(e) => {
-                eprintln!("Error converting sequence set to string: {:?}", e);
-                return Err(e);
-            }
+                Err(e) => {
+                    return Err(e);
+                }
+            },
         };
+
+        let sequence_set_string: String =
+            match InboxClient::sequence_set_to_string(&sequence_set, mailbox.exists, reversed) {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("Error converting sequence set to string: {:?}", e);
+                    return Err(e);
+                }
+            };
 
         let message_uids = match session.fetch(&sequence_set_string, "UID") {
             Ok(fetch) => fetch,
@@ -167,6 +172,7 @@ impl InboxClient {
         session_id: usize,
         mailbox_path: &str,
         sequence_set: SequenceSet,
+        reversed: bool,
     ) -> Result<Vec<parse_message::Message>, MyError> {
         if session_id >= self.sessions.len() {
             return Err(MyError::String("Invalid session ID".to_string()));
@@ -177,50 +183,31 @@ impl InboxClient {
             None => return Err(MyError::String("Session not found".to_string())),
         };
 
-        match session.select(mailbox_path) {
-            Ok(_) => {}
-            Err(e) => {
-                eprintln!("Error selecting mailbox: {:?}", e);
-
-                match e {
-                    imap::Error::ConnectionLost => {
-                        eprintln!("Reconnecting to IMAP server");
-
-                        match self.connect_imap(session_id) {
-                            Ok(_) => {}
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-
-                        return self.get_messages_imap(session_id, mailbox_path, sequence_set);
-                    }
-                    imap::Error::Io(_) => {
-                        eprintln!("Reconnecting to IMAP server");
-
-                        match self.connect_imap(session_id) {
-                            Ok(_) => {}
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-
-                        return self.get_messages_imap(session_id, mailbox_path, sequence_set);
-                    }
-                    _ => {}
+        let mailbox = match session.select(mailbox_path) {
+            Ok(m) => m,
+            Err(e) => match self.handle_disconnect(session_id, e) {
+                Ok(_) => {
+                    return self.get_messages_imap(
+                        session_id,
+                        mailbox_path,
+                        sequence_set,
+                        reversed,
+                    );
                 }
-
-                return Err(MyError::Imap(e));
-            }
-        }
-
-        let sequence_set_string: String = match InboxClient::sequence_set_to_string(&sequence_set) {
-            Ok(s) => s,
-            Err(e) => {
-                eprintln!("Error converting sequence set to string: {:?}", e);
-                return Err(e);
-            }
+                Err(e) => {
+                    return Err(e);
+                }
+            },
         };
+
+        let sequence_set_string: String =
+            match InboxClient::sequence_set_to_string(&sequence_set, mailbox.exists, reversed) {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("Error converting sequence set to string: {:?}", e);
+                    return Err(e);
+                }
+            };
 
         let fetches = match session.fetch(&sequence_set_string, "(UID ENVELOPE BODY.PEEK[] FLAGS)")
         {

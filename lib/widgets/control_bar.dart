@@ -8,7 +8,7 @@ import 'package:mail_app/widgets/custom_button.dart';
 
 class ControlBar extends StatefulWidget {
   final void Function(MessageFlag) flagMessage;
-  final void Function(SpecialMailbox) moveMessage;
+  final void Function(SpecialMailboxType) moveMessage;
   final void Function() reply;
   final void Function() replyAll;
   final void Function() share;
@@ -30,7 +30,7 @@ class ControlBar extends StatefulWidget {
 
 class ControlBarState extends State<ControlBar> {
   late void Function(MessageFlag) _flagMessage;
-  late void Function(SpecialMailbox) _moveMessage;
+  late void Function(SpecialMailboxType) _moveMessage;
   late void Function() _reply;
   late void Function() _replyAll;
   late void Function() _share;
@@ -76,14 +76,15 @@ class ControlBarState extends State<ControlBar> {
       child: Row(
         children: [
           controlWidget(
-            Control('box-archive', () => _moveMessage(ArchiveMailbox())),
+            Control(
+                'box-archive', () => _moveMessage(SpecialMailboxType.archive)),
           ),
           controlWidget(
             Control(
                 'circle-exclamation', () => _flagMessage(MessageFlag.Flagged)),
           ),
           controlWidget(
-            Control('trash-can', () => _moveMessage(TrashMailbox())),
+            Control('trash-can', () => _moveMessage(SpecialMailboxType.trash)),
           ),
           controlWidget(
             Control('envelope-dot', () => _flagMessage(MessageFlag.Seen)),

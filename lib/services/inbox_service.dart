@@ -4,6 +4,7 @@ import 'package:mail_app/types/mail_account.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/message_flag.dart';
+import 'package:mail_app/types/special_mailbox.dart';
 
 class InboxService {
   int? _activeSession;
@@ -58,6 +59,12 @@ class InboxService {
     }
 
     return mailboxTree;
+  }
+
+  String getSpecialMailbox(SpecialMailboxType type) {
+    final session = _sessions[_activeSession!];
+
+    return session.specialMailboxes[type] ?? '';
   }
 
   Future<int> newSession(
@@ -121,8 +128,12 @@ class InboxService {
 
     _mailboxes.clear();
 
-    for (var mailbox in (messageData.data as List)) {
-      if ((mailbox as String).endsWith(']')) continue;
+    final mailboxes = (messageData.data as List).cast<String>();
+    _sessions[session!].setSpecialMailboxes(mailboxes);
+
+    for (var mailbox in mailboxes) {
+      if (mailbox.endsWith(']')) continue;
+
       _mailboxes
           .add(MailboxInfo.fromJson(mailbox, getActiveSessionDisplay() ?? ''));
     }
@@ -152,6 +163,7 @@ class InboxService {
       'mailbox_path': mailbox!,
       'start': start.toString(),
       'end': end.toString(),
+      'reversed': 'true',
     };
 
     final messageData =

@@ -168,14 +168,19 @@ pub fn get_messages(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String 
     let session_id = params::get_usize(uri_params.get("session_id"));
     let mailbox_path = uri_params.get("mailbox_path");
 
-    let nr_messages = params::get_usize(uri_params.get("nr_messages"));
-    let start = params::get_usize(uri_params.get("start"));
-    let end = params::get_usize(uri_params.get("end"));
+    let nr_messages = params::get_u32(uri_params.get("nr_messages"));
+    let start = params::get_u32(uri_params.get("start"));
+    let end = params::get_u32(uri_params.get("end"));
+    let reversed = params::get_bool(uri_params.get("reversed"));
 
-    if session_id.is_none() || mailbox_path.is_none() {
+    if session_id.is_none()
+        || mailbox_path.is_none()
+        || reversed.is_none()
+        || (nr_messages.is_none() && (start.is_none() || end.is_none()))
+    {
         eprintln!("Provide session_id GET parameter: {}", uri);
         return String::from(
-            "{\"success\": false, \"message\": \"Provide session_id GET parameter\"}",
+            "{\"success\": false, \"message\": \"Provide session_id, mailbox_path, nr_messages || (start && end), and reversed GET parameters\"}",
         );
     }
 
@@ -193,9 +198,10 @@ pub fn get_messages(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String 
         },
         idx: None,
     };
+    let reversed = reversed.unwrap();
 
     let mut locked_inbox_client = inbox_client.lock().unwrap();
-    match locked_inbox_client.get_messages(session_id, mailbox_path, sequence_set) {
+    match locked_inbox_client.get_messages(session_id, mailbox_path, sequence_set, reversed) {
         Ok(messages) => {
             return format!(
                 "{{\"success\": true, \"message\": \"Messages retrieved\", \"data\": {}}}",

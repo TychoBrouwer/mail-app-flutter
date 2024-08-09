@@ -23,40 +23,15 @@ impl InboxClient {
 
         match session.select(mailbox_path) {
             Ok(_) => {}
-            Err(e) => {
-                eprintln!("Error selecting mailbox: {:?}", e);
-
-                match e {
-                    imap::Error::ConnectionLost => {
-                        eprintln!("Reconnecting to IMAP server");
-
-                        match self.connect_imap(session_id) {
-                            Ok(_) => {}
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-
-                        return self.modify_flag(session_id, mailbox_path, message_uid, flags, add);
-                    }
-                    imap::Error::Io(_) => {
-                        eprintln!("Reconnecting to IMAP server");
-
-                        match self.connect_imap(session_id) {
-                            Ok(_) => {}
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-
-                        return self.modify_flag(session_id, mailbox_path, message_uid, flags, add);
-                    }
-                    _ => {}
+            Err(e) => match self.handle_disconnect(session_id, e) {
+                Ok(_) => {
+                    return self.modify_flag(session_id, mailbox_path, message_uid, flags, add);
                 }
-
-                return Err(MyError::Imap(e));
-            }
-        }
+                Err(e) => {
+                    return Err(e);
+                }
+            },
+        };
 
         let mut query = if add { "+" } else { "-" }.to_string();
 

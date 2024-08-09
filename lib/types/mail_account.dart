@@ -1,8 +1,12 @@
+import 'package:mail_app/types/special_mailbox.dart';
+
 class MailAccount {
   late int sessionId;
   late String username;
   late String address;
   late int port;
+
+  final Map<SpecialMailboxType, String> specialMailboxes = {};
 
   MailAccount(
     this.sessionId,
@@ -10,6 +14,20 @@ class MailAccount {
     this.address,
     this.port,
   );
+
+  void setSpecialMailboxes(List<String> mailboxes) {
+    specialMailboxes[SpecialMailboxType.archive] = mailboxes
+        .where((e) =>
+            e.toLowerCase().contains('archive') ||
+            e.toLowerCase().contains('all'))
+        .first;
+
+    specialMailboxes[SpecialMailboxType.trash] = mailboxes
+        .where((e) =>
+            e.toLowerCase().contains('trash') ||
+            e.toLowerCase().contains('delete'))
+        .first;
+  }
 
   factory MailAccount.fromJson(Map<String, dynamic> data) {
     final sessionId = data['id'] as int;

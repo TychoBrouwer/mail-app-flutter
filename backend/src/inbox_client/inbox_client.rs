@@ -7,15 +7,15 @@ use std::net::TcpStream;
 
 #[derive(Debug)]
 pub struct SequenceSet {
-    pub nr_messages: Option<usize>,
+    pub nr_messages: Option<u32>,
     pub start_end: Option<StartEnd>,
-    pub idx: Option<Vec<usize>>,
+    pub idx: Option<Vec<u32>>,
 }
 
 #[derive(Debug)]
 pub struct StartEnd {
-    pub start: usize,
-    pub end: usize,
+    pub start: u32,
+    pub end: u32,
 }
 
 pub struct Session {
@@ -139,14 +139,57 @@ impl InboxClient {
         }
     }
 
-    pub fn sequence_set_to_string(sequence_set: &SequenceSet) -> Result<String, MyError> {
+    pub fn handle_disconnect(&mut self, session_id: usize, e: imap::Error) -> Result<(), MyError> {
+        eprintln!("IMAP communication error: {:?}", e);
+
+        match e {
+            imap::Error::ConnectionLost => {
+                eprintln!("Reconnecting to IMAP server");
+
+                match self.connect_imap(session_id) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        return Err(e);
+                    }
+                }
+
+                return Ok({});
+            }
+            imap::Error::Io(_) => {
+                eprintln!("Reconnecting to IMAP server");
+
+                match self.connect_imap(session_id) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        return Err(e);
+                    }
+                }
+
+                return Ok({});
+            }
+            _ => {}
+        }
+
+        return Err(MyError::Imap(e));
+    }
+
+    pub fn sequence_set_to_string(
+        sequence_set: &SequenceSet,
+        exists: u32,
+        reversed: bool,
+    ) -> Result<String, MyError> {
         let sequence_set_string: String = match sequence_set {
             SequenceSet {
                 nr_messages: Some(nr_messages),
                 start_end: None,
                 idx: None,
             } => {
-                format!("1:{}", nr_messages)
+                if reversed {
+                    let begin = exists - nr_messages + 1;
+                    format!("{}:{}", begin, exists)
+                } else {
+                    format!("1:{}", nr_messages)
+                }
             }
             SequenceSet {
                 nr_messages: None,
@@ -159,7 +202,27 @@ impl InboxClient {
                     ));
                 }
 
-                format!("{}:{}", start, end)
+                if reversed {
+                    let mut begin = exists - end + 1;
+                    let mut last = exists - start + 1;
+
+                    if exists < end + 1 {
+                        begin = 1;
+                    }
+
+                    if exists < start + 1 {
+                        last = 1;
+                    }
+
+                    if exists < end + 1 && exists < start + 1 {
+                        begin = u32::MAX;
+                        last = u32::MAX;
+                    }
+
+                    format!("{}:{}", begin, last)
+                } else {
+                    format!("{}:{}", start, end)
+                }
             }
             SequenceSet {
                 nr_messages: None,
@@ -169,7 +232,11 @@ impl InboxClient {
                 let mut result = String::new();
 
                 for (i, idx) in idxs.iter().enumerate() {
-                    result.push_str(&idx.to_string());
+                    if reversed {
+                        result.push_str(&((exists - idx + 1).to_string()));
+                    } else {
+                        result.push_str(&idx.to_string());
+                    }
 
                     if i < idxs.len() - 1 {
                         result.push_str(",");
@@ -178,7 +245,13 @@ impl InboxClient {
 
                 result
             }
-            _ => String::from("1:*"),
+            _ => {
+                if reversed {
+                    format!("{}:*", exists)
+                } else {
+                    String::from("1:*")
+                }
+            }
         };
 
         return Ok(sequence_set_string);

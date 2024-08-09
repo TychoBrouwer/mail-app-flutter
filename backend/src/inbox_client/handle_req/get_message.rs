@@ -60,41 +60,16 @@ impl InboxClient {
         };
 
         match session.select(mailbox_path) {
-            Ok(_) => {}
-            Err(e) => {
-                eprintln!("Error selecting mailbox: {:?}", e);
-
-                match e {
-                    imap::Error::ConnectionLost => {
-                        eprintln!("Reconnecting to IMAP server");
-
-                        match self.connect_imap(session_id) {
-                            Ok(_) => {}
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-
-                        return self.get_message_imap(session_id, mailbox_path, message_uid);
-                    }
-                    imap::Error::Io(_) => {
-                        eprintln!("Reconnecting to IMAP server");
-
-                        match self.connect_imap(session_id) {
-                            Ok(_) => {}
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-
-                        return self.get_message_imap(session_id, mailbox_path, message_uid);
-                    }
-                    _ => {}
+            Ok(m) => m,
+            Err(e) => match self.handle_disconnect(session_id, e) {
+                Ok(_) => {
+                    return self.get_message_imap(session_id, mailbox_path, message_uid);
                 }
-
-                return Err(MyError::Imap(e));
-            }
-        }
+                Err(e) => {
+                    return Err(e);
+                }
+            },
+        };
 
         let fetches =
             match session.uid_fetch(message_uid.to_string(), "(UID ENVELOPE BODY.PEEK[] FLAGS)") {

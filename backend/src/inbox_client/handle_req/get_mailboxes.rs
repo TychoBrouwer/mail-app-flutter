@@ -90,40 +90,12 @@ impl InboxClient {
 
         let mailboxes = match session.list(Some(""), Some("*")) {
             Ok(m) => m,
-            Err(e) => {
-                eprintln!("Error getting mailboxes from IMAP: {:?}", e);
-
-                match e {
-                    imap::Error::ConnectionLost => {
-                        eprintln!("Reconnecting to IMAP server");
-
-                        match self.connect_imap(session_id) {
-                            Ok(_) => {}
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-
-                        return self.get_mailboxes_imap(session_id);
-                    }
-                    imap::Error::Io(_) => {
-                        eprintln!("Reconnecting to IMAP server");
-
-                        match self.connect_imap(session_id) {
-                            Ok(_) => {}
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-
-                        return self.get_mailboxes_imap(session_id);
-                    }
-
-                    _ => {}
+            Err(e) => match self.handle_disconnect(session_id, e) {
+                Ok(_) => return self.get_mailboxes_imap(session_id),
+                Err(e) => {
+                    return Err(e);
                 }
-
-                return Err(MyError::Imap(e));
-            }
+            },
         };
 
         let mailboxes: Vec<String> = mailboxes
