@@ -1,7 +1,5 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' show DateFormat;
 
 import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/message_flag.dart';
@@ -57,7 +55,7 @@ class MessagePreviewState extends State<MessagePreview> {
   }
 
   String _textPreview() {
-    var decoded = utf8.decode(base64Decode(_message.text));
+    var decoded = _message.decodedText();
 
     return decoded.replaceAll(RegExp(r"\n"), " ");
   }

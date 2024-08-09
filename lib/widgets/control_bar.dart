@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_svg/flutter_svg.dart' show SvgPicture;
 
 import 'package:mail_app/types/message_flag.dart';
 import 'package:mail_app/types/project_colors.dart';

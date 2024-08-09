@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:email_validator/email_validator.dart';
+import 'package:flutter/services.dart' show FilteringTextInputFormatter;
+import 'package:email_validator/email_validator.dart' show EmailValidator;
 
 import 'package:mail_app/services/inbox_service.dart';
 import 'package:mail_app/services/overlay_builder.dart';

@@ -1,14 +1,14 @@
-use crate::inbox_client::{inbox_client::Session, parse_message::Message};
+use crate::inbox_client::{inbox_client::Session, my_error::MyError, parse_message::Message};
 
-use rusqlite::{params, vtab, Connection, OpenFlags};
 use base64::{prelude::BASE64_STANDARD, Engine};
+use rusqlite::{params, vtab, Connection, OpenFlags};
 
 pub struct DBConnection {
     conn: Connection,
 }
 
 impl DBConnection {
-    pub fn new(database_path: &str) -> Result<DBConnection, String> {
+    pub fn new(database_path: &str) -> Result<DBConnection, MyError> {
         let conn = match Connection::open_with_flags(
             database_path,
             OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE,
@@ -16,7 +16,7 @@ impl DBConnection {
             Ok(conn) => conn,
             Err(e) => {
                 eprintln!("Error opening database: {}", e);
-                return Err(String::from("Error opening database"));
+                return Err(MyError::Sqlite(e));
             }
         };
 
@@ -24,14 +24,14 @@ impl DBConnection {
             Ok(_) => {}
             Err(e) => {
                 eprintln!("Error loading array module: {}", e);
-                return Err(String::from("Error loading array module"));
+                return Err(MyError::Sqlite(e));
             }
         }
 
         return Ok(DBConnection { conn });
     }
 
-    pub fn initialise(&mut self) -> Result<(), String> {
+    pub fn initialise(&mut self) -> Result<(), MyError> {
         match self.conn.execute(
             "CREATE TABLE IF NOT EXISTS connections (
                 username VARCHAR(500) NOT NULL,
@@ -47,7 +47,7 @@ impl DBConnection {
             Err(e) => {
                 eprintln!("Error creating connections table: {}", e);
 
-                return Err(String::from("Error creating connections table"));
+                return Err(MyError::Sqlite(e));
             }
         }
 
@@ -66,7 +66,7 @@ impl DBConnection {
             Err(e) => {
                 eprintln!("Error creating mailboxes table: {}", e);
 
-                return Err(String::from("Error creating mailboxes table"));
+                return Err(MyError::Sqlite(e));
             }
         }
 
@@ -102,14 +102,14 @@ impl DBConnection {
             Err(e) => {
                 eprintln!("Error creating mailboxes table: {}", e);
 
-                return Err(String::from("Error creating mailboxes table"));
+                return Err(MyError::Sqlite(e));
             }
         }
 
         return Ok(());
     }
 
-    pub fn insert_connection(&mut self, session: &Session) {
+    pub fn insert_connection(&mut self, session: &Session) -> Result<(), MyError> {
         match self.conn.execute(
             "INSERT OR IGNORE INTO connections (
                 username,
@@ -117,16 +117,28 @@ impl DBConnection {
                 address,
                 port
             ) VALUES (?1, ?2, ?3, ?4)",
-            params![session.username, session.password, session.address, session.port],
+            params![
+                session.username,
+                session.password,
+                session.address,
+                session.port
+            ],
         ) {
-            Ok(_) => {}
+            Ok(_) => Ok({}),
             Err(e) => {
                 eprintln!("Error inserting connection: {}", e);
+
+                return Err(MyError::Sqlite(e));
             }
         }
     }
 
-    pub fn insert_mailbox(&mut self, username: &str, address: &str, mailbox_path: &str) {
+    pub fn insert_mailbox(
+        &mut self,
+        username: &str,
+        address: &str,
+        mailbox_path: &str,
+    ) -> Result<(), MyError> {
         match self.conn.execute(
             "INSERT OR IGNORE INTO mailboxes (
                 c_username,
@@ -135,9 +147,11 @@ impl DBConnection {
             ) VALUES (?1, ?2, ?3)",
             params![username, address, mailbox_path],
         ) {
-            Ok(_) => {}
+            Ok(_) => Ok({}),
             Err(e) => {
                 eprintln!("Error inserting mailbox: {}", e);
+
+                return Err(MyError::Sqlite(e));
             }
         }
     }
@@ -148,13 +162,13 @@ impl DBConnection {
         address: &str,
         mailbox_path: &str,
         message: &Message,
-    ) -> Result<(), String> {
+    ) -> Result<(), MyError> {
         let html = match String::from_utf8(BASE64_STANDARD.decode(message.html.as_str()).unwrap()) {
             Ok(html) => html,
             Err(e) => {
                 eprintln!("Error decoding HTML: {}", e);
 
-                return Err(String::from("Error decoding HTML"));
+                return Err(MyError::FromUtf8(e));
             }
         };
 
@@ -163,8 +177,7 @@ impl DBConnection {
             Err(e) => {
                 eprintln!("Error decoding text: {}", e);
 
-
-                return Err(String::from("Error decoding text"));
+                return Err(MyError::Base64(e));
             }
         };
 
@@ -173,7 +186,7 @@ impl DBConnection {
             Err(e) => {
                 eprintln!("Error decoding text bytes: {}", e);
 
-                return Err(String::from("Error decoding text"));
+                return Err(MyError::FromUtf8(e));
             }
         };
 
@@ -225,39 +238,39 @@ impl DBConnection {
             Err(e) => {
                 eprintln!("Error inserting message: {}", e);
 
-                return Err(String::from("Error inserting message into local database"));
-            }
-        }
-    }
-    
-    pub fn update_message_flags(
-        &mut self,    
-        username: &str,
-        address: &str,
-        mailbox_path: &str,
-        message_uid: u32, 
-        flags: &str,
-    ) -> Result<(), String> {
-        match self.conn.execute(
-            "UPDATE messages
-             SET flags = ?1
-             WHERE uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
-            params![flags, message_uid, username, address, mailbox_path]
-        ) {
-            Ok(_) => Ok({}),
-            Err(e) => {
-                eprintln!("Error updating flags column: {}", e);
-                return Err(String::from("Error updating flags column"));
+                return Err(MyError::Sqlite(e));
             }
         }
     }
 
-    pub fn get_connections(&mut self) -> Result<Vec<Session>, String> {
+    pub fn update_message_flags(
+        &mut self,
+        username: &str,
+        address: &str,
+        mailbox_path: &str,
+        message_uid: u32,
+        flags: &str,
+    ) -> Result<(), MyError> {
+        match self.conn.execute(
+            "UPDATE messages
+             SET flags = ?1
+             WHERE uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
+            params![flags, message_uid, username, address, mailbox_path],
+        ) {
+            Ok(_) => Ok({}),
+            Err(e) => {
+                eprintln!("Error updating flags column: {}", e);
+                return Err(MyError::Sqlite(e));
+            }
+        }
+    }
+
+    pub fn get_connections(&mut self) -> Result<Vec<Session>, MyError> {
         let mut stmt = match self.conn.prepare("SELECT * FROM connections") {
             Ok(stmt) => stmt,
             Err(e) => {
                 eprintln!("Error preparing statement at connections: {}", e);
-                return Err(String::from("Error preparing statement at connections"));
+                return Err(MyError::Sqlite(e));
             }
         };
 
@@ -276,7 +289,7 @@ impl DBConnection {
                 for row in rows {
                     connections.push(match row {
                         Ok(session) => session,
-                        Err(_) => continue
+                        Err(_) => continue,
                     });
                 }
 
@@ -284,12 +297,12 @@ impl DBConnection {
             }
             Err(e) => {
                 eprintln!("Error getting connections: {}", e);
-                return Err(String::from("Error getting connections"));
+                return Err(MyError::Sqlite(e));
             }
         };
     }
- 
-    pub fn get_mailboxes(&mut self, username: &str, address: &str) -> Result<Vec<String>, String> {
+
+    pub fn get_mailboxes(&mut self, username: &str, address: &str) -> Result<Vec<String>, MyError> {
         let mut stmt = match self
             .conn
             .prepare("SELECT * FROM mailboxes WHERE c_username = ?1 AND c_address = ?2")
@@ -297,7 +310,7 @@ impl DBConnection {
             Ok(stmt) => stmt,
             Err(e) => {
                 eprintln!("Error preparing statement at mailboxes: {}", e);
-                return Err(String::from("Error preparing statement at mailboxes"));
+                return Err(MyError::Sqlite(e));
             }
         };
 
@@ -311,7 +324,7 @@ impl DBConnection {
             }
             Err(e) => {
                 eprintln!("Error getting mailboxes: {}", e);
-                return Err(String::from("Error getting mailboxes"));
+                return Err(MyError::Sqlite(e));
             }
         }
 
@@ -324,14 +337,14 @@ impl DBConnection {
         address: &str,
         mailbox_path: &str,
         uid: u32,
-    ) -> Result<Message, String> {
+    ) -> Result<Message, MyError> {
         let mut stmt = match self.conn.prepare(
             "SELECT * FROM messages WHERE uid = ?1 AND c_username = ?2 AND c_address = ?3 AND m_path = ?4 LIMIT 1",
         ) {
             Ok(stmt) => stmt,
             Err(e) => {
                 eprintln!("Error preparing statement: {}", e);
-                return Err(String::from("Error preparing statement"));
+                return Err(MyError::Sqlite(e));
             }
         };
 
@@ -366,11 +379,13 @@ impl DBConnection {
                     }
                 }
 
-                return Err(String::from("Message not found"));
+                return Err(MyError::String(
+                    "Message not present in local database".to_string(),
+                ));
             }
             Err(e) => {
                 eprintln!("Error getting message: {}", e);
-                return Err(String::from("Error getting message from local database"));
+                return Err(MyError::Sqlite(e));
             }
         };
     }
@@ -381,20 +396,19 @@ impl DBConnection {
         address: &str,
         mailbox_path: &str,
         uid: &Vec<u32>,
-    ) -> Result<Vec<Message>, String> {        
+    ) -> Result<Vec<Message>, MyError> {
         let mut stmt = match self.conn.prepare(
             "SELECT * FROM messages WHERE uid IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
         ) {
             Ok(stmt) => stmt,
             Err(e) => {
                 eprintln!("Error preparing statement: {}", e);
-                return Err(String::from("Error preparing statement"));
+                return Err(MyError::Sqlite(e));
             }
         };
 
         let uid_list: vtab::array::Array = std::rc::Rc::new(
-            uid
-                .into_iter()
+            uid.into_iter()
                 .map(|uid| rusqlite::types::Value::from(*uid))
                 .collect::<Vec<rusqlite::types::Value>>(),
         );
@@ -431,7 +445,7 @@ impl DBConnection {
                         Err(_) => {
                             eprintln!("Message not present in local database");
                             continue;
-                        },
+                        }
                     }
                 }
 
@@ -439,9 +453,8 @@ impl DBConnection {
             }
             Err(e) => {
                 eprintln!("Error getting message: {}", e);
-                return Err(String::from("Error getting message from local database"));
+                return Err(MyError::Sqlite(e));
             }
         };
     }
-
 }

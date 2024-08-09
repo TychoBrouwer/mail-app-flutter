@@ -3,6 +3,8 @@ use crate::inbox_client::{
     parse_message::{message_to_string, parse_message, Message},
 };
 
+use super::my_error::MyError;
+
 impl InboxClient {
     pub fn get_message(
         &mut self,
@@ -21,7 +23,7 @@ impl InboxClient {
                     Ok(m) => m,
                     Err(e) => {
                         eprintln!("Error getting message from IMAP: {:?}", e);
-                        return Err(String::from("{\"message\": \"Error getting message\"}"));
+                        return Err(format!("{{\"success\": false, \"message\": \"{:?}\"}}", e));
                     }
                 };
 
@@ -36,7 +38,7 @@ impl InboxClient {
                         return Ok(message_to_string(&message));
                     }
                     Err(e) => {
-                        return Err(e);
+                        return Err(format!("{{\"success\": false, \"message\": \"{:?}\"}}", e));
                     }
                 }
             }
@@ -48,21 +50,21 @@ impl InboxClient {
         session_id: usize,
         mailbox_path: &str,
         message_uid: u32,
-    ) -> Result<Message, String> {
+    ) -> Result<Message, MyError> {
         if session_id >= self.sessions.len() {
-            return Err(String::from("Invalid session ID"));
+            return Err(MyError::String("Invalid session ID".to_string()));
         }
 
         let session = match &mut self.sessions[session_id].stream {
             Some(s) => s,
-            None => return Err(String::from("Session not found")),
+            None => return Err(MyError::String("Session not found".to_string())),
         };
 
         match session.select(mailbox_path) {
             Ok(_) => {}
             Err(e) => {
                 eprintln!("Error selecting mailbox: {:?}", e);
-                return Err(String::from("Error selecting mailbox"));
+                return Err(MyError::Imap(e));
             }
         }
 
@@ -71,20 +73,20 @@ impl InboxClient {
                 Ok(fetch) => fetch,
                 Err(e) => {
                     eprintln!("Error fetching message: {:?}", e);
-                    return Err(String::from("Error fetching message"));
+                    return Err(MyError::Imap(e));
                 }
             };
 
         let fetch = match fetches.first() {
             Some(e) => e,
-            None => return Err(String::from("Message not found")),
+            None => return Err(MyError::String("Message not found".to_string())),
         };
 
         let message = match parse_message(fetch) {
             Ok(m) => m,
             Err(e) => {
                 eprintln!("Error parsing envelope: {:?}", e);
-                return Err(String::from("Error parsing envelope"));
+                return Err(e);
             }
         };
 
@@ -96,9 +98,9 @@ impl InboxClient {
         session_id: usize,
         mailbox_path: &str,
         message_uid: u32,
-    ) -> Result<Message, String> {
+    ) -> Result<Message, MyError> {
         if session_id >= self.sessions.len() {
-            return Err(String::from("Invalid session ID"));
+            return Err(MyError::String("Invalid session ID".to_string()));
         }
 
         let username = &self.sessions[session_id].username;
@@ -111,7 +113,7 @@ impl InboxClient {
             message_uid,
         ) {
             Ok(m) => m,
-            Err(e) => {                
+            Err(e) => {
                 return Err(e);
             }
         };

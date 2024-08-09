@@ -5,6 +5,8 @@ use imap_proto::types::Address;
 use regex::Regex;
 use std::collections::HashMap;
 
+use super::my_error::MyError;
+
 #[derive(Debug)]
 pub struct Message {
     pub uid: u32,
@@ -277,27 +279,27 @@ fn parse_message_body(body: &str, uid: u32) -> Message {
     };
 }
 
-pub fn parse_message(fetch: &Fetch) -> Result<Message, String> {
+pub fn parse_message(fetch: &Fetch) -> Result<Message, MyError> {
     let envelope = match fetch.envelope() {
         Some(e) => e,
-        None => return Err(String::from("Error getting envelope")),
+        None => return Err(MyError::String("Error getting envelope".to_string())),
     };
 
     let uid = match fetch.uid {
         Some(u) => u,
-        None => return Err(String::from("Error getting UID")),
+        None => return Err(MyError::String("Error getting UID".to_string())),
     };
 
     let body_str = match fetch.body() {
         Some(b) => match std::str::from_utf8(b) {
             Ok(b) => b,
-            Err(_) => return Err(String::from("Error getting body")),
+            Err(e) => return Err(MyError::Utf8(e)),
         },
-        None => return Err(String::from("Error getting body")),
+        None => return Err(MyError::String("Error getting body".to_string())),
     };
 
     let flags = fetch.flags();
-    
+
     let flags_str = flags_to_string(flags);
 
     let body_data = parse_message_body(body_str, uid);

@@ -1,8 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
-import 'package:html/parser.dart';
+// import 'package:html/parser.dart' as html_parser;
+import 'package:html/dom.dart' as html_dom;
+import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart'
+    as html_widget;
 
 import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/project_sizes.dart';
@@ -57,48 +57,85 @@ class MessageContentState extends State<MessageContent> {
       _showHtml = false;
     });
 
-    final decoded = utf8.decode(base64Decode(_message!.html));
-    final document = parse(decoded);
+    String html = _message!.decodedHtml();
+    // final document = html_parser.parse(decoded);
 
-    final defaultStyle = '''
-      color: ${ProjectColors.main(false).toRgba()} !important;
-      height: min-content !important;
-      position: absolute !important;
-      background-color: transparent !important;
-      border: none !important;
-      margin-left: auto !important;
-      margin-right: auto !important;
-      width: 100% !important;
-    ''';
+    // // var defaultStyle = '''
+    // //   height: min-content !important;
+    // //   position: absolute !important;
+    // //   background-color: ${ProjectColors.main(true).toHex()} !important;
+    // //   border: none !important;
+    // //   margin-left: auto !important;
+    // //   margin-right: auto !important;
+    // //   width: 100% !important;
+    // // ''';
 
-    if (document.body!.attributes['style'] == null) {
-      document.body!.attributes['style'] = defaultStyle;
-    } else {
-      document.body!.attributes['style'] =
-          '${document.body!.attributes['style']} $defaultStyle';
-    }
-    document.body!.attributes['bgcolor'] = 'transparent';
+    // // if (document.body!.attributes['style'] == null) {
+    // //   document.body!.attributes['style'] = defaultStyle;
+    // // } else {
+    // //   document.body!.attributes['style'] =
+    // //       '${document.body!.attributes['style']} $defaultStyle';
+    // // }
 
-    RegExp(r'<style>(.*?)<\/style>').allMatches(decoded).forEach((match) {
-      final style = match.group(1);
-      var styleTag = parseFragment('<style>$style</style>');
+    // // var styleTag = html_parser
+    // //     .parseFragment('<style>* {background-color: transparent}</style>');
 
-      document.body!.append(styleTag);
-    });
+    // // document.body!.append(styleTag);
 
-    var styleTag = parseFragment(
-        '<style>td {background-color: transparent !important}</style>');
+    // // final styledHtml = _styleHtml(document.body!.outerHtml);
+    // String styledHtml = document.body!.outerHtml;
 
-    document.body!.append(styleTag);
+    // Remove text color styling
+    final colorRegex = RegExp(r'(?<!-)color:.*?;', caseSensitive: false);
+    html = html.replaceAllMapped(colorRegex, (Match match) => '');
 
-    final styledHtml = _styleHtml(document.body!.outerHtml);
+    // final colorBgRegex =
+    //     RegExp(r'background(-color)?:.*?;', caseSensitive: false);
+    // html = html.replaceAllMapped(colorBgRegex, (Match match) => '');
 
-    _emailWidget = HtmlWidget(
-      styledHtml,
+    // Remove bgcolor styling
+    final bgColorRegex = RegExp(r'bgcolor=".*?"', caseSensitive: false);
+    html = html.replaceAllMapped(bgColorRegex, (Match match) => '');
+
+    // Add href attribute to links without it only containing the link as text
+    final hrefRegex =
+        RegExp(r'<a((?!.*href).*?)>(http.*?)<\/a>', caseSensitive: false);
+    html = html.replaceAllMapped(hrefRegex,
+        (Match match) => '<a ${match[1]} href="${match[2]}">${match[2]}</a>');
+
+    print(html);
+
+    _emailWidget = html_widget.HtmlWidget(
+      html,
       key: UniqueKey(),
       textStyle: TextStyle(
-          color: ProjectColors.main(false), fontSize: ProjectSizes.fontSize),
-      renderMode: const ListViewMode(shrinkWrap: true),
+        color: ProjectColors.main(false),
+        fontSize: ProjectSizes.fontSize,
+      ),
+      renderMode: const html_widget.ListViewMode(shrinkWrap: true),
+      customStylesBuilder: (element) {
+        final type = element.localName;
+        final attributes = element.attributes;
+
+        Map<String, String>? style = {};
+
+        if (!checkParrentForHref(element)) {
+          style['background'] =
+              '${ProjectColors.main(true).toHex()} !important';
+          style['background-color'] =
+              '${ProjectColors.main(true).toHex()} !important';
+        }
+
+        if (type != 'a' && type != 'link') {
+          style['color'] = '${ProjectColors.main(false).toHex()} !important';
+        } else if ((type == 'a' || type == 'link') &&
+            attributes.keys.contains('href')) {
+          style['color'] = '${ProjectColors.accent(true).toHex()} !important';
+        }
+
+        return style;
+      },
+      onTapUrl: (url) => openUrl(url),
     );
 
     setState(() {
@@ -106,8 +143,26 @@ class MessageContentState extends State<MessageContent> {
     });
   }
 
+  bool checkParrentForHref(html_dom.Element element) {
+    if (element.localName == 'a' || element.localName == 'link') {
+      return true;
+    }
+
+    if (element.parent == null) {
+      return false;
+    }
+
+    return checkParrentForHref(element.parent!);
+  }
+
+  bool openUrl(String url) {
+    print('tapped $url');
+
+    return true;
+  }
+
   Widget _loadText() {
-    final decoded = utf8.decode(base64Decode(_message!.text));
+    final decoded = _message!.decodedText();
 
     return Text(
       decoded,
@@ -115,62 +170,62 @@ class MessageContentState extends State<MessageContent> {
     );
   }
 
-  _styleHtml(String input) {
-    String output = input;
+  // _styleHtml(String input) {
+  //   String output = input;
 
-    final rgbRegex =
-        RegExp(r'rgba?\((\d{1,3}), ?(\d{1,3}), ?(\d{1,3}),? ?(\d.?\d{1,2})?\)');
+  //   final rgbRegex =
+  //       RegExp(r'rgba?\((\d{1,3}), ?(\d{1,3}), ?(\d{1,3}),? ?(\d.?\d{1,2})?\)');
 
-    output = output.replaceAllMapped(rgbRegex, (Match match) {
-      final r = 255 - int.parse(match[1]!);
-      final g = 255 - int.parse(match[2]!);
-      final b = 255 - int.parse(match[3]!);
-      final a = match.groupCount == 4 ? double.parse(match[4]!) : 1.0;
+  //   output = output.replaceAllMapped(rgbRegex, (Match match) {
+  //     final r = 255 - int.parse(match[1]!);
+  //     final g = 255 - int.parse(match[2]!);
+  //     final b = 255 - int.parse(match[3]!);
+  //     final a = match.groupCount == 4 ? double.parse(match[4]!) : 1.0;
 
-      final color = Color.fromRGBO(r, g, b, a * 255);
+  //     final color = Color.fromRGBO(r, g, b, a * 255);
 
-      return color.toRgba();
-    });
+  //     return color.toRgba();
+  //   });
 
-    final hexRegex = RegExp(r'#([0-9a-f]{6})', caseSensitive: false);
+  //   final hexRegex = RegExp(r'#([0-9a-f]{6})', caseSensitive: false);
 
-    output = output.replaceAllMapped(hexRegex, (Match match) {
-      final color = HexColor.fromHex(match[1]!);
+  //   output = output.replaceAllMapped(hexRegex, (Match match) {
+  //     final color = HexColor.fromHex(match[1]!);
 
-      final newColor = Color.fromRGBO(
-        255 - color.red,
-        255 - color.green,
-        255 - color.blue,
-        1,
-      );
+  //     final newColor = Color.fromRGBO(
+  //       255 - color.red,
+  //       255 - color.green,
+  //       255 - color.blue,
+  //       1,
+  //     );
 
-      return newColor.toRgba();
-    });
+  //     return newColor.toRgba();
+  //   });
 
-    final hexRegexShort = RegExp(r'#([0-9a-f]{3})', caseSensitive: false);
+  //   final hexRegexShort = RegExp(r'#([0-9a-f]{3})', caseSensitive: false);
 
-    output = output.replaceAllMapped(hexRegexShort, (Match match) {
-      final fullHex =
-          match[1]!.split('').map((String char) => char + char).join('');
-      final color = HexColor.fromHex(fullHex);
+  //   output = output.replaceAllMapped(hexRegexShort, (Match match) {
+  //     final fullHex =
+  //         match[1]!.split('').map((String char) => char + char).join('');
+  //     final color = HexColor.fromHex(fullHex);
 
-      final newColor = Color.fromRGBO(
-        255 - color.red,
-        255 - color.green,
-        255 - color.blue,
-        1,
-      );
+  //     final newColor = Color.fromRGBO(
+  //       255 - color.red,
+  //       255 - color.green,
+  //       255 - color.blue,
+  //       1,
+  //     );
 
-      return newColor.toRgba();
-    });
+  //     return newColor.toRgba();
+  //   });
 
-    output =
-        output.replaceAllMapped(RegExp(r'(?<!-)color:.*?;'), (Match match) {
-      return 'color: ${ProjectColors.main(false).toRgba()} !important;';
-    });
+  //   // output =
+  //   //     output.replaceAllMapped(RegExp(r'(?<!-)color:.*?;'), (Match match) {
+  //   //   return 'color: ${ProjectColors.main(false).toRgba()} !important;';
+  //   // });
 
-    return output;
-  }
+  //   return output;
+  // }
 
   @override
   Widget build(BuildContext context) {

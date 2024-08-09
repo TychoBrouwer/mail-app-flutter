@@ -6,20 +6,15 @@ mod inbox_client {
     pub mod get_mailboxes;
     pub mod get_message;
     pub mod get_messages;
-    pub mod modify_flags;
     pub mod inbox_client;
+    pub mod modify_flags;
+    pub mod my_error;
     pub mod parse_message;
 }
 
-// mod websocket {
-//     pub mod handle_conn;
-//     pub mod params;
-//     pub mod websocket;
-// }
-
 mod http_server {
-    pub mod http_server;
     pub mod handle_conn;
+    pub mod http_server;
     pub mod params;
 }
 
@@ -35,7 +30,7 @@ async fn main() {
         Err(e) => {
             panic!("Error opening database: {}", e);
         }
-    };    
+    };
 
     match database_conn.initialise() {
         Ok(_) => {}
@@ -66,4 +61,3 @@ async fn main() {
     http_server::http_server::create_server(inbox_client).await;
     // websocket::websocket::create_server(&mut inbox_client);
 }
-

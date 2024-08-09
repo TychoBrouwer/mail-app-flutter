@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
 
 use crate::{
-    inbox_client::inbox_client::{InboxClient, SequenceSet, Session, StartEnd},
     http_server::params,
+    inbox_client::inbox_client::{InboxClient, SequenceSet, Session, StartEnd},
 };
 
 pub fn login(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
@@ -15,9 +15,7 @@ pub fn login(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
 
     if username.is_none() || password.is_none() || address.is_none() || port.is_none() {
         eprintln!("Provide all GET parameters: {}", uri);
-        return String::from(
-            "{\"success\": false, \"message\": \"Provide all GET parameters\"}",
-        );
+        return String::from("{\"success\": false, \"message\": \"Provide all GET parameters\"}");
     }
 
     let username = username.unwrap();
@@ -84,7 +82,8 @@ pub fn sessions(inbox_client: Arc<Mutex<InboxClient>>) -> String {
     let locked_inbox_client = inbox_client.lock().unwrap();
     let sessions = &locked_inbox_client.sessions;
 
-    let mut response = String::from("{\"success\": true, \"message\": \"Sessions retrieved\", \"data\": [");
+    let mut response =
+        String::from("{\"success\": true, \"message\": \"Sessions retrieved\", \"data\": [");
     for (i, session) in sessions.iter().enumerate() {
         response.push_str(&format!(
             "{{\"id\": {}, \"username\": \"{}\", \"address\": \"{}\", \"port\": {}}}",
@@ -172,14 +171,19 @@ pub fn modify_flags(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String 
     let flags = uri_params.get("flags");
     let add = params::get_bool(uri_params.get("add"));
 
-    if session_id.is_none() || mailbox.is_none() || message_uid.is_none() || flags.is_none() || add.is_none() { 
+    if session_id.is_none()
+        || mailbox.is_none()
+        || message_uid.is_none()
+        || flags.is_none()
+        || add.is_none()
+    {
         eprintln!(
             "Provide session_id, mailbox, message_id, flags, and add GET parameters: {}",
             uri
         );
         return String::from("{\"success\": false, \"message\": \"Provide session_id, mailbox, message_uid, flags, and add GET parameters\"}");
     }
- 
+
     let session_id = session_id.unwrap();
     let mailbox = mailbox.unwrap();
     let message_uid = message_uid.unwrap();

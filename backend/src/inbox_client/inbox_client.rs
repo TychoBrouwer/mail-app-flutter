@@ -1,4 +1,5 @@
 use crate::database::conn::DBConnection;
+use crate::inbox_client::my_error::MyError;
 
 use imap;
 use native_tls::{TlsConnector, TlsStream};
@@ -38,39 +39,41 @@ impl InboxClient {
         }
     }
 
-    pub fn connect(
-        &mut self,
-        session: Session,
-    ) -> Result<usize, String> {
-        if (self.sessions.iter().position(|x| {
-            x.username == session.username && x.address == session.address
-        })).is_some() {
-            return Err(String::from("Already connected to IMAP server"));
+    pub fn connect(&mut self, session: Session) -> Result<usize, MyError> {
+        if (self
+            .sessions
+            .iter()
+            .position(|x| x.username == session.username && x.address == session.address))
+        .is_some()
+        {
+            return Err(MyError::String(
+                "Already connected to IMAP server".to_string(),
+            ));
         }
 
         self.sessions.push(session);
 
         let idx = self.sessions.len() - 1;
 
-        self.database_conn
-            .insert_connection(&self.sessions[idx]);
+        match self.database_conn.insert_connection(&self.sessions[idx]) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Error inserting connection into database: {:?}", e);
+            }
+        }
 
         match self.connect_imap(idx) {
             Ok(_) => {
                 return Ok(idx);
             }
             Err(e) => {
-
                 self.sessions.remove(idx);
                 return Err(e);
             }
         }
     }
 
-    fn connect_imap(
-        &mut self,
-        idx: usize,
-    ) -> Result<(), String> {
+    fn connect_imap(&mut self, idx: usize) -> Result<(), MyError> {
         let tls = TlsConnector::builder().build().unwrap();
 
         let address = &self.sessions[idx].address;
@@ -89,7 +92,7 @@ impl InboxClient {
                         }
                         Err(e) => {
                             eprintln!("Error getting mailboxes: {:?}", e);
-                            return Err(String::from("Error getting mailboxes"));
+                            return Err(MyError::String(e));
                         }
                     }
 
@@ -97,25 +100,25 @@ impl InboxClient {
                 }
                 Err(e) => {
                     eprintln!("Error logging in: {:?}", e);
-                    return Err(String::from("Error logging in"));
+                    return Err(MyError::Imap(e.0));
                 }
             },
             Err(e) => {
                 eprintln!("Error connecting to IMAP server: {}", e);
-                return Err(String::from("Error connecting to IMAP server"));
+                return Err(MyError::Imap(e));
             }
         };
     }
 
-    pub fn logout_imap(&mut self, session_id: usize) -> Result<(), String> {
+    pub fn logout_imap(&mut self, session_id: usize) -> Result<(), MyError> {
         if session_id >= self.sessions.len() {
-            return Err(String::from("Invalid session ID"));
+            return Err(MyError::String("Session not found".to_string()));
         }
 
         let session = match &mut self.sessions[session_id].stream {
             Some(s) => s,
             None => {
-                return Err(String::from("Session not found"));
+                return Err(MyError::String("Session not found".to_string()));
             }
         };
 
@@ -127,12 +130,12 @@ impl InboxClient {
             }
             Err(e) => {
                 eprintln!("Error logging out: {:?}", e);
-                return Err(String::from("Error logging out"));
+                return Err(MyError::Imap(e));
             }
         }
     }
 
-    pub fn sequence_set_to_string(sequence_set: &SequenceSet) -> Result<String, String> {
+    pub fn sequence_set_to_string(sequence_set: &SequenceSet) -> Result<String, MyError> {
         let sequence_set_string: String = match sequence_set {
             SequenceSet {
                 nr_messages: Some(nr_messages),
@@ -147,31 +150,33 @@ impl InboxClient {
                 idx: None,
             } => {
                 if start > end {
-                    return Err(String::from("Start must be less than or equal to end"));
+                    return Err(MyError::String(
+                        "Start must be less than or equal to end".to_string(),
+                    ));
                 }
-    
+
                 format!("{}:{}", start, end)
             }
             SequenceSet {
                 nr_messages: None,
                 start_end: None,
                 idx: Some(idxs),
-            } => {                
+            } => {
                 let mut result = String::new();
-    
+
                 for (i, idx) in idxs.iter().enumerate() {
                     result.push_str(&idx.to_string());
-    
+
                     if i < idxs.len() - 1 {
                         result.push_str(",");
                     }
                 }
-    
+
                 result
             }
             _ => String::from("1:*"),
         };
-    
+
         return Ok(sequence_set_string);
     }
 }

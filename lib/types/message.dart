@@ -1,3 +1,5 @@
+import 'dart:convert' as convert show base64Decode, utf8;
+
 import 'package:mail_app/types/message_address.dart';
 import 'package:mail_app/types/message_flag.dart';
 
@@ -37,6 +39,14 @@ class Message {
     this.text,
     this.html,
   );
+
+  String decodedText() {
+    return convert.utf8.decode(convert.base64Decode(text));
+  }
+
+  String decodedHtml() {
+    return convert.utf8.decode(convert.base64Decode(html));
+  }
 
   factory Message.fromJson(Map<String, dynamic> data) {
     final uid = data['uid'] as int;

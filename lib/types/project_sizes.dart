@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Radius, BorderRadius;
 
 class ProjectSizes {
   static const double fontSize = 13;

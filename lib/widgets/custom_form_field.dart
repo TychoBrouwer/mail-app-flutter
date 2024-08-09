@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show TextInputFormatter;
 
 import 'package:mail_app/types/project_colors.dart';
 

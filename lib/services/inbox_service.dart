@@ -1,12 +1,9 @@
-import 'dart:convert';
-
 import 'package:mail_app/services/http_service.dart';
-import 'package:mail_app/types/http_request.dart';
+import 'package:mail_app/types/http_request_path.dart';
 import 'package:mail_app/types/mail_account.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/message_flag.dart';
-import 'package:mail_app/types/message_request.dart';
 
 class InboxService {
   int? _activeSession;
@@ -76,10 +73,8 @@ class InboxService {
       'port': port.toString(),
     };
 
-    final response = await HttpService().sendRequest(HttpRequest.login, body);
-
-    final decode = jsonDecode(response);
-    final messageData = MessageResponse.fromJson(decode);
+    final messageData =
+        await HttpService().sendRequest(HttpRequestPath.login, body);
 
     if (!messageData.success) return -1;
 
@@ -96,11 +91,8 @@ class InboxService {
   }
 
   Future<List<MailAccount>> getSessions() async {
-    final response = await httpService.sendRequest(HttpRequest.sessions, {});
-
-    final decode = jsonDecode(response);
-
-    final messageData = MessageResponse.fromJson(decode);
+    final messageData =
+        await httpService.sendRequest(HttpRequestPath.sessions, {});
 
     if (!messageData.success) return [];
 
@@ -122,10 +114,8 @@ class InboxService {
       'session_id': session.toString(),
     };
 
-    final response =
-        await HttpService().sendRequest(HttpRequest.mailboxes, body);
-
-    final messageData = MessageResponse.fromJson(jsonDecode(response));
+    final messageData =
+        await HttpService().sendRequest(HttpRequestPath.mailboxes, body);
 
     if (!messageData.success) return [];
 
@@ -164,10 +154,8 @@ class InboxService {
       'end': end.toString(),
     };
 
-    final response =
-        await HttpService().sendRequest(HttpRequest.messages, body);
-
-    final messageData = MessageResponse.fromJson(jsonDecode(response));
+    final messageData =
+        await HttpService().sendRequest(HttpRequestPath.messages, body);
 
     if (!messageData.success) return [];
 
@@ -208,10 +196,8 @@ class InboxService {
       'add': addString,
     };
 
-    final response =
-        await HttpService().sendRequest(HttpRequest.modify_flags, body);
-
-    final messageData = MessageResponse.fromJson(jsonDecode(response));
+    final messageData =
+        await HttpService().sendRequest(HttpRequestPath.modify_flags, body);
 
     if (!messageData.success) return [];
 

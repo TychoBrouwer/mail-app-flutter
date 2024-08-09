@@ -1,6 +1,9 @@
-use std::sync::{Arc, Mutex};
-use async_std::{prelude::*, net::{TcpListener, TcpStream}};
+use async_std::{
+    net::{TcpListener, TcpStream},
+    prelude::*,
+};
 use futures::stream::StreamExt;
+use std::sync::{Arc, Mutex};
 
 use crate::http_server::handle_conn;
 use crate::inbox_client::inbox_client::InboxClient;
@@ -16,7 +19,8 @@ pub async fn create_server(inbox_client: Arc<Mutex<InboxClient>>) {
             async move {
                 handle_connection(tcpstream.unwrap(), inbox_client).await;
             }
-        }).await;
+        })
+        .await;
 }
 
 async fn handle_connection(mut stream: TcpStream, inbox_client: Arc<Mutex<InboxClient>>) {
