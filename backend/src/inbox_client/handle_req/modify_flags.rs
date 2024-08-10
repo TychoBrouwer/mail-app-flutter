@@ -27,9 +27,7 @@ impl InboxClient {
                 Ok(_) => {
                     return self.modify_flags(session_id, mailbox_path, message_uid, flags, add);
                 }
-                Err(e) => {
-                    return Err(e);
-                }
+                Err(e) => return Err(e),
             },
         };
 

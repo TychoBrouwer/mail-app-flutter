@@ -3,6 +3,10 @@ use crate::my_error::MyError;
 
 impl InboxClient {
     pub fn get_mailboxes(&mut self, session_id: usize) -> Result<String, MyError> {
+        if session_id >= self.sessions.len() {
+            return Err(MyError::String("Invalid session ID".to_string()));
+        }
+
         let mailboxes_db = self.get_mailboxes_db(session_id);
 
         let mailboxes: Vec<String> = match mailboxes_db {
@@ -42,9 +46,7 @@ impl InboxClient {
                 .insert_mailbox(username, address, mailbox_path)
             {
                 Ok(_) => {}
-                Err(e) => {
-                    eprintln!("Error inserting mailbox into local database: {:?}", e);
-                }
+                Err(e) => eprintln!("Error inserting mailbox into local database: {:?}", e),
             }
 
             if i < mailboxes.len() - 1 {
@@ -58,10 +60,6 @@ impl InboxClient {
     }
 
     fn get_mailboxes_db(&mut self, session_id: usize) -> Result<Vec<String>, MyError> {
-        if session_id >= self.sessions.len() {
-            return Err(MyError::String("Invalid session ID".to_string()));
-        }
-
         let username = &self.sessions[session_id].username;
         let address = &self.sessions[session_id].address;
 
@@ -77,10 +75,6 @@ impl InboxClient {
     }
 
     fn get_mailboxes_imap(&mut self, session_id: usize) -> Result<Vec<String>, MyError> {
-        if session_id >= self.sessions.len() {
-            return Err(MyError::String("Invalid session ID".to_string()));
-        }
-
         let session = match &mut self.sessions[session_id].stream {
             Some(s) => s,
             None => {
@@ -92,9 +86,7 @@ impl InboxClient {
             Ok(m) => m,
             Err(e) => match self.handle_disconnect(session_id, e) {
                 Ok(_) => return self.get_mailboxes_imap(session_id),
-                Err(e) => {
-                    return Err(e);
-                }
+                Err(e) => return Err(e),
             },
         };
 

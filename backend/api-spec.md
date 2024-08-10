@@ -75,6 +75,50 @@ Get all the mailbox paths of a session.
 }
 ```
 
+## GET_MESSAGES
+
+Get a message from a mailbox using the message uids from the local database only.
+
+/get_messages
+
+- `session_id` (int): The session id of the user
+- `mailbox_path` (string): The mailbox path
+- `message_uids` (comma separated list): The uids of the messages
+
+```json
+{
+  "success": true|false,
+  "message": "message",
+  "data": [                           // list of messages
+    {
+      "uid": 1,
+      "sequence_id": 1,
+      "message_id": "server message id",
+      "subject": "subject",
+      "from": [
+        {
+          "name": "Google",
+          "mailbox": "no-reply",
+          "host": "accounts.google.com"
+        }
+      ],
+      "sender": [],                   // same object as from
+      "to": [],                       // same object as from
+      "cc": [],                       // same object as from
+      "bcc": [],                      // same object as from
+      "reply_to": [],                 // same object as from
+      "in_reply_to": "email string",
+      "delivered_to": "email string",
+      "date": 1722093349000,
+      "received": 1722093350000,
+      "flags": ["Seen", "Flagged"],
+      "html": "base64 encoded html",
+      "text": "base64 encoded text"
+    }
+  ]
+}
+```
+
 ## GET_MESSAGES_SORTED
 
 get messages from a mailbox sorted on time with indexes\
@@ -95,6 +139,7 @@ Messages are retrieved from the local database only.
   "data": [                           // list of messages
     {
       "uid": 1,
+      "sequence_id": 1,
       "message_id": "server message id",
       "subject": "subject",
       "from": [
@@ -125,6 +170,8 @@ Messages are retrieved from the local database only.
 
 Update the mailbox of a session from the IMAP server.\
 
+Algorithm:
+
 1. select command to get exists (total number of messages)
 2. fetch message with sequence id `exists` to get the uid
 3. check if message in local database with sequence id `exists` has the same uid
@@ -149,6 +196,7 @@ Update the mailbox of a session from the IMAP server.\
   "data": [                           // list of changed messages
     {
       "uid": 1,
+      "sequence_id": 1,
       "message_id": "server message id",
       "subject": "subject",
       "from": [

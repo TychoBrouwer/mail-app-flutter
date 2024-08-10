@@ -29,9 +29,7 @@ impl InboxClient {
                         mailbox_path_dest,
                     );
                 }
-                Err(e) => {
-                    return Err(e);
-                }
+                Err(e) => return Err(e),
             },
         };
 

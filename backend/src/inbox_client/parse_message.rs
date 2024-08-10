@@ -6,26 +6,7 @@ use regex::Regex;
 use std::collections::HashMap;
 
 use crate::my_error::MyError;
-
-#[derive(Debug)]
-pub struct Message {
-    pub uid: u32,
-    pub message_id: String,
-    pub subject: String,
-    pub from: String,
-    pub sender: String,
-    pub to: String,
-    pub cc: String,
-    pub bcc: String,
-    pub reply_to: String,
-    pub in_reply_to: String,
-    pub delivered_to: String,
-    pub date: i64,
-    pub received: i64,
-    pub flags: String,
-    pub text: String,
-    pub html: String,
-}
+use crate::types::message::Message;
 
 enum MimeParserState {
     HeaderKey,
@@ -97,7 +78,22 @@ fn address_to_string(address: &Option<Vec<Address>>) -> String {
     }
 }
 
-fn parse_message_body(body: &str, uid: u32) -> Message {
+pub fn flags_to_string(flags: &[Flag]) -> String {
+    let mut flags_str = String::from("[");
+
+    for (i, flag) in flags.iter().enumerate() {
+        flags_str.push_str(&format!("\"{:?}\"", flag));
+
+        if i < flags.len() - 1 {
+            flags_str.push_str(", ");
+        }
+    }
+    flags_str.push_str("]");
+
+    return flags_str;
+}
+
+fn parse_message_body(body: &str) -> Message {
     let mut state = MimeParserState::HeaderKey;
 
     let mut header_key = String::from("");
@@ -260,7 +256,8 @@ fn parse_message_body(body: &str, uid: u32) -> Message {
     let message_id = headers.get("Message-ID").unwrap_or(&binding);
 
     return Message {
-        uid: uid.clone(),
+        uid: 0,
+        sequence_id: 0,
         message_id: message_id.to_string(),
         subject: subject.to_string(),
         from: from.to_string(),
@@ -302,10 +299,11 @@ pub fn parse_message(fetch: &Fetch) -> Result<Message, MyError> {
 
     let flags_str = flags_to_string(flags);
 
-    let body_data = parse_message_body(body_str, uid);
+    let body_data = parse_message_body(body_str);
 
     return Ok(Message {
         uid,
+        sequence_id: fetch.message,
         message_id: decode_u8(envelope.message_id),
         subject: decode_u8(envelope.subject),
         from: address_to_string(&envelope.from),
@@ -322,44 +320,4 @@ pub fn parse_message(fetch: &Fetch) -> Result<Message, MyError> {
         text: body_data.text,
         html: body_data.html,
     });
-}
-
-pub fn flags_to_string(flags: &[Flag]) -> String {
-    let mut flags_str = String::from("[");
-
-    for (i, flag) in flags.iter().enumerate() {
-        flags_str.push_str(&format!("\"{:?}\"", flag));
-
-        if i < flags.len() - 1 {
-            flags_str.push_str(", ");
-        }
-    }
-    flags_str.push_str("]");
-
-    return flags_str;
-}
-
-pub fn message_to_string(message: &Message) -> String {
-    let mut result = String::from("{");
-
-    result.push_str(&format!("\"uid\": {},", message.uid));
-    result.push_str(&format!("\"message_id\": \"{}\",", message.message_id));
-    result.push_str(&format!("\"subject\": \"{}\",", message.subject));
-    result.push_str(&format!("\"from\": {},", message.from));
-    result.push_str(&format!("\"sender\": {},", message.sender));
-    result.push_str(&format!("\"to\": {},", message.to));
-    result.push_str(&format!("\"cc\": {},", message.cc));
-    result.push_str(&format!("\"bcc\": {},", message.bcc));
-    result.push_str(&format!("\"reply_to\": {},", message.reply_to));
-    result.push_str(&format!("\"in_reply_to\": \"{}\",", message.in_reply_to));
-    result.push_str(&format!("\"delivered_to\": \"{}\",", message.delivered_to));
-    result.push_str(&format!("\"date\": {},", message.date));
-    result.push_str(&format!("\"received\": {},", message.received));
-    result.push_str(&format!("\"flags\": {},", message.flags));
-    result.push_str(&format!("\"html\": \"{}\",", message.html));
-    result.push_str(&format!("\"text\": \"{}\"", message.text));
-
-    result.push_str("}");
-
-    return result;
 }

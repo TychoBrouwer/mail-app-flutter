@@ -3,8 +3,9 @@ mod database {
 }
 
 mod inbox_client {
-    mod handle_req {
+    pub mod handle_req {
         pub mod get_mailboxes;
+        pub mod get_messages;
         pub mod get_messages_sorted;
         pub mod modify_flags;
         pub mod move_message;
@@ -12,6 +13,12 @@ mod inbox_client {
     }
     pub mod inbox_client;
     pub mod parse_message;
+}
+
+pub mod types {
+    pub mod message;
+    pub mod sequence_set;
+    pub mod session;
 }
 
 mod http_server {
@@ -31,23 +38,17 @@ use crate::inbox_client::inbox_client::InboxClient;
 async fn main() {
     let mut database_conn = match DBConnection::new("mail.db") {
         Ok(conn) => conn,
-        Err(e) => {
-            panic!("Error opening database: {}", e);
-        }
+        Err(e) => panic!("Error opening database: {}", e),
     };
 
     match database_conn.initialise() {
         Ok(_) => {}
-        Err(e) => {
-            panic!("Error initialising database: {}", e);
-        }
+        Err(e) => panic!("Error initialising database: {}", e),
     };
 
     let sessions = match database_conn.get_connections() {
         Ok(sessions) => sessions,
-        Err(e) => {
-            panic!("Error getting connections: {}", e);
-        }
+        Err(e) => panic!("Error getting connections: {}", e),
     };
 
     let inbox_client = Arc::new(Mutex::new(InboxClient::new(database_conn)));
@@ -56,9 +57,7 @@ async fn main() {
         let mut locked_inbox_client = inbox_client.lock().unwrap();
         match locked_inbox_client.connect(session) {
             Ok(_) => {}
-            Err(e) => {
-                eprintln!("Error connecting to IMAP stored in local database: {:?}", e);
-            }
+            Err(e) => eprintln!("Error connecting to IMAP stored in local database: {:?}", e),
         }
     }
 

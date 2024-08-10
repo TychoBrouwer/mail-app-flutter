@@ -1,9 +1,8 @@
-use crate::inbox_client::{inbox_client::Session, parse_message::Message};
-use crate::my_error::MyError;
-
 use base64::{prelude::BASE64_STANDARD, Engine};
-use chrono::offset;
 use rusqlite::{params, vtab, Connection, OpenFlags};
+
+use crate::my_error::MyError;
+use crate::types::{message::Message, session::Session};
 
 pub struct DBConnection {
     conn: Connection,
@@ -78,6 +77,7 @@ impl DBConnection {
                 c_username VARCHAR(500) NOT NULL,
                 c_address VARCHAR(500) NOT NULL,
                 m_path VARCHAR(500) NOT NULL,
+                sequence_id INTEGER NULL,
                 message_id VARCHAR(500) NOT NULL,
                 subject VARCHAR(500) NOT NULL,
                 from_ VARCHAR(500) NOT NULL,
@@ -198,6 +198,7 @@ impl DBConnection {
                 c_username,
                 c_address,
                 m_path,
+                sequence_id,
                 message_id,
                 subject,
                 from_,
@@ -213,7 +214,7 @@ impl DBConnection {
                 flags,
                 html,
                 text
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)",
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
             params![
                 message.uid,
                 username,
@@ -251,13 +252,13 @@ impl DBConnection {
         address: &str,
         mailbox_path: &str,
         message_uid: u32,
-        flags: &str,
+        flags_str: &str,
     ) -> Result<(), MyError> {
         match self.conn.execute(
             "UPDATE messages
              SET flags = ?1
              WHERE uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
-            params![flags, message_uid, username, address, mailbox_path],
+            params![flags_str, message_uid, username, address, mailbox_path],
         ) {
             Ok(_) => Ok({}),
             Err(e) => {
@@ -361,12 +362,12 @@ impl DBConnection {
         return Ok(mailboxes);
     }
 
-    pub fn get_messages_with_uid(
+    pub fn get_messages_with_uids(
         &mut self,
         username: &str,
         address: &str,
         mailbox_path: &str,
-        uid: &Vec<u32>,
+        uids: &Vec<u32>,
     ) -> Result<Vec<Message>, MyError> {
         let mut stmt = match self.conn.prepare(
             "SELECT * FROM messages WHERE uid IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
@@ -379,33 +380,13 @@ impl DBConnection {
         };
 
         let uid_list: vtab::array::Array = std::rc::Rc::new(
-            uid.into_iter()
+            uids.into_iter()
                 .map(|uid| rusqlite::types::Value::from(*uid))
                 .collect::<Vec<rusqlite::types::Value>>(),
         );
 
         match stmt.query_map(params![uid_list, username, address, mailbox_path], |row| {
-            let html: String = row.get(17).unwrap();
-            let text: String = row.get(18).unwrap();
-
-            Ok(Message {
-                uid: row.get(0).unwrap(),
-                message_id: row.get(4).unwrap(),
-                subject: row.get(5).unwrap(),
-                from: row.get(6).unwrap(),
-                sender: row.get(7).unwrap(),
-                to: row.get(8).unwrap(),
-                cc: row.get(9).unwrap(),
-                bcc: row.get(10).unwrap(),
-                reply_to: row.get(11).unwrap(),
-                in_reply_to: row.get(12).unwrap(),
-                delivered_to: row.get(13).unwrap(),
-                date: row.get(14).unwrap(),
-                received: row.get(15).unwrap(),
-                flags: row.get(16).unwrap(),
-                html: BASE64_STANDARD.encode(html.as_bytes()),
-                text: BASE64_STANDARD.encode(text.as_bytes()),
-            })
+            Ok(Message::from_row(row))
         }) {
             Ok(messages) => {
                 let mut messages_list: Vec<Message> = Vec::new();
@@ -451,29 +432,7 @@ impl DBConnection {
 
         match stmt.query_map(
             params![username, address, mailbox_path, limit, start],
-            |row| {
-                let html: String = row.get(17).unwrap();
-                let text: String = row.get(18).unwrap();
-
-                Ok(Message {
-                    uid: row.get(0).unwrap(),
-                    message_id: row.get(4).unwrap(),
-                    subject: row.get(5).unwrap(),
-                    from: row.get(6).unwrap(),
-                    sender: row.get(7).unwrap(),
-                    to: row.get(8).unwrap(),
-                    cc: row.get(9).unwrap(),
-                    bcc: row.get(10).unwrap(),
-                    reply_to: row.get(11).unwrap(),
-                    in_reply_to: row.get(12).unwrap(),
-                    delivered_to: row.get(13).unwrap(),
-                    date: row.get(14).unwrap(),
-                    received: row.get(15).unwrap(),
-                    flags: row.get(16).unwrap(),
-                    html: BASE64_STANDARD.encode(html.as_bytes()),
-                    text: BASE64_STANDARD.encode(text.as_bytes()),
-                })
-            },
+            |row| Ok(Message::from_row(row)),
         ) {
             Ok(messages) => {
                 let mut messages_list: Vec<Message> = Vec::new();

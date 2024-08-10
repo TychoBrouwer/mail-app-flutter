@@ -2,12 +2,11 @@ use crate::inbox_client::inbox_client::InboxClient;
 use crate::my_error::MyError;
 
 impl InboxClient {
-    pub fn get_messages_sorted(
+    pub fn get_messages(
         &mut self,
         session_id: usize,
         mailbox_path: &str,
-        start: u32,
-        end: u32,
+        message_uids: &Vec<u32>,
     ) -> Result<String, MyError> {
         if session_id >= self.sessions.len() {
             return Err(MyError::String("Invalid session ID".to_string()));
@@ -16,27 +15,30 @@ impl InboxClient {
         let username = &self.sessions[session_id].username;
         let address = &self.sessions[session_id].address;
 
-        let messages = match self.database_conn.get_messages_sorted(
+        let messages = match self.database_conn.get_messages_with_uids(
             username,
             address,
             mailbox_path,
-            start,
-            end,
+            message_uids,
         ) {
             Ok(m) => m,
-            Err(e) => return Err(e),
+            Err(e) => {
+                return Err(e);
+            }
         };
 
-        let mut result = String::from("[");
-        for (i, message) in messages.iter().enumerate() {
-            result.push_str(&message.to_string());
+        let mut response = String::from("[");
+
+        for (i, message) in messages.iter().rev().enumerate() {
+            response.push_str(&message.to_string());
 
             if i < messages.len() - 1 {
-                result.push_str(",");
+                response.push_str(",");
             }
         }
-        result.push_str("]");
 
-        return Ok(result);
+        response.push_str("]");
+
+        return Ok(response);
     }
 }

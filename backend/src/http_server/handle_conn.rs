@@ -1,9 +1,8 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{
-    http_server::params,
-    inbox_client::inbox_client::{InboxClient, Session},
-};
+use crate::http_server::params;
+use crate::inbox_client::inbox_client::InboxClient;
+use crate::types::session::Session;
 
 pub fn login(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     let uri_params = params::parse_params(String::from(uri));
@@ -146,51 +145,50 @@ pub fn get_mailboxes(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String
     }
 }
 
-// pub fn get_message(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
-//     let uri_params = params::parse_params(String::from(uri));
+pub fn get_messages(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+    let uri_params = params::parse_params(String::from(uri));
 
-//     let session_id = match params::get_usize(uri_params.get("session_id")) {
-//         Ok(session_id) => session_id,
-//         Err(e) => {
-//             eprintln!("Error parsing session_id: {:?}", e);
-//             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
-//         }
-//     };
-//     let mailbox_path = uri_params.get("mailbox_path");
-//     let message_uid = match params::get_u32(uri_params.get("message_uid")) {
-//         Ok(message_uid) => message_uid,
-//         Err(e) => {
-//             eprintln!("Error parsing message_uid: {:?}", e);
-//             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
-//         }
-//     };
+    let session_id = match params::get_usize(uri_params.get("session_id")) {
+        Ok(session_id) => session_id,
+        Err(e) => {
+            eprintln!("Error parsing session_id: {:?}", e);
+            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
+        }
+    };
+    let mailbox_path = uri_params.get("mailbox_path");
+    let message_uids = uri_params.get("message_uids");
 
-//     if session_id.is_none() || mailbox_path.is_none() || message_uid.is_none() {
-//         eprintln!(
-//             "Provide session_id, mailbox_path and message_id GET parameters: {}",
-//             uri
-//         );
-//         return String::from("{\"success\": false, \"message\": \"Provide session_id, mailbox_path and message_uid GET parameters\"}");
-//     }
+    if session_id.is_none() || mailbox_path.is_none() || message_uids.is_none() {
+        eprintln!(
+            "Provide session_id, mailbox_path and message_id GET parameters: {}",
+            uri
+        );
+        return String::from("{\"success\": false, \"message\": \"Provide session_id, mailbox_path and message_uid GET parameters\"}");
+    }
 
-//     let session_id = session_id.unwrap();
-//     let mailbox_path = mailbox_path.unwrap();
-//     let message_uid = message_uid.unwrap();
+    let session_id = session_id.unwrap();
+    let mailbox_path = mailbox_path.unwrap();
+    let message_uids = message_uids.unwrap();
 
-//     let mut locked_inbox_client = inbox_client.lock().unwrap();
-//     match locked_inbox_client.get_message(session_id, mailbox_path, message_uid) {
-//         Ok(message) => {
-//             return format!(
-//                 "{{\"success\": true, \"message\": \"Message retrieved\", \"data\": {}}}",
-//                 message
-//             )
-//         }
-//         Err(e) => {
-//             eprintln!("Error getting message: {:?}", e);
-//             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
-//         }
-//     }
-// }
+    let message_uids: Vec<u32> = message_uids
+        .split(",")
+        .map(|x| x.parse::<u32>().unwrap())
+        .collect();
+
+    let mut locked_inbox_client = inbox_client.lock().unwrap();
+    match locked_inbox_client.get_messages(session_id, mailbox_path, &message_uids) {
+        Ok(messages) => {
+            return format!(
+                "{{\"success\": true, \"message\": \"Message retrieved\", \"data\": {}}}",
+                messages
+            )
+        }
+        Err(e) => {
+            eprintln!("Error getting message: {:?}", e);
+            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
+        }
+    }
+}
 
 pub fn get_messages_sorted(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     let uri_params = params::parse_params(String::from(uri));
