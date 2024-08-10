@@ -26,22 +26,22 @@ Run flutter frontend with ```flutter run -d windows```
 
 ## Database Design
 
-| CONNECTIONS   |      |              |
-|---------------|------|--------------|
-| username      | PK   | VARCHAR(500) |
-| password      |      | VARCHAR(500) |
-| address       | PK   | VARCHAR(500) |
-| port          |      | INT          |
-| updated_at    |      | DATETIME     |
+|<div style="width:180px">CONNECTIONS</div>|<div style="width:50px"></div>|<div style="width:120px"></div>|
+|---------------------|--------|--------------|
+| username            | PK     | VARCHAR(500) |
+| password            |        | VARCHAR(500) |
+| address             | PK     | VARCHAR(500) |
+| port                |        | INT          |
+| updated_at          |        | DATETIME     |
 
-| MAILBOXES           |        |              |
+|<div style="width:180px">MAILBOXES</div>|<div style="width:50px"></div>|<div style="width:120px"></div>|
 |---------------------|--------|--------------|
 | connection_username | FK, PK | INT          |
 | connection_address  | FK, PK | INT          |
 | path                | PK     | VARCHAR(500) |
 | updated_at          |        | DATETIME     |
 
-| MESSAGES            |        |              |
+|<div style="width:180px">MESSAGES</div>|<div style="width:50px"></div>|<div style="width:120px"></div>|
 |---------------------|--------|--------------|
 | message_uid         | PK     | INT          |
 | connection_username | FK, PK | INT          |
