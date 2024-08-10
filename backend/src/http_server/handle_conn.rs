@@ -145,7 +145,7 @@ pub fn get_mailboxes(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String
     }
 }
 
-pub fn get_messages(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub fn get_messages_with_uids(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -176,7 +176,7 @@ pub fn get_messages(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String 
         .collect();
 
     let mut locked_inbox_client = inbox_client.lock().unwrap();
-    match locked_inbox_client.get_messages(session_id, mailbox_path, &message_uids) {
+    match locked_inbox_client.get_messages_with_uids(session_id, mailbox_path, &message_uids) {
         Ok(messages) => {
             return format!(
                 "{{\"success\": true, \"message\": \"Message retrieved\", \"data\": {}}}",

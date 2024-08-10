@@ -23,14 +23,14 @@ pub enum MyError {
 impl fmt::Display for MyError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            MyError::String(str) => write!(f, "Error: {}", str),
-            MyError::Imap(err) => write!(f, "Error: {}", err),
-            MyError::Sqlite(err) => write!(f, "Error: {}", err),
-            MyError::FromUtf8(err) => write!(f, "Error: {}", err),
-            MyError::Utf8(err) => write!(f, "Error: {}", err),
-            MyError::Base64(err) => write!(f, "Error: {}", err),
-            MyError::ParseInt(err) => write!(f, "Error: {}", err),
-            MyError::ParseBool(str) => write!(f, "Error: {}", str),
+            MyError::String(str) => write!(f, "GENERAL: {}", str),
+            MyError::Imap(err) => write!(f, "IMAP: {}", err),
+            MyError::Sqlite(err) => write!(f, "SQLITE: {}", err),
+            MyError::FromUtf8(err) => write!(f, "FROM_UTF8: {}", err),
+            MyError::Utf8(err) => write!(f, "UTF8: {}", err),
+            MyError::Base64(err) => write!(f, "BASE64: {}", err),
+            MyError::ParseInt(err) => write!(f, "PARSE_INT: {}", err),
+            MyError::ParseBool(str) => write!(f, "PARSE_BOOL: {}", str),
         }
     }
 }

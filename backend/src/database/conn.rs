@@ -94,7 +94,7 @@ impl DBConnection {
                 html TEXT NOT NULL,
                 text TEXT NOT NULL,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY(c_username, c_address, m_path, uid),
+                PRIMARY KEY(c_username, c_address, m_path, message_uid),
                 FOREIGN KEY(c_username, c_address) REFERENCES connections(username, address) ON DELETE CASCADE,
                 FOREIGN KEY(c_username, c_address, m_path) REFERENCES mailboxes(c_username, c_address, path) ON DELETE CASCADE
             )",
@@ -194,7 +194,7 @@ impl DBConnection {
 
         match self.conn.execute(
             "INSERT OR IGNORE INTO messages (
-                uid,
+                message_uid,
                 c_username,
                 c_address,
                 m_path,
@@ -220,6 +220,7 @@ impl DBConnection {
                 username,
                 address,
                 mailbox_path,
+                message.sequence_id,
                 message.message_id,
                 message.subject,
                 message.from,
@@ -404,7 +405,7 @@ impl DBConnection {
         username: &str,
         address: &str,
         mailbox_path: &str,
-        uids: &Vec<u32>,
+        message_uids: &Vec<u32>,
     ) -> Result<Vec<Message>, MyError> {
         let mut stmt = match self.conn.prepare(
             "SELECT * FROM messages WHERE message_uid IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
@@ -417,7 +418,8 @@ impl DBConnection {
         };
 
         let uid_list: vtab::array::Array = std::rc::Rc::new(
-            uids.into_iter()
+            message_uids
+                .into_iter()
                 .map(|uid| rusqlite::types::Value::from(*uid))
                 .collect::<Vec<rusqlite::types::Value>>(),
         );

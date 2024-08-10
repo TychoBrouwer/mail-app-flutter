@@ -5,10 +5,7 @@ use crate::inbox_client::{
     parse_message::{flags_to_string, parse_message},
 };
 use crate::my_error::MyError;
-use crate::types::{
-    message::Message,
-    sequence_set::{SequenceSet, StartEnd},
-};
+use crate::types::sequence_set::{SequenceSet, StartEnd};
 
 impl InboxClient {
     pub fn update_mailbox(
@@ -35,15 +32,30 @@ impl InboxClient {
             Err(_) => {}
         };
 
-        let mut sequence_set = SequenceSet {
-            nr_messages: None,
-            start_end: Some(StartEnd { start: 1, end: 10 }),
-            idx: None,
-        };
-
         let mut changed_uids: Vec<u32> = Vec::new();
+        let mut end = 0;
 
         loop {
+            let mut start_end = StartEnd {
+                start: end + 1,
+                end: end + 50,
+            };
+
+            if start_end.start >= highest_seq {
+                break;
+            }
+            if start_end.end > highest_seq {
+                start_end.end = highest_seq;
+            }
+
+            end += 50;
+
+            let sequence_set = SequenceSet {
+                nr_messages: None,
+                start_end: Some(start_end),
+                idx: None,
+            };
+
             let (moved_message_seq_to_uids, new_message_uids) =
                 match self.get_changed_message_uids(session_id, mailbox_path, &sequence_set) {
                     Ok(e) => e,
@@ -62,22 +74,23 @@ impl InboxClient {
                 break;
             }
 
-            match self.get_new_messages(session_id, mailbox_path, &new_message_uids) {
-                Ok(e) => e,
-                Err(e) => return Err(e),
-            };
+            if !new_message_uids.is_empty() {
+                match self.get_new_messages(session_id, mailbox_path, &new_message_uids) {
+                    Ok(e) => e,
+                    Err(e) => return Err(e),
+                };
+            }
 
-            match self.update_moved_messeages(session_id, mailbox_path, &moved_message_seq_to_uids)
-            {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            };
-
-            let end = sequence_set.start_end.unwrap().end;
-            sequence_set.start_end = Some(StartEnd {
-                start: end + 1,
-                end: end + 10,
-            });
+            if !moved_message_seq_to_uids.is_empty() {
+                match self.update_moved_messeages(
+                    session_id,
+                    mailbox_path,
+                    &moved_message_seq_to_uids,
+                ) {
+                    Ok(_) => {}
+                    Err(e) => return Err(e),
+                };
+            }
         }
 
         let changed_flags_uids = match self.update_flags(session_id, mailbox_path) {
@@ -87,11 +100,15 @@ impl InboxClient {
 
         changed_uids.extend(&changed_flags_uids);
 
-        let changed_uids_string = changed_uids
-            .iter()
-            .map(|uid| uid.to_string())
-            .collect::<Vec<String>>()
-            .join(",");
+        let mut changed_uids_string = String::from("[");
+        changed_uids_string.push_str(
+            &changed_uids
+                .iter()
+                .map(|uid| uid.to_string())
+                .collect::<Vec<String>>()
+                .join(","),
+        );
+        changed_uids_string.push_str("]");
 
         return Ok(changed_uids_string);
     }
@@ -118,7 +135,7 @@ impl InboxClient {
 
         let highest_seq = mailbox.exists;
 
-        let fetches = match session.uid_fetch(format!("{}:{}", highest_seq, highest_seq), "UID") {
+        let fetches = match session.fetch(highest_seq.to_string(), "UID") {
             Ok(e) => e,
             Err(e) => {
                 eprintln!("Error fetching messages");
@@ -217,7 +234,7 @@ impl InboxClient {
 
         let seq_to_uids_imap: HashMap<u32, u32> = fetches
             .iter()
-            .filter_map(|fetch| fetch.uid.map(|uid| (uid, fetch.message)))
+            .filter_map(|fetch| fetch.uid.map(|uid| (fetch.message, uid)))
             .collect();
 
         let username = &self.sessions[session_id].username;
@@ -252,7 +269,7 @@ impl InboxClient {
 
         let moved_message_seq_to_uids: Vec<(u32, u32)> = seq_to_uids_imap
             .iter()
-            .filter(|(seq, uid)| seq_to_uids_db.get(seq) != Some(uid))
+            .filter(|(seq, uid)| seq_to_uids_db.get(seq) == Some(uid))
             .map(|(seq, uid)| (*seq, *uid))
             .collect();
 
@@ -288,7 +305,7 @@ impl InboxClient {
             .collect::<Vec<String>>()
             .join(",");
 
-        let fetches = match session.uid_fetch(uid_set, "UID ENVELOPE BODY.PEEK[] FLAGS") {
+        let fetches = match session.uid_fetch(&uid_set, "(UID ENVELOPE FLAGS BODY.PEEK[])") {
             Ok(e) => e,
             Err(e) => {
                 eprintln!("Error fetching messages");
@@ -300,13 +317,11 @@ impl InboxClient {
         let username = &self.sessions[session_id].username;
         let address = &self.sessions[session_id].address;
 
-        let mut result: Vec<Message> = Vec::new();
-
         for fetch in &fetches {
             let message = match parse_message(fetch) {
                 Ok(m) => m,
                 Err(e) => {
-                    eprintln!("Error parsing envelope: {:?}", e);
+                    eprintln!("Error parsing message: {:?}", e);
                     return Err(e);
                 }
             };
@@ -321,8 +336,6 @@ impl InboxClient {
                     return Err(e);
                 }
             };
-
-            result.push(message);
         }
 
         return Ok({});

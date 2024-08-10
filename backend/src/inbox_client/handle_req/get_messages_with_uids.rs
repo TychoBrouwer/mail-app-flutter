@@ -2,7 +2,7 @@ use crate::inbox_client::inbox_client::InboxClient;
 use crate::my_error::MyError;
 
 impl InboxClient {
-    pub fn get_messages(
+    pub fn get_messages_with_uids(
         &mut self,
         session_id: usize,
         mailbox_path: &str,

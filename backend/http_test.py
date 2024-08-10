@@ -10,30 +10,30 @@ def main():
     response = requests.get(f'{base_url}/login', params=login_params)
     print(f"received: {response.text}")
 
-    # Get sessions
-    sessions_params = {}
-    response = requests.get(f'{base_url}/get_sessions', params=sessions_params)
-    print(f"received: {response.text}")
+    # # Get sessions
+    # sessions_params = {}
+    # response = requests.get(f'{base_url}/get_sessions', params=sessions_params)
+    # print(f"received: {response.text}")
 
-    # Get mailboxes
-    mailboxes_params = {'session_id': '0'}
-    response = requests.get(f'{base_url}/get_mailboxes', params=mailboxes_params)
-    print(f"received: {response.text}")
-
-    # Get messages
-    messages_params = { 'session_id': '0', 'mailbox_path': 'INBOX', 'message_uids': '1,2,3,4' }
-    response = requests.get(f'{base_url}/get_messages', params=messages_params)
-    print(f"received: {response.text}")
-
-    # Get messages sorted
-    messages_params_sorted = { 'session_id': '0', 'mailbox_path': 'INBOX', 'start': '0', 'end': '10' }
-    response = requests.get(f'{base_url}/get_messages_sorted', params=messages_params_sorted)
-    print(f"received: {response.text}")
+    # # Get mailboxes
+    # mailboxes_params = {'session_id': '0'}
+    # response = requests.get(f'{base_url}/get_mailboxes', params=mailboxes_params)
+    # print(f"received: {response.text}")
 
     # Update mailbox
     update_mailbox_params = { 'session_id': '0', 'mailbox_path': 'INBOX' }
     response = requests.get(f'{base_url}/update_mailbox', params=update_mailbox_params)
     print(f"received: {response.text}")
+
+    # # Get messages
+    # messages_params = { 'session_id': '0', 'mailbox_path': 'INBOX', 'message_uids': '1,2,3,4' }
+    # response = requests.get(f'{base_url}/get_messages', params=messages_params)
+    # print(f"received: {response.text}")
+
+    # # Get messages sorted
+    # messages_params_sorted = { 'session_id': '0', 'mailbox_path': 'INBOX', 'start': '0', 'end': '10' }
+    # response = requests.get(f'{base_url}/get_messages_sorted', params=messages_params_sorted)
+    # print(f"received: {response.text}")
 
     # # Modify flags
     # modify_flags_params = { 'session_id': '0', 'mailbox_path': 'INBOX', 'message_uid': '1', 'flags': 'Seen,Flagged', 'add': 'true' }

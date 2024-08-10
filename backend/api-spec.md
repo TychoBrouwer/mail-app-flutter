@@ -75,11 +75,11 @@ Get all the mailbox paths of a session.
 }
 ```
 
-## GET_MESSAGES
+## GET_MESSAGES_WITH_UIDS
 
 Get a message from a mailbox using the message uids from the local database only.
 
-/get_messages
+/get_messages_with_uids
 
 - `session_id` (int): The session id of the user
 - `mailbox_path` (string): The mailbox path

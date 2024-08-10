@@ -42,7 +42,7 @@ async fn handle_connection(mut stream: TcpStream, inbox_client: Arc<Mutex<InboxC
         "/logout" => handle_conn::logout(params, inbox_client),
         "/get_sessions" => handle_conn::get_sessions(inbox_client),
         "/get_mailboxes" => handle_conn::get_mailboxes(params, inbox_client),
-        "/get_messages" => handle_conn::get_messages(params, inbox_client),
+        "/get_messages_with_uids" => handle_conn::get_messages_with_uids(params, inbox_client),
         "/get_messages_sorted" => handle_conn::get_messages_sorted(params, inbox_client),
         "/update_mailbox" => handle_conn::update_mailbox(params, inbox_client),
         "/modify_flags" => handle_conn::modify_flags(params, inbox_client),

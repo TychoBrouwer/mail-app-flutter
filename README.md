@@ -26,22 +26,22 @@ Run flutter frontend with ```flutter run -d windows```
 
 ## Database Design
 
-|<div style="width:180px">CONNECTIONS</div>|<div style="width:50px"></div>|<div style="width:120px"></div>|
-|---------------------|--------|--------------|
-| username            | PK     | VARCHAR(500) |
-| password            |        | VARCHAR(500) |
-| address             | PK     | VARCHAR(500) |
-| port                |        | INT          |
-| updated_at          |        | DATETIME     |
+| CONNECTIONS   |      |              |
+|---------------|------|--------------|
+| username      | PK   | VARCHAR(500) |
+| password      |      | VARCHAR(500) |
+| address       | PK   | VARCHAR(500) |
+| port          |      | INT          |
+| updated_at    |      | DATETIME     |
 
-|<div style="width:180px">MAILBOXES</div>|<div style="width:50px"></div>|<div style="width:120px"></div>|
+| MAILBOXES           |        |              |
 |---------------------|--------|--------------|
 | connection_username | FK, PK | INT          |
 | connection_address  | FK, PK | INT          |
 | path                | PK     | VARCHAR(500) |
 | updated_at          |        | DATETIME     |
 
-|<div style="width:180px">MESSAGES</div>|<div style="width:50px"></div>|<div style="width:120px"></div>|
+| MESSAGES            |        |              |
 |---------------------|--------|--------------|
 | message_uid         | PK     | INT          |
 | connection_username | FK, PK | INT          |
@@ -141,11 +141,11 @@ Get all the mailbox paths of a session.
 }
 ```
 
-### GET_MESSAGES
+### GET_MESSAGES_WITH_UIDS
 
 Get a message from a mailbox using the message uids from the local database only.
 
-/get_messages
+/get_messages_with_uids
 
 - `session_id` (int): The session id of the user
 - `mailbox_path` (string): The mailbox path
