@@ -5,10 +5,10 @@ mod database {
 mod inbox_client {
     mod handle_req {
         pub mod get_mailboxes;
-        pub mod get_message;
-        pub mod get_messages;
+        pub mod get_messages_sorted;
         pub mod modify_flags;
         pub mod move_message;
+        pub mod update_mailbox;
     }
     pub mod inbox_client;
     pub mod parse_message;

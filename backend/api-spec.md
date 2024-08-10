@@ -2,18 +2,14 @@
 
 ## LOGIN
 
-### Request - LOGIN
+login to an IMAP server and create a session.
 
 /login
-
-### Arguments - LOGIN
 
 - `username` (string): The username of the user
 - `password` (string): The password of the user
 - `address` (string): The address of the user
 - `port` (int): The port of the user
-
-### Response - LOGIN
 
 ```json
 {
@@ -27,15 +23,11 @@
 
 ## LOGOUT
 
-### Request - LOGOUT
+Logout from the IMAP server and delete the session.
 
 /logout
 
-### Arguments - LOGOUT
-
 - `session_id` (int): The session id of the user
-
-### Response - LOGOUT
 
 ```json
 {
@@ -46,58 +38,182 @@
 
 ## GET_SESSIONS
 
-### Request - GET_SESSIONS
+Get all the logged in IMAP sessions
 
 /get_sessions
-
-### Arguments - GET_SESSIONS
-
--
-
-### Response - GET_SESSIONS
 
 ```json
 {
     "success": true|false,
     "message": "message",
-    "data": {
-      "sessions": [
-        {
-          "session_id": 1,
-          "username": "username",
-          "address": "address",
-          "port": 1
-        }
-      ]
-    }
+    "data": [                         // list of sessions
+      {
+        "session_id": 1,
+        "username": "username",
+        "address": "address",
+        "port": 1
+      }
+    ]
 }
 ```
 
 ## GET_MAILBOXES
 
-### Request - GET_MAILBOXES
+Get all the mailbox paths of a session.
 
 /get_mailboxes
 
-### Arguments - GET_MAILBOXES
-
 - `session_id` (int): The session id of the user
-
-### Response - GET_MAILBOXES
 
 ```json
 {
     "success": true|false,
     "message": "message",
-    "data": {
-      "mailboxes": [
+    "data": [                         // list of mailbox paths
+      "mailbox_path"
+    ]
+}
+```
+
+## GET_MESSAGES_SORTED
+
+get messages from a mailbox sorted on time with indexes\
+calculated from the start and end indexes of the index numbers.\
+Messages are retrieved from the local database only.
+
+/get_messages_sorted
+
+- `session_id` (int): The session id of the user
+- `mailbox_path` (string): The mailbox path
+- `start` (int): The start index of the messages
+- `end` (int): The end index of the messages
+
+```json
+{
+  "success": true,
+  "message": "message",
+  "data": [                           // list of messages
+    {
+      "uid": 1,
+      "message_id": "server message id",
+      "subject": "subject",
+      "from": [
         {
-          "mailbox_id": 1,
-          "name": "name",
-          "address": "address",
-          "port": 1
+          "name": "Google",
+          "mailbox": "no-reply",
+          "host": "accounts.google.com"
         }
-      ]
+      ],
+      "sender": [],                   // same object as from
+      "to": [],                       // same object as from
+      "cc": [],                       // same object as from
+      "bcc": [],                      // same object as from
+      "reply_to": [],                 // same object as from
+      "in_reply_to": "email string",
+      "delivered_to": "email string",
+      "date": 1722093349000,
+      "received": 1722093350000,
+      "flags": ["Seen", "Flagged"],
+      "html": "base64 encoded html",
+      "text": "base64 encoded text"
     }
+  ]
+}
+```
+
+## UPDATE_MAILBOX
+
+Update the mailbox of a session from the IMAP server.\
+
+1. select command to get exists (total number of messages)
+2. fetch message with sequence id `exists` to get the uid
+3. check if message in local database with sequence id `exists` has the same uid
+4. if not, message is moved/deleted/added in the mailbox
+
+    1. fetch 'UID' for 10 at the time until sequence id and uid match
+    2. if message in local database update the sequence id and remove sequence id\
+        from message in the same mailbox with the same sequence id
+    3. if message not in local database add message to local database
+
+5. always, fetch with 'FLAGS' of all messages in the mailbox to update flags
+
+/update_mailbox
+
+- `session_id` (int): The session id of the user
+- `mailbox_path` (string): The mailbox path
+
+```json
+{
+  "success": true|false,
+  "message": "message",
+  "data": [                           // list of changed messages
+    {
+      "uid": 1,
+      "message_id": "server message id",
+      "subject": "subject",
+      "from": [
+        {
+          "name": "Google",
+          "mailbox": "no-reply",
+          "host": "accounts.google.com"
+        }
+      ],
+      "sender": [],                   // same object as from
+      "to": [],                       // same object as from
+      "cc": [],                       // same object as from
+      "bcc": [],                      // same object as from
+      "reply_to": [],                 // same object as from
+      "in_reply_to": "email string",
+      "delivered_to": "email string",
+      "date": 1722093349000,
+      "received": 1722093350000,
+      "flags": ["Seen", "Flagged"],
+      "html": "base64 encoded html",
+      "text": "base64 encoded text"
+    }
+  ]
+}
+```
+
+## MODIFY_FLAGS
+
+Modify the flags of a message in a mailbox using the message uid.
+
+/modify_flags
+
+- `session_id` (int): The session id of the user
+- `mailbox_path` (string): The mailbox path
+- `message_uid` (int): The uid of the message
+- `flags` (comma separated list): The flags to modify (e.g. "Seen,Flagged,Deleted")
+- `add` (bool): If the flags should be added or removed
+
+```json
+{
+  "success": true|false,
+  "message": "message",
+  "data": [                           // list of all flags
+    "Seen",
+    "Flagged"
+  ]
+}
+```
+
+## MOVE_MESSAGE
+
+Move a message from one mailbox to another using the message uid.\
+The message will be copied to the destination mailbox and deleted from\
+the source mailbox using the IMAP move command.
+
+/move_message
+
+- `session_id` (int): The session id of the user
+- `message_uid` (int): The uid of the message
+- `mailbox_path_dest` (string): The destination mailbox path
+
+```json
+{
+  "success": true|false,
+  "message": "message",
+  "data": "mailbox_path_dest"
 }
 ```

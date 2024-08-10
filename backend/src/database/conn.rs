@@ -2,6 +2,7 @@ use crate::inbox_client::{inbox_client::Session, parse_message::Message};
 use crate::my_error::MyError;
 
 use base64::{prelude::BASE64_STANDARD, Engine};
+use chrono::offset;
 use rusqlite::{params, vtab, Connection, OpenFlags};
 
 pub struct DBConnection {
@@ -360,65 +361,6 @@ impl DBConnection {
         return Ok(mailboxes);
     }
 
-    pub fn get_message_with_uid(
-        &mut self,
-        username: &str,
-        address: &str,
-        mailbox_path: &str,
-        uid: u32,
-    ) -> Result<Message, MyError> {
-        let mut stmt = match self.conn.prepare(
-            "SELECT * FROM messages WHERE uid = ?1 AND c_username = ?2 AND c_address = ?3 AND m_path = ?4 LIMIT 1",
-        ) {
-            Ok(stmt) => stmt,
-            Err(e) => {
-                eprintln!("Error preparing statement: {}", e);
-                return Err(MyError::Sqlite(e));
-            }
-        };
-
-        match stmt.query_map(params![uid, username, address, mailbox_path], |row| {
-            let html: String = row.get(17).unwrap();
-            let text: String = row.get(18).unwrap();
-
-            Ok(Message {
-                uid: row.get(0).unwrap(),
-                message_id: row.get(4).unwrap(),
-                subject: row.get(5).unwrap(),
-                from: row.get(6).unwrap(),
-                sender: row.get(7).unwrap(),
-                to: row.get(8).unwrap(),
-                cc: row.get(9).unwrap(),
-                bcc: row.get(10).unwrap(),
-                reply_to: row.get(11).unwrap(),
-                in_reply_to: row.get(12).unwrap(),
-                delivered_to: row.get(13).unwrap(),
-                date: row.get(14).unwrap(),
-                received: row.get(15).unwrap(),
-                flags: row.get(16).unwrap(),
-                html: BASE64_STANDARD.encode(html.as_bytes()),
-                text: BASE64_STANDARD.encode(text.as_bytes()),
-            })
-        }) {
-            Ok(messages) => {
-                for message in messages {
-                    match message {
-                        Ok(message) => return Ok(message),
-                        Err(_) => continue,
-                    }
-                }
-
-                return Err(MyError::String(
-                    "Message not present in local database".to_string(),
-                ));
-            }
-            Err(e) => {
-                eprintln!("Error getting message: {}", e);
-                return Err(MyError::Sqlite(e));
-            }
-        };
-    }
-
     pub fn get_messages_with_uid(
         &mut self,
         username: &str,
@@ -465,6 +407,74 @@ impl DBConnection {
                 text: BASE64_STANDARD.encode(text.as_bytes()),
             })
         }) {
+            Ok(messages) => {
+                let mut messages_list: Vec<Message> = Vec::new();
+
+                for message in messages {
+                    match message {
+                        Ok(message) => messages_list.push(message),
+                        Err(_) => {
+                            eprintln!("Message not present in local database");
+                            continue;
+                        }
+                    }
+                }
+
+                return Ok(messages_list);
+            }
+            Err(e) => {
+                eprintln!("Error getting message: {}", e);
+                return Err(MyError::Sqlite(e));
+            }
+        };
+    }
+
+    pub fn get_messages_sorted(
+        &mut self,
+        username: &str,
+        address: &str,
+        mailbox_path: &str,
+        start: u32,
+        end: u32,
+    ) -> Result<Vec<Message>, MyError> {
+        let mut stmt = match self.conn.prepare(
+            "SELECT * FROM messages WHERE c_username = ?1 AND c_address = ?2 AND m_path = ?3 ORDER BY received DESC LIMIT ?4 OFFSET ?5",
+        ) {
+            Ok(stmt) => stmt,
+            Err(e) => {
+                eprintln!("Error preparing statement: {}", e);
+                return Err(MyError::Sqlite(e));
+            }
+        };
+
+        let limit = end - start + 1;
+
+        match stmt.query_map(
+            params![username, address, mailbox_path, limit, start],
+            |row| {
+                let html: String = row.get(17).unwrap();
+                let text: String = row.get(18).unwrap();
+
+                Ok(Message {
+                    uid: row.get(0).unwrap(),
+                    message_id: row.get(4).unwrap(),
+                    subject: row.get(5).unwrap(),
+                    from: row.get(6).unwrap(),
+                    sender: row.get(7).unwrap(),
+                    to: row.get(8).unwrap(),
+                    cc: row.get(9).unwrap(),
+                    bcc: row.get(10).unwrap(),
+                    reply_to: row.get(11).unwrap(),
+                    in_reply_to: row.get(12).unwrap(),
+                    delivered_to: row.get(13).unwrap(),
+                    date: row.get(14).unwrap(),
+                    received: row.get(15).unwrap(),
+                    flags: row.get(16).unwrap(),
+                    html: BASE64_STANDARD.encode(html.as_bytes()),
+                    text: BASE64_STANDARD.encode(text.as_bytes()),
+                })
+            },
+        ) {
             Ok(messages) => {
                 let mut messages_list: Vec<Message> = Vec::new();
 

@@ -1,10 +1,12 @@
+use std::error::Error;
+use std::fmt;
+use std::num::ParseIntError;
+use std::str::{ParseBoolError, Utf8Error};
+use std::string::FromUtf8Error;
+
 use base64::DecodeError;
 use imap::Error as ImapError;
 use rusqlite::Error as SqliteError;
-use std::error::Error;
-use std::fmt;
-use std::str::Utf8Error;
-use std::string::FromUtf8Error;
 
 #[derive(Debug)]
 pub enum MyError {
@@ -14,6 +16,8 @@ pub enum MyError {
     FromUtf8(FromUtf8Error),
     Utf8(Utf8Error),
     Base64(DecodeError),
+    ParseInt(ParseIntError),
+    ParseBool(ParseBoolError),
 }
 
 impl fmt::Display for MyError {
@@ -25,6 +29,8 @@ impl fmt::Display for MyError {
             MyError::FromUtf8(err) => write!(f, "Error: {}", err),
             MyError::Utf8(err) => write!(f, "Error: {}", err),
             MyError::Base64(err) => write!(f, "Error: {}", err),
+            MyError::ParseInt(err) => write!(f, "Error: {}", err),
+            MyError::ParseBool(str) => write!(f, "Error: {}", str),
         }
     }
 }
@@ -38,6 +44,8 @@ impl Error for MyError {
             MyError::FromUtf8(ref e) => Some(e),
             MyError::Utf8(ref e) => Some(e),
             MyError::Base64(ref e) => Some(e),
+            MyError::ParseInt(ref e) => Some(e),
+            MyError::ParseBool(_) => None,
         }
     }
 }
@@ -69,5 +77,17 @@ impl From<Utf8Error> for MyError {
 impl From<DecodeError> for MyError {
     fn from(err: DecodeError) -> MyError {
         MyError::Base64(err)
+    }
+}
+
+impl From<ParseIntError> for MyError {
+    fn from(err: ParseIntError) -> MyError {
+        MyError::ParseInt(err)
+    }
+}
+
+impl From<ParseBoolError> for MyError {
+    fn from(err: ParseBoolError) -> MyError {
+        MyError::ParseBool(err)
     }
 }

@@ -1,31 +1,49 @@
 use std::collections::HashMap;
 use url_escape::decode;
 
-pub fn get_usize(uri_param: Option<&String>) -> Option<usize> {
+use crate::my_error::MyError;
+
+pub fn get_usize(uri_param: Option<&String>) -> Result<Option<usize>, MyError> {
     match uri_param {
-        Some(param) => Some(param.parse::<usize>().unwrap()),
-        None => None,
+        Some(param) => match Some(param.parse::<usize>()) {
+            Some(Ok(p)) => Ok(Some(p)),
+            Some(Err(e)) => Err(MyError::ParseInt(e)),
+            None => Ok(None),
+        },
+        None => Ok(None),
     }
 }
 
-pub fn get_u16(uri_param: Option<&String>) -> Option<u16> {
+pub fn get_u16(uri_param: Option<&String>) -> Result<Option<u16>, MyError> {
     match uri_param {
-        Some(param) => Some(param.parse::<u16>().unwrap()),
-        None => None,
+        Some(param) => match Some(param.parse::<u16>()) {
+            Some(Ok(p)) => Ok(Some(p)),
+            Some(Err(e)) => Err(MyError::ParseInt(e)),
+            None => Ok(None),
+        },
+        None => Ok(None),
     }
 }
 
-pub fn get_u32(uri_param: Option<&String>) -> Option<u32> {
+pub fn get_u32(uri_param: Option<&String>) -> Result<Option<u32>, MyError> {
     match uri_param {
-        Some(param) => Some(param.parse::<u32>().unwrap()),
-        None => None,
+        Some(param) => match Some(param.parse::<u32>()) {
+            Some(Ok(p)) => Ok(Some(p)),
+            Some(Err(e)) => Err(MyError::ParseInt(e)),
+            None => Ok(None),
+        },
+        None => Ok(None),
     }
 }
 
-pub fn get_bool(uri_param: Option<&String>) -> Option<bool> {
+pub fn get_bool(uri_param: Option<&String>) -> Result<Option<bool>, MyError> {
     match uri_param {
-        Some(param) => Some(param.parse::<bool>().unwrap()),
-        None => None,
+        Some(param) => match Some(param.parse::<bool>()) {
+            Some(Ok(p)) => Ok(Some(p)),
+            Some(Err(e)) => Err(MyError::ParseBool(e)),
+            None => Ok(None),
+        },
+        None => Ok(None),
     }
 }
 

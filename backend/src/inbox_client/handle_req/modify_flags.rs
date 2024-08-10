@@ -4,7 +4,7 @@ use crate::inbox_client::{inbox_client::InboxClient, parse_message::flags_to_str
 use crate::my_error::MyError;
 
 impl InboxClient {
-    pub fn modify_flag(
+    pub fn modify_flags(
         &mut self,
         session_id: usize,
         mailbox_path: &str,
@@ -25,7 +25,7 @@ impl InboxClient {
             Ok(_) => {}
             Err(e) => match self.handle_disconnect(session_id, e) {
                 Ok(_) => {
-                    return self.modify_flag(session_id, mailbox_path, message_uid, flags, add);
+                    return self.modify_flags(session_id, mailbox_path, message_uid, flags, add);
                 }
                 Err(e) => {
                     return Err(e);
@@ -66,10 +66,10 @@ impl InboxClient {
 
         let updated_flags = fetch.flags();
 
-        return self.modify_flag_db(session_id, mailbox_path, message_uid, updated_flags);
+        return self.modify_flags_db(session_id, mailbox_path, message_uid, updated_flags);
     }
 
-    fn modify_flag_db(
+    fn modify_flags_db(
         &mut self,
         session_id: usize,
         mailbox_path: &str,
