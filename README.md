@@ -77,9 +77,9 @@ login to an IMAP server and create a session.
 - `address` (string): The address of the user
 - `port` (int): The port of the user
 
-```json
+```jsonc
 {
-    "success": true|false,
+    "success": true,
     "message": "message",
     "data": {                         // session id of new session
       "session_id": 1
@@ -95,9 +95,9 @@ Logout from the IMAP server and delete the session.
 
 - `session_id` (int): The session id of the user
 
-```json
+```jsonc
 {
-    "success": true|false,
+    "success": true,
     "message": "message"
 }
 ```
@@ -108,9 +108,9 @@ Get all the logged in IMAP sessions
 
 /get_sessions
 
-```json
+```jsonc
 {
-    "success": true|false,
+    "success": true,
     "message": "message",
     "data": [                         // list of connected sessions
       {
@@ -131,9 +131,9 @@ Get all the mailbox paths of a session.
 
 - `session_id` (int): The session id of the user
 
-```json
+```jsonc
 {
-    "success": true|false,
+    "success": true,
     "message": "message",
     "data": [                         // list of mailbox paths
       "mailbox_path"
@@ -151,9 +151,9 @@ Get a message from a mailbox using the message uids from the local database only
 - `mailbox_path` (string): The mailbox path
 - `message_uids` (comma separated list): The uids of the messages
 
-```json
+```jsonc
 {
-  "success": true|false,
+  "success": true,
   "message": "message",
   "data": [                           // list of messages
     {
@@ -198,7 +198,7 @@ Messages are retrieved from the local database only.
 - `start` (int): The start index of the messages
 - `end` (int): The end index of the messages
 
-```json
+```jsonc
 {
   "success": true,
   "message": "message",
@@ -255,9 +255,9 @@ Algorithm:
 - `session_id` (int): The session id of the user
 - `mailbox_path` (string): The mailbox path
 
-```json
+```jsonc
 {
-  "success": true|false,
+  "success": true,
   "message": "message",
   "data": [                           // list of changed messages
     {
@@ -301,9 +301,9 @@ Modify the flags of a message in a mailbox using the message uid.
 - `flags` (comma separated list): The flags to modify (e.g. "Seen,Flagged,Deleted")
 - `add` (bool): If the flags should be added or removed
 
-```json
+```jsonc
 {
-  "success": true|false,
+  "success": true,
   "message": "message",
   "data": [                           // list of all flags
     "Seen",
@@ -324,9 +324,9 @@ the source mailbox using the IMAP move command.
 - `message_uid` (int): The uid of the message
 - `mailbox_path_dest` (string): The destination mailbox path
 
-```json
+```jsonc
 {
-  "success": true|false,
+  "success": true,
   "message": "message",
   "data": "mailbox_path_dest"         // destination mailbox path
 }
