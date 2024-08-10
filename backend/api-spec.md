@@ -15,7 +15,7 @@ login to an IMAP server and create a session.
 {
     "success": true|false,
     "message": "message",
-    "data": {
+    "data": {                         // session id of new session
       "session_id": 1
     }
 }
@@ -46,7 +46,7 @@ Get all the logged in IMAP sessions
 {
     "success": true|false,
     "message": "message",
-    "data": [                         // list of sessions
+    "data": [                         // list of connected sessions
       {
         "session_id": 1,
         "username": "username",
@@ -177,10 +177,10 @@ Algorithm:
 3. check if message in local database with sequence id `exists` has the same uid
 4. if not, message is moved/deleted/added in the mailbox
 
-    1. fetch 'UID' for 10 at the time until sequence id and uid match
-    2. if message in local database update the sequence id and remove sequence id\
+    - fetch 'UID' for 10 at the time until sequence id and uid match
+    - if message in local database update the sequence id and remove sequence id\
         from message in the same mailbox with the same sequence id
-    3. if message not in local database add message to local database
+    - if message not in local database add message to local database
 
 5. always, fetch with 'FLAGS' of all messages in the mailbox to update flags
 
@@ -262,6 +262,6 @@ the source mailbox using the IMAP move command.
 {
   "success": true|false,
   "message": "message",
-  "data": "mailbox_path_dest"
+  "data": "mailbox_path_dest"         // destination mailbox path
 }
 ```
