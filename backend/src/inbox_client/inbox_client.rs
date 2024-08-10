@@ -99,8 +99,6 @@ impl InboxClient {
                             return Err(MyError::String(e.to_string()));
                         }
                     }
-
-                    // return Ok(());
                 }
                 Err(e) => {
                     eprintln!("Error logging in: {:?}", e);

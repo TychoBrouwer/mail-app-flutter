@@ -30,7 +30,7 @@ class MailAccount {
   }
 
   factory MailAccount.fromJson(Map<String, dynamic> data) {
-    final sessionId = data['id'] as int;
+    final sessionId = data['session_id'] as int;
     final username = data['username'] as String;
     final address = data['address'] as String;
     final port = data['port'] as int;

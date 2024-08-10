@@ -30,7 +30,7 @@ pub fn login(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
         .position(|x| x.username == username.to_string() && x.address == address.to_string())
     {
         Some(idx) => {
-            return format!("{{\"success\": true, \"message\": \"Allready connected to IMAP server\", \"data\": {{ \"id\": {}}}}}", idx);
+            return format!("{{\"success\": true, \"message\": \"Allready connected to IMAP server\", \"data\": {{ \"session_id\": {}}}}}", idx);
         }
         None => {}
     };
@@ -43,7 +43,7 @@ pub fn login(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
         port,
     }) {
         Ok(idx) => {
-            format!("{{\"success\": true, \"message\": \"Connected to IMAP server\", \"data\": {{ \"id\": {}}}}}", idx)
+            format!("{{\"success\": true, \"message\": \"Connected to IMAP server\", \"data\": {{ \"session_id\": {}}}}}", idx)
         }
         Err(e) => {
             eprintln!("Error connecting to IMAP server: {:?}", e);
@@ -86,7 +86,7 @@ pub fn get_sessions(inbox_client: Arc<Mutex<InboxClient>>) -> String {
         String::from("{\"success\": true, \"message\": \"Sessions retrieved\", \"data\": [");
     for (i, session) in sessions.iter().enumerate() {
         response.push_str(&format!(
-            "{{\"id\": {}, \"username\": \"{}\", \"address\": \"{}\", \"port\": {}}}",
+            "{{\"session_id\": {}, \"username\": \"{}\", \"address\": \"{}\", \"port\": {}}}",
             i, session.username, session.address, session.port
         ));
 

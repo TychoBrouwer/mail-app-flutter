@@ -1,4 +1,5 @@
 Cargo.lock
 target/
 websocket_test.py
+http_test.py
 mail.db

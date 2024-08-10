@@ -85,7 +85,7 @@ class InboxService {
 
     if (!messageData.success) return -1;
 
-    final session = messageData.data['id'] as int;
+    final session = messageData.data['session_id'] as int;
 
     _sessions.add(MailAccount(
       session,
