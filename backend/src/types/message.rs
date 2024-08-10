@@ -1,10 +1,12 @@
+use std::u32;
+
 use base64::{prelude::BASE64_STANDARD, Engine};
 use rusqlite::Row;
 
 #[derive(Debug)]
 pub struct Message {
-    pub uid: u32,
-    pub sequence_id: u32,
+    pub message_uid: u32,
+    pub sequence_id: Option<u32>,
     pub message_id: String,
     pub subject: String,
     pub from: String,
@@ -28,7 +30,7 @@ impl Message {
         let text: String = row.get(19).unwrap();
 
         Message {
-            uid: row.get(0).unwrap(),
+            message_uid: row.get(0).unwrap(),
             sequence_id: row.get(4).unwrap(),
             message_id: row.get(5).unwrap(),
             subject: row.get(6).unwrap(),
@@ -51,8 +53,11 @@ impl Message {
     pub fn to_string(&self) -> String {
         let mut result = String::from("{");
 
-        result.push_str(&format!("\"uid\": {},", self.uid));
-        result.push_str(&format!("\"sequence_id\": {},", self.sequence_id));
+        result.push_str(&format!("\"uid\": {},", self.message_uid));
+        result.push_str(&format!(
+            "\"sequence_id\": {},",
+            self.sequence_id.unwrap_or(u32::MAX)
+        ));
         result.push_str(&format!("\"message_id\": \"{}\",", self.message_id));
         result.push_str(&format!("\"subject\": \"{}\",", self.subject));
         result.push_str(&format!("\"from\": {},", self.from));

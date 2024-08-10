@@ -256,8 +256,8 @@ fn parse_message_body(body: &str) -> Message {
     let message_id = headers.get("Message-ID").unwrap_or(&binding);
 
     return Message {
-        uid: 0,
-        sequence_id: 0,
+        message_uid: 0,
+        sequence_id: Some(0),
         message_id: message_id.to_string(),
         subject: subject.to_string(),
         from: from.to_string(),
@@ -282,7 +282,7 @@ pub fn parse_message(fetch: &Fetch) -> Result<Message, MyError> {
         None => return Err(MyError::String("Error getting envelope".to_string())),
     };
 
-    let uid = match fetch.uid {
+    let message_uid = match fetch.uid {
         Some(u) => u,
         None => return Err(MyError::String("Error getting UID".to_string())),
     };
@@ -302,8 +302,8 @@ pub fn parse_message(fetch: &Fetch) -> Result<Message, MyError> {
     let body_data = parse_message_body(body_str);
 
     return Ok(Message {
-        uid,
-        sequence_id: fetch.message,
+        message_uid,
+        sequence_id: Some(fetch.message),
         message_id: decode_u8(envelope.message_id),
         subject: decode_u8(envelope.subject),
         from: address_to_string(&envelope.from),

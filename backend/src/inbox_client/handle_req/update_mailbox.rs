@@ -1,4 +1,4 @@
-use std::{collections::HashMap, vec};
+use std::{collections::HashMap, u32, vec};
 
 use crate::inbox_client::{
     inbox_client::InboxClient,
@@ -44,20 +44,32 @@ impl InboxClient {
         let mut changed_uids: Vec<u32> = Vec::new();
 
         loop {
-            let new_changed_uids =
+            let (moved_message_seq_to_uids, new_message_uids) =
                 match self.get_changed_message_uids(session_id, mailbox_path, &sequence_set) {
                     Ok(e) => e,
                     Err(e) => return Err(e),
                 };
 
-            changed_uids.extend(&new_changed_uids);
+            changed_uids.extend(
+                &moved_message_seq_to_uids
+                    .iter()
+                    .map(|(seq, _)| *seq)
+                    .collect::<Vec<u32>>(),
+            );
+            changed_uids.extend(&new_message_uids);
 
             if changed_uids.is_empty() {
                 break;
             }
 
-            match self.update_changed_messages(session_id, mailbox_path, &new_changed_uids) {
+            match self.get_new_messages(session_id, mailbox_path, &new_message_uids) {
                 Ok(e) => e,
+                Err(e) => return Err(e),
+            };
+
+            match self.update_moved_messeages(session_id, mailbox_path, &moved_message_seq_to_uids)
+            {
+                Ok(_) => {}
                 Err(e) => return Err(e),
             };
 
@@ -157,7 +169,7 @@ impl InboxClient {
 
         let message = messages.first();
         if message.is_some() {
-            return Ok(message.unwrap().sequence_id);
+            return Ok(message.unwrap().sequence_id.unwrap_or(u32::MAX));
         } else {
             return Err(MyError::String(
                 "Failed to get last message in inbox from db".to_string(),
@@ -170,7 +182,7 @@ impl InboxClient {
         session_id: usize,
         mailbox_path: &str,
         sequence_set: &SequenceSet,
-    ) -> Result<Vec<u32>, MyError> {
+    ) -> Result<(Vec<(u32, u32)>, Vec<u32>), MyError> {
         let session = match &mut self.sessions[session_id].stream {
             Some(s) => s,
             None => return Err(MyError::String("Session not found".to_string())),
@@ -223,7 +235,7 @@ impl InboxClient {
 
         let seq_to_uids_db: HashMap<u32, u32> = messages
             .iter()
-            .map(|message| (message.sequence_id, message.uid))
+            .map(|message| (message.sequence_id.unwrap_or(u32::MAX), message.message_uid))
             .collect();
 
         let changed_message_uids: Vec<u32> = seq_to_uids_imap
@@ -232,14 +244,26 @@ impl InboxClient {
             .map(|(_, uid)| *uid)
             .collect();
 
-        return Ok(changed_message_uids);
+        let new_messages_uids: Vec<u32> = changed_message_uids
+            .iter()
+            .filter(|uid| seq_to_uids_db.values().find(|v| **v == **uid).is_none())
+            .map(|uid| *uid)
+            .collect();
+
+        let moved_message_seq_to_uids: Vec<(u32, u32)> = seq_to_uids_imap
+            .iter()
+            .filter(|(seq, uid)| seq_to_uids_db.get(seq) != Some(uid))
+            .map(|(seq, uid)| (*seq, *uid))
+            .collect();
+
+        return Ok((moved_message_seq_to_uids, new_messages_uids));
     }
 
-    fn update_changed_messages(
+    fn get_new_messages(
         &mut self,
         session_id: usize,
         mailbox_path: &str,
-        changed_uids: &Vec<u32>,
+        new_message_uids: &Vec<u32>,
     ) -> Result<(), MyError> {
         let session = match &mut self.sessions[session_id].stream {
             Some(s) => s,
@@ -250,7 +274,7 @@ impl InboxClient {
             Ok(m) => m,
             Err(e) => match self.handle_disconnect(session_id, e) {
                 Ok(_) => {
-                    return self.update_changed_messages(session_id, mailbox_path, changed_uids);
+                    return self.get_new_messages(session_id, mailbox_path, new_message_uids);
                 }
                 Err(e) => {
                     return Err(e);
@@ -258,7 +282,7 @@ impl InboxClient {
             },
         };
 
-        let uid_set = changed_uids
+        let uid_set = new_message_uids
             .iter()
             .map(|uid| uid.to_string())
             .collect::<Vec<String>>()
@@ -299,6 +323,31 @@ impl InboxClient {
             };
 
             result.push(message);
+        }
+
+        return Ok({});
+    }
+
+    fn update_moved_messeages(
+        &mut self,
+        session_id: usize,
+        mailbox_path: &str,
+        moved_message_seq_to_uids: &Vec<(u32, u32)>,
+    ) -> Result<(), MyError> {
+        for (sequence_id, message_uid) in moved_message_seq_to_uids {
+            let username = &self.sessions[session_id].username;
+            let address = &self.sessions[session_id].address;
+
+            match self.database_conn.update_message_sequence_id(
+                username,
+                address,
+                mailbox_path,
+                *message_uid,
+                *sequence_id,
+            ) {
+                Ok(_) => {}
+                Err(e) => eprintln!("Error moving message: {:?}", e),
+            }
         }
 
         return Ok({});

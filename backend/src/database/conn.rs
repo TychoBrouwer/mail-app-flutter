@@ -73,7 +73,7 @@ impl DBConnection {
 
         match self.conn.execute(
             "CREATE TABLE IF NOT EXISTS messages (
-                uid INTEGER NOT NULL,
+                message_uid INTEGER NOT NULL,
                 c_username VARCHAR(500) NOT NULL,
                 c_address VARCHAR(500) NOT NULL,
                 m_path VARCHAR(500) NOT NULL,
@@ -216,7 +216,7 @@ impl DBConnection {
                 text
             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
             params![
-                message.uid,
+                message.message_uid,
                 username,
                 address,
                 mailbox_path,
@@ -257,7 +257,7 @@ impl DBConnection {
         match self.conn.execute(
             "UPDATE messages
              SET flags = ?1
-             WHERE uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
+             WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
             params![flags_str, message_uid, username, address, mailbox_path],
         ) {
             Ok(_) => Ok({}),
@@ -279,7 +279,7 @@ impl DBConnection {
         match self.conn.execute(
             "UPDATE messages
              SET m_path = ?1
-             WHERE uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
+             WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
             params![
                 mailbox_path_dest,
                 message_uid,
@@ -294,6 +294,43 @@ impl DBConnection {
                 return Err(MyError::Sqlite(e));
             }
         }
+    }
+
+    pub fn update_message_sequence_id(
+        &mut self,
+        username: &str,
+        address: &str,
+        mailbox_path: &str,
+        message_uid: u32,
+        sequence_id: u32,
+    ) -> Result<(), MyError> {
+        match self.conn.execute(
+            "UPDATE messages
+             SET sequence_id = NULL
+             WHERE sequence_id = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
+            params![sequence_id, username, address, mailbox_path],
+        ) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Error updating sequence_id column: {}", e);
+                return Err(MyError::Sqlite(e));
+            }
+        };
+
+        match self.conn.execute(
+            "UPDATE messages
+             SET sequence_id = ?1
+             WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
+            params![sequence_id, message_uid, username, address, mailbox_path],
+        ) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Error updating sequence_id column: {}", e);
+                return Err(MyError::Sqlite(e));
+            }
+        }
+
+        return Ok(());
     }
 
     pub fn get_connections(&mut self) -> Result<Vec<Session>, MyError> {
@@ -370,7 +407,7 @@ impl DBConnection {
         uids: &Vec<u32>,
     ) -> Result<Vec<Message>, MyError> {
         let mut stmt = match self.conn.prepare(
-            "SELECT * FROM messages WHERE uid IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
+            "SELECT * FROM messages WHERE message_uid IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
         ) {
             Ok(stmt) => stmt,
             Err(e) => {

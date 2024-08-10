@@ -17,10 +17,11 @@
 
 | MESSAGES            |        |              |
 |---------------------|--------|--------------|
-| uid                 | PK     | INT          |
+| message_uid         | PK     | INT          |
 | connection_username | FK, PK | INT          |
 | connection_address  | FK, PK | INT          |
 | mailbox_path        | FK, PK | INT          |
+| session_id          |        | INT          |
 | message_id          |        | VARCHAR(500) |
 | subject             |        | VARCHAR(500) |
 | from                |        | VARCHAR(500) |
