@@ -7,8 +7,6 @@ edition = "2021"
 base64 = "0.22.1"
 chrono = "0.4.38"
 async-imap = "0.9.7"
-mail-parser = "0.9.3"
-native-tls = "0.2.12"
 regex = "1.10.5"
 rusqlite = { version = "0.32.0", features = ["bundled", "array"] }
 async-std = { version = "1.10.0", features = ["attributes"] }
