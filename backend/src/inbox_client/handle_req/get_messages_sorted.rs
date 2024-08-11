@@ -1,31 +1,43 @@
+use async_std::sync::{Arc, Mutex};
+
+use crate::database::conn::DBConnection;
 use crate::inbox_client::inbox_client::InboxClient;
 use crate::my_error::MyError;
+use crate::types::session::Client;
 
 impl InboxClient {
-    pub fn get_messages_sorted(
-        &mut self,
+    pub async fn get_messages_sorted(
+        database_conn: Arc<Mutex<rusqlite::Connection>>,
         session_id: usize,
+        clients: Arc<Mutex<Vec<Client>>>,
         mailbox_path: &str,
         start: u32,
         end: u32,
     ) -> Result<String, MyError> {
-        if session_id >= self.sessions.len() {
+        let locked_clients = clients.lock().await;
+        dbg!("locked clients");
+
+        if session_id + 1 > locked_clients.len() {
             return Err(MyError::String("Invalid session ID".to_string()));
         }
 
-        let username = &self.sessions[session_id].username;
-        let address = &self.sessions[session_id].address;
+        let client = &locked_clients[session_id];
 
-        let messages = match self.database_conn.get_messages_sorted(
-            username,
-            address,
+        let messages = match DBConnection::get_messages_sorted(
+            database_conn,
+            &client.username,
+            &client.address,
             mailbox_path,
             start,
             end,
-        ) {
+        )
+        .await
+        {
             Ok(m) => m,
             Err(e) => return Err(e),
         };
+
+        drop(locked_clients);
 
         let mut result = String::from("[");
         for (i, message) in messages.iter().enumerate() {

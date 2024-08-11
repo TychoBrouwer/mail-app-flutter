@@ -10,15 +10,15 @@ def main():
     response = requests.get(f'{base_url}/login', params=login_params)
     print(f"received: {response.text}")
 
-    # # Get sessions
-    # sessions_params = {}
-    # response = requests.get(f'{base_url}/get_sessions', params=sessions_params)
-    # print(f"received: {response.text}")
+    # Get sessions
+    sessions_params = {}
+    response = requests.get(f'{base_url}/get_sessions', params=sessions_params)
+    print(f"received: {response.text}")
 
-    # # Get mailboxes
-    # mailboxes_params = {'session_id': '0'}
-    # response = requests.get(f'{base_url}/get_mailboxes', params=mailboxes_params)
-    # print(f"received: {response.text}")
+    # Get mailboxes
+    mailboxes_params = {'session_id': '0'}
+    response = requests.get(f'{base_url}/get_mailboxes', params=mailboxes_params)
+    print(f"received: {response.text}")
 
     # Update mailbox
     update_mailbox_params = { 'session_id': '0', 'mailbox_path': 'INBOX' }
@@ -26,8 +26,8 @@ def main():
     print(f"received: {response.text}")
 
     # # Get messages
-    # messages_params = { 'session_id': '0', 'mailbox_path': 'INBOX', 'message_uids': '1,2,3,4' }
-    # response = requests.get(f'{base_url}/get_messages', params=messages_params)
+    # messages_params = { 'session_id': '0', 'mailbox_path': 'INBOX', 'message_uids': '91' }
+    # response = requests.get(f'{base_url}/get_messages_with_uids', params=messages_params)
     # print(f"received: {response.text}")
 
     # # Get messages sorted

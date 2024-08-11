@@ -1,34 +1,64 @@
-use imap::types::Flag;
+use async_imap::error::Error as ImapError;
+use async_imap::types::{Fetch, Flag};
+use async_std::stream::StreamExt;
+use async_std::sync::{Arc, Mutex};
 
+use crate::database::conn::DBConnection;
 use crate::inbox_client::{inbox_client::InboxClient, parse_message::flags_to_string};
 use crate::my_error::MyError;
+use crate::types::session::{Client, Session};
 
 impl InboxClient {
-    pub fn modify_flags(
-        &mut self,
+    pub async fn modify_flags(
+        sessions: Arc<Mutex<Vec<Session>>>,
+        database_conn: Arc<Mutex<rusqlite::Connection>>,
         session_id: usize,
+        clients: Arc<Mutex<Vec<Client>>>,
         mailbox_path: &str,
         message_uid: u32,
         flags: &str,
         add: bool,
     ) -> Result<String, MyError> {
-        if session_id >= self.sessions.len() {
+        let clients_2 = Arc::clone(&clients);
+
+        let locked_clients = clients.lock().await;
+        dbg!("locked clients");
+
+        if session_id + 1 > locked_clients.len() {
             return Err(MyError::String("Invalid session ID".to_string()));
         }
 
-        let session = match &mut self.sessions[session_id].stream {
-            Some(s) => s,
-            None => return Err(MyError::String("Session not found".to_string())),
-        };
+        drop(locked_clients);
 
-        match session.select(mailbox_path) {
+        let sessions_2 = Arc::clone(&sessions);
+
+        let mut locked_sessions = sessions.lock().await;
+        dbg!("locked sessions");
+
+        let session = &mut locked_sessions[session_id];
+
+        match session.select(mailbox_path).await {
             Ok(_) => {}
-            Err(e) => match self.handle_disconnect(session_id, e) {
-                Ok(_) => {
-                    return self.modify_flags(session_id, mailbox_path, message_uid, flags, add);
+            Err(e) => {
+                drop(locked_sessions);
+
+                match InboxClient::handle_disconnect(sessions, clients, e).await {
+                    Ok(_) => {
+                        return Box::pin(InboxClient::modify_flags(
+                            sessions_2,
+                            database_conn,
+                            session_id,
+                            clients_2,
+                            mailbox_path,
+                            message_uid,
+                            flags,
+                            add,
+                        ))
+                        .await;
+                    }
+                    Err(e) => return Err(e),
                 }
-                Err(e) => return Err(e),
-            },
+            }
         };
 
         let mut query = if add { "+" } else { "-" }.to_string();
@@ -46,46 +76,64 @@ impl InboxClient {
 
         query.push_str(")");
 
-        let fetches = match session.uid_store(message_uid.to_string(), query) {
-            Ok(e) => e,
-            Err(e) => {
-                eprintln!("Error updating message flag");
+        let fetches: Vec<Result<Fetch, ImapError>> =
+            match session.uid_store(message_uid.to_string(), query).await {
+                Ok(e) => e.collect().await,
+                Err(e) => {
+                    eprintln!("Error updating message flag");
 
-                return Err(MyError::Imap(e));
-            }
+                    return Err(MyError::Imap(e));
+                }
+            };
+
+        let fetch = if let Some(m) = fetches.first() {
+            m
+        } else {
+            return Err(MyError::String("Failed to update flags".to_string()));
         };
 
-        let fetch = match fetches.first() {
-            Some(e) => e,
-            None => {
-                return Err(MyError::String("No messages updated".to_string()));
-            }
+        let fetch = match fetch {
+            Ok(f) => f,
+            Err(e) => return Err(MyError::String(format!("{:?}", e))),
         };
 
-        let updated_flags = fetch.flags();
+        let updated_flags = fetch.flags().collect();
 
-        return self.modify_flags_db(session_id, mailbox_path, message_uid, updated_flags);
+        return InboxClient::modify_flags_db(
+            database_conn,
+            session_id,
+            clients_2,
+            mailbox_path,
+            message_uid,
+            updated_flags,
+        )
+        .await;
     }
 
-    fn modify_flags_db(
-        &mut self,
+    async fn modify_flags_db<'a>(
+        database_conn: Arc<Mutex<rusqlite::Connection>>,
         session_id: usize,
+        clients: Arc<Mutex<Vec<Client>>>,
         mailbox_path: &str,
         message_uid: u32,
-        flags: &[Flag],
+        flags: Vec<Flag<'a>>,
     ) -> Result<String, MyError> {
-        let flags_str = flags_to_string(flags);
+        let flags_str = flags_to_string(&flags);
 
-        let username = &self.sessions[session_id].username;
-        let address = &self.sessions[session_id].address;
+        let locked_clients = clients.lock().await;
+        dbg!("locked clients");
+        let client = &locked_clients[session_id];
 
-        match self.database_conn.update_message_flags(
-            username,
-            address,
+        match DBConnection::update_message_flags(
+            database_conn,
+            &client.username,
+            &client.address,
             mailbox_path,
             message_uid,
             &flags_str,
-        ) {
+        )
+        .await
+        {
             Ok(_) => return Ok(flags_str),
             Err(e) => return Err(e),
         };

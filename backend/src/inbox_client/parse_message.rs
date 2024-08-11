@@ -1,7 +1,7 @@
+use async_imap::imap_proto::Address;
+use async_imap::types::{Fetch, Flag};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use chrono::{DateTime, FixedOffset};
-use imap::types::{Fetch, Flag};
-use imap_proto::types::Address;
 use regex::Regex;
 use std::collections::HashMap;
 
@@ -60,9 +60,18 @@ fn address_to_string(address: &Option<Vec<Address>>) -> String {
 
             for (i, address) in a.iter().enumerate() {
                 result.push_str("{");
-                result.push_str(&format!("\"name\": \"{}\",", decode_u8(address.name)));
-                result.push_str(&format!("\"mailbox\": \"{}\",", decode_u8(address.mailbox)));
-                result.push_str(&format!("\"host\": \"{}\"", decode_u8(address.host)));
+                result.push_str(&format!(
+                    "\"name\": \"{}\",",
+                    decode_u8(address.name.as_deref())
+                ));
+                result.push_str(&format!(
+                    "\"mailbox\": \"{}\",",
+                    decode_u8(address.mailbox.as_deref())
+                ));
+                result.push_str(&format!(
+                    "\"host\": \"{}\"",
+                    decode_u8(address.host.as_deref())
+                ));
                 result.push_str("}");
 
                 if i < a.len() - 1 {
@@ -295,24 +304,24 @@ pub fn parse_message(fetch: &Fetch) -> Result<Message, MyError> {
         None => return Err(MyError::String("Error getting body".to_string())),
     };
 
-    let flags = fetch.flags();
+    let flags = fetch.flags().into_iter().collect::<Vec<_>>();
 
-    let flags_str = flags_to_string(flags);
+    let flags_str = flags_to_string(&flags);
 
     let body_data = parse_message_body(body_str);
 
     return Ok(Message {
         message_uid,
         sequence_id: Some(fetch.message),
-        message_id: decode_u8(envelope.message_id),
-        subject: decode_u8(envelope.subject),
+        message_id: decode_u8(envelope.message_id.as_deref()),
+        subject: decode_u8(envelope.subject.as_deref()),
         from: address_to_string(&envelope.from),
         sender: address_to_string(&envelope.sender),
         to: address_to_string(&envelope.to),
         cc: address_to_string(&envelope.cc),
         bcc: address_to_string(&envelope.bcc),
         reply_to: address_to_string(&envelope.reply_to),
-        in_reply_to: decode_u8(envelope.in_reply_to),
+        in_reply_to: decode_u8(envelope.in_reply_to.as_deref()),
         delivered_to: body_data.delivered_to,
         date: body_data.date,
         received: body_data.received,

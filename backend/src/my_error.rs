@@ -1,12 +1,13 @@
+use async_imap::error::Error as ImapError;
+use async_native_tls::Error as TlsError;
+use base64::DecodeError;
+use rusqlite::Error as SqliteError;
 use std::error::Error;
 use std::fmt;
+use std::io::Error as IoError;
 use std::num::ParseIntError;
 use std::str::{ParseBoolError, Utf8Error};
 use std::string::FromUtf8Error;
-
-use base64::DecodeError;
-use imap::Error as ImapError;
-use rusqlite::Error as SqliteError;
 
 #[derive(Debug)]
 pub enum MyError {
@@ -18,6 +19,8 @@ pub enum MyError {
     Base64(DecodeError),
     ParseInt(ParseIntError),
     ParseBool(ParseBoolError),
+    Tls(TlsError),
+    Io(IoError),
 }
 
 impl fmt::Display for MyError {
@@ -31,6 +34,8 @@ impl fmt::Display for MyError {
             MyError::Base64(err) => write!(f, "BASE64: {}", err),
             MyError::ParseInt(err) => write!(f, "PARSE_INT: {}", err),
             MyError::ParseBool(str) => write!(f, "PARSE_BOOL: {}", str),
+            MyError::Tls(err) => write!(f, "TLS: {}", err),
+            MyError::Io(err) => write!(f, "IO: {}", err),
         }
     }
 }
@@ -46,6 +51,8 @@ impl Error for MyError {
             MyError::Base64(ref e) => Some(e),
             MyError::ParseInt(ref e) => Some(e),
             MyError::ParseBool(_) => None,
+            MyError::Tls(ref e) => Some(e),
+            MyError::Io(ref e) => Some(e),
         }
     }
 }
@@ -89,5 +96,17 @@ impl From<ParseIntError> for MyError {
 impl From<ParseBoolError> for MyError {
     fn from(err: ParseBoolError) -> MyError {
         MyError::ParseBool(err)
+    }
+}
+
+impl From<TlsError> for MyError {
+    fn from(err: TlsError) -> MyError {
+        MyError::Tls(err)
+    }
+}
+
+impl From<IoError> for MyError {
+    fn from(err: IoError) -> MyError {
+        MyError::Io(err)
     }
 }

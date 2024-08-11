@@ -29,38 +29,48 @@ mod http_server {
 
 mod my_error;
 
-use std::sync::{Arc, Mutex};
+use async_std::sync::{Arc, Mutex};
 
 use crate::database::conn::DBConnection;
 use crate::inbox_client::inbox_client::InboxClient;
+use crate::types::session::Session;
 
 #[async_std::main]
 async fn main() {
-    let mut database_conn = match DBConnection::new("mail.db") {
+    let database_conn = match DBConnection::new("mail.db").await {
         Ok(conn) => conn,
         Err(e) => panic!("Error opening database: {}", e),
     };
 
-    match database_conn.initialise() {
+    match DBConnection::initialise(&database_conn).await {
         Ok(_) => {}
         Err(e) => panic!("Error initialising database: {}", e),
     };
 
-    let sessions = match database_conn.get_connections() {
-        Ok(sessions) => sessions,
+    let database_conn = Arc::new(Mutex::new(database_conn));
+
+    let database_conn_2 = Arc::clone(&database_conn);
+    let clients = match DBConnection::get_connections(database_conn_2).await {
+        Ok(clients) => clients,
         Err(e) => panic!("Error getting connections: {}", e),
     };
 
-    let inbox_client = Arc::new(Mutex::new(InboxClient::new(database_conn)));
+    let nr_sessions = clients.len();
 
-    for session in sessions {
-        let mut locked_inbox_client = inbox_client.lock().unwrap();
-        match locked_inbox_client.connect(session) {
+    let sessions: Arc<Mutex<Vec<Session>>> = Arc::new(Mutex::new(Vec::new()));
+    let clients = Arc::new(Mutex::new(clients));
+
+    for i in 0..nr_sessions {
+        let sessions = Arc::clone(&sessions);
+        let database_conn = Arc::clone(&database_conn);
+        let clients = Arc::clone(&clients);
+
+        match InboxClient::connect(sessions, database_conn, clients, i).await {
             Ok(_) => {}
             Err(e) => eprintln!("Error connecting to IMAP stored in local database: {:?}", e),
         }
     }
 
-    http_server::http_server::create_server(inbox_client).await;
+    http_server::http_server::create_server(sessions, database_conn, clients).await;
     // websocket::websocket::create_server(&mut inbox_client);
 }

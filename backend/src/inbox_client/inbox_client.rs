@@ -1,109 +1,128 @@
-use imap;
-use native_tls::TlsConnector;
+use async_imap;
+use async_imap::error::Error as ImapError;
+use async_native_tls::TlsConnector;
+use async_std::net::TcpStream;
+use async_std::sync::{Arc, Mutex};
 
 use crate::database::conn::DBConnection;
 use crate::my_error::MyError;
-use crate::types::session::Session;
+use crate::types::session::{Client, Session};
 
-pub struct InboxClient {
-    pub database_conn: DBConnection,
-    pub sessions: Vec<Session>,
-}
+pub struct InboxClient {}
 
 impl InboxClient {
-    pub fn new(database_conn: DBConnection) -> InboxClient {
-        InboxClient {
-            database_conn,
-            sessions: Vec::new(),
-        }
-    }
+    pub async fn connect(
+        sessions: Arc<Mutex<Vec<Session>>>,
+        database_conn: Arc<Mutex<rusqlite::Connection>>,
+        clients: Arc<Mutex<Vec<Client>>>,
+        idx: usize,
+    ) -> Result<usize, MyError> {
+        let sessions_2 = Arc::clone(&sessions);
+        let locked_sessions = sessions.lock().await;
+        dbg!("locked sessions");
 
-    pub fn connect(&mut self, session: Session) -> Result<usize, MyError> {
-        if (self
-            .sessions
+        let locked_clients = clients.lock().await;
+        dbg!("locked clients");
+
+        let client = &locked_clients[idx];
+
+        let pos = locked_clients
             .iter()
-            .position(|x| x.username == session.username && x.address == session.address))
-        .is_some()
-        {
-            return Err(MyError::String(
-                "Already connected to IMAP server".to_string(),
-            ));
+            .position(|x| x.username == client.username && x.address == client.address);
+
+        if locked_sessions.len() > pos.unwrap_or(0) {
+            return Ok(pos.unwrap());
         }
 
-        self.sessions.push(session);
+        let idx = locked_sessions.len();
 
-        let idx = self.sessions.len() - 1;
+        drop(locked_sessions);
 
-        match self.database_conn.insert_connection(&self.sessions[idx]) {
+        match DBConnection::insert_connection(database_conn, client.clone()).await {
             Ok(_) => {}
             Err(e) => eprintln!("Error inserting connection into database: {:?}", e),
         }
 
-        match self.connect_imap(idx) {
+        drop(locked_clients);
+
+        match InboxClient::connect_imap(sessions_2, clients).await {
             Ok(_) => {
                 return Ok(idx);
             }
             Err(e) => {
-                self.sessions.remove(idx);
                 return Err(e);
             }
         }
     }
 
-    pub fn connect_imap(&mut self, session_id: usize) -> Result<(), MyError> {
-        let tls = TlsConnector::builder().build().unwrap();
+    pub async fn connect_imap(
+        sessions: Arc<Mutex<Vec<Session>>>,
+        clients: Arc<Mutex<Vec<Client>>>,
+    ) -> Result<(), MyError> {
+        let locked_clients = clients.lock().await;
+        dbg!("locked clients");
 
-        if session_id >= self.sessions.len() {
-            return Err(MyError::String("Session not found".to_string()));
-        }
+        let client = &locked_clients[locked_clients.len() - 1];
 
-        let address = &self.sessions[session_id].address;
-        let port = self.sessions[session_id].port;
-        let username = &self.sessions[session_id].username;
-        let password = &self.sessions[session_id].password;
+        let address = &client.address;
+        let port = client.port;
+        let username = &client.username;
+        let password = &client.password;
 
-        match imap::connect((address.as_str(), port), address, &tls) {
-            Ok(c) => match c.login(username, password) {
-                Ok(s) => {
-                    self.sessions[session_id].stream = Some(s);
-
-                    match self.get_mailboxes(session_id) {
-                        Ok(_) => {
-                            return Ok(());
-                        }
-                        Err(e) => {
-                            eprintln!("Error getting mailboxes: {:?}", e);
-                            return Err(MyError::String(e.to_string()));
-                        }
-                    }
-                }
-                Err(e) => {
-                    eprintln!("Error logging in: {:?}", e);
-                    return Err(MyError::Imap(e.0));
-                }
-            },
+        let tcp_stream = match TcpStream::connect((address.as_str(), port)).await {
+            Ok(s) => s,
             Err(e) => {
                 eprintln!("Error connecting to IMAP server: {}", e);
-                return Err(MyError::Imap(e));
+                return Err(MyError::Io(e));
             }
         };
+
+        let tls = TlsConnector::new()
+            .danger_accept_invalid_hostnames(true)
+            .danger_accept_invalid_certs(true);
+        let tls_stream = match tls.connect(address, tcp_stream).await {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Error connecting to IMAP server: {}", e);
+                return Err(MyError::Tls(e));
+            }
+        };
+
+        let mut client = async_imap::Client::new(tls_stream);
+        let _greeting = client.read_response().await;
+
+        match client.login(username, password).await {
+            Ok(session) => {
+                let mut locked_sessions = sessions.lock().await;
+                locked_sessions.push(session);
+
+                return Ok(());
+            }
+            Err(e) => {
+                eprintln!("Error logging in: {:?}", e);
+                return Err(MyError::Imap(e.0));
+            }
+        }
     }
 
-    pub fn logout_imap(&mut self, session_id: usize) -> Result<(), MyError> {
-        if session_id >= self.sessions.len() {
+    pub async fn logout_imap(
+        sessions: Arc<Mutex<Vec<Session>>>,
+        session_id: usize,
+    ) -> Result<(), MyError> {
+        let mut locked_sessions = sessions.lock().await;
+        dbg!("locked sessions");
+
+        if session_id >= locked_sessions.len() {
             return Err(MyError::String("Session not found".to_string()));
         }
 
-        let session = match &mut self.sessions[session_id].stream {
-            Some(s) => s,
-            None => {
-                return Err(MyError::String("Session not found".to_string()));
-            }
-        };
+        let session = &mut locked_sessions[session_id];
 
-        match session.logout() {
+        match session.logout().await {
             Ok(_) => {
-                self.sessions.remove(session_id);
+                let mut locked_sessions = sessions.lock().await;
+                dbg!("locked sessions");
+                locked_sessions.remove(session_id);
 
                 return Ok(());
             }
@@ -114,24 +133,28 @@ impl InboxClient {
         }
     }
 
-    pub fn handle_disconnect(&mut self, session_id: usize, e: imap::Error) -> Result<(), MyError> {
+    pub async fn handle_disconnect(
+        sessions: Arc<Mutex<Vec<Session>>>,
+        clients: Arc<Mutex<Vec<Client>>>,
+        e: ImapError,
+    ) -> Result<(), MyError> {
         eprintln!("IMAP communication error: {:?}", e);
 
         match e {
-            imap::Error::ConnectionLost => {
+            ImapError::ConnectionLost => {
                 eprintln!("Reconnecting to IMAP server");
 
-                match self.connect_imap(session_id) {
+                match InboxClient::connect_imap(sessions, clients).await {
                     Ok(_) => {}
                     Err(e) => return Err(e),
                 }
 
                 return Ok({});
             }
-            imap::Error::Io(_) => {
+            ImapError::Io(_) => {
                 eprintln!("Reconnecting to IMAP server");
 
-                match self.connect_imap(session_id) {
+                match InboxClient::connect_imap(sessions, clients).await {
                     Ok(_) => {}
                     Err(e) => return Err(e),
                 }

@@ -1,15 +1,18 @@
+use async_std::sync::{Arc, Mutex};
+
 use base64::{prelude::BASE64_STANDARD, Engine};
 use rusqlite::{params, vtab, Connection, OpenFlags};
 
 use crate::my_error::MyError;
-use crate::types::{message::Message, session::Session};
+use crate::types::message::Message;
+use crate::types::session::Client;
 
 pub struct DBConnection {
-    conn: Connection,
+    // conn: Connection,
 }
 
 impl DBConnection {
-    pub fn new(database_path: &str) -> Result<DBConnection, MyError> {
+    pub async fn new(database_path: &str) -> Result<Connection, MyError> {
         let conn = match Connection::open_with_flags(
             database_path,
             OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE,
@@ -29,11 +32,11 @@ impl DBConnection {
             }
         }
 
-        return Ok(DBConnection { conn });
+        return Ok(conn);
     }
 
-    pub fn initialise(&mut self) -> Result<(), MyError> {
-        match self.conn.execute(
+    pub async fn initialise(conn: &rusqlite::Connection) -> Result<(), MyError> {
+        match conn.execute(
             "CREATE TABLE IF NOT EXISTS connections (
                 username VARCHAR(500) NOT NULL,
                 password VARCHAR(500) NOT NULL,
@@ -52,7 +55,7 @@ impl DBConnection {
             }
         }
 
-        match self.conn.execute(
+        match conn.execute(
             "CREATE TABLE IF NOT EXISTS mailboxes (
                 c_username VARCHAR(500) NOT NULL,
                 c_address VARCHAR(500) NOT NULL,
@@ -71,7 +74,7 @@ impl DBConnection {
             }
         }
 
-        match self.conn.execute(
+        match conn.execute(
             "CREATE TABLE IF NOT EXISTS messages (
                 message_uid INTEGER NOT NULL,
                 c_username VARCHAR(500) NOT NULL,
@@ -111,8 +114,14 @@ impl DBConnection {
         return Ok(());
     }
 
-    pub fn insert_connection(&mut self, session: &Session) -> Result<(), MyError> {
-        match self.conn.execute(
+    pub async fn insert_connection(
+        conn: Arc<Mutex<rusqlite::Connection>>,
+        client: Client,
+    ) -> Result<(), MyError> {
+        let conn_locked = conn.lock().await;
+        dbg!("locked conn");
+
+        match conn_locked.execute(
             "INSERT OR IGNORE INTO connections (
                 username,
                 password,
@@ -120,10 +129,10 @@ impl DBConnection {
                 port
             ) VALUES (?1, ?2, ?3, ?4)",
             params![
-                session.username,
-                session.password,
-                session.address,
-                session.port
+                client.username,
+                client.password,
+                client.address,
+                client.port
             ],
         ) {
             Ok(_) => Ok({}),
@@ -135,13 +144,16 @@ impl DBConnection {
         }
     }
 
-    pub fn insert_mailbox(
-        &mut self,
+    pub async fn insert_mailbox(
+        conn: Arc<Mutex<rusqlite::Connection>>,
         username: &str,
         address: &str,
         mailbox_path: &str,
     ) -> Result<(), MyError> {
-        match self.conn.execute(
+        let conn_locked = conn.lock().await;
+        dbg!("locked conn");
+
+        match conn_locked.execute(
             "INSERT OR IGNORE INTO mailboxes (
                 c_username,
                 c_address,
@@ -158,8 +170,8 @@ impl DBConnection {
         }
     }
 
-    pub fn insert_message(
-        &mut self,
+    pub async fn insert_message(
+        conn: Arc<Mutex<rusqlite::Connection>>,
         username: &str,
         address: &str,
         mailbox_path: &str,
@@ -192,7 +204,10 @@ impl DBConnection {
             }
         };
 
-        match self.conn.execute(
+        let conn_locked = conn.lock().await;
+        dbg!("locked conn");
+
+        match conn_locked.execute(
             "INSERT OR IGNORE INTO messages (
                 message_uid,
                 c_username,
@@ -247,15 +262,18 @@ impl DBConnection {
         }
     }
 
-    pub fn update_message_flags(
-        &mut self,
+    pub async fn update_message_flags(
+        conn: Arc<Mutex<rusqlite::Connection>>,
         username: &str,
         address: &str,
         mailbox_path: &str,
         message_uid: u32,
         flags_str: &str,
     ) -> Result<(), MyError> {
-        match self.conn.execute(
+        let conn_locked = conn.lock().await;
+        dbg!("locked conn");
+
+        match conn_locked.execute(
             "UPDATE messages
              SET flags = ?1
              WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
@@ -269,15 +287,18 @@ impl DBConnection {
         }
     }
 
-    pub fn move_message(
-        &mut self,
+    pub async fn move_message(
+        conn: Arc<Mutex<rusqlite::Connection>>,
         username: &str,
         address: &str,
         mailbox_path: &str,
         message_uid: u32,
         mailbox_path_dest: &str,
     ) -> Result<(), MyError> {
-        match self.conn.execute(
+        let conn_locked = conn.lock().await;
+        dbg!("locked conn");
+
+        match conn_locked.execute(
             "UPDATE messages
              SET m_path = ?1
              WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
@@ -297,15 +318,18 @@ impl DBConnection {
         }
     }
 
-    pub fn update_message_sequence_id(
-        &mut self,
+    pub async fn update_message_sequence_id(
+        conn: Arc<Mutex<rusqlite::Connection>>,
         username: &str,
         address: &str,
         mailbox_path: &str,
         message_uid: u32,
         sequence_id: u32,
     ) -> Result<(), MyError> {
-        match self.conn.execute(
+        let conn_locked = conn.lock().await;
+        dbg!("locked conn");
+
+        match conn_locked.execute(
             "UPDATE messages
              SET sequence_id = NULL
              WHERE sequence_id = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
@@ -318,7 +342,7 @@ impl DBConnection {
             }
         };
 
-        match self.conn.execute(
+        match conn_locked.execute(
             "UPDATE messages
              SET sequence_id = ?1
              WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
@@ -334,8 +358,13 @@ impl DBConnection {
         return Ok(());
     }
 
-    pub fn get_connections(&mut self) -> Result<Vec<Session>, MyError> {
-        let mut stmt = match self.conn.prepare("SELECT * FROM connections") {
+    pub async fn get_connections(
+        conn: Arc<Mutex<rusqlite::Connection>>,
+    ) -> Result<Vec<Client>, MyError> {
+        let conn_locked = conn.lock().await;
+        dbg!("locked conn");
+
+        let mut stmt = match conn_locked.prepare("SELECT * FROM connections") {
             Ok(stmt) => stmt,
             Err(e) => {
                 eprintln!("Error preparing statement at connections: {}", e);
@@ -344,8 +373,7 @@ impl DBConnection {
         };
 
         match stmt.query_map(params![], |row| {
-            Ok(Session {
-                stream: None,
+            Ok(Client {
                 username: row.get(0).unwrap(),
                 password: row.get(1).unwrap(),
                 address: row.get(2).unwrap(),
@@ -353,7 +381,7 @@ impl DBConnection {
             })
         }) {
             Ok(rows) => {
-                let mut connections: Vec<Session> = Vec::new();
+                let mut connections: Vec<Client> = Vec::new();
 
                 for row in rows {
                     connections.push(match row {
@@ -371,9 +399,15 @@ impl DBConnection {
         };
     }
 
-    pub fn get_mailboxes(&mut self, username: &str, address: &str) -> Result<Vec<String>, MyError> {
-        let mut stmt = match self
-            .conn
+    pub async fn get_mailboxes(
+        conn: Arc<Mutex<rusqlite::Connection>>,
+        username: &str,
+        address: &str,
+    ) -> Result<Vec<String>, MyError> {
+        let conn_locked = conn.lock().await;
+        dbg!("locked conn");
+
+        let mut stmt = match conn_locked
             .prepare("SELECT * FROM mailboxes WHERE c_username = ?1 AND c_address = ?2")
         {
             Ok(stmt) => stmt,
@@ -400,14 +434,24 @@ impl DBConnection {
         return Ok(mailboxes);
     }
 
-    pub fn get_messages_with_uids(
-        &mut self,
+    pub async fn get_messages_with_uids(
+        conn: Arc<Mutex<rusqlite::Connection>>,
         username: &str,
         address: &str,
         mailbox_path: &str,
         message_uids: &Vec<u32>,
     ) -> Result<Vec<Message>, MyError> {
-        let mut stmt = match self.conn.prepare(
+        let uid_list: vtab::array::Array = std::rc::Rc::new(
+            message_uids
+                .into_iter()
+                .map(|uid| rusqlite::types::Value::from(*uid))
+                .collect::<Vec<rusqlite::types::Value>>(),
+        );
+
+        let conn_locked = conn.lock().await;
+        dbg!("locked conn");
+
+        let mut stmt = match conn_locked.prepare(
             "SELECT * FROM messages WHERE message_uid IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
         ) {
             Ok(stmt) => stmt,
@@ -416,13 +460,6 @@ impl DBConnection {
                 return Err(MyError::Sqlite(e));
             }
         };
-
-        let uid_list: vtab::array::Array = std::rc::Rc::new(
-            message_uids
-                .into_iter()
-                .map(|uid| rusqlite::types::Value::from(*uid))
-                .collect::<Vec<rusqlite::types::Value>>(),
-        );
 
         match stmt.query_map(params![uid_list, username, address, mailbox_path], |row| {
             Ok(Message::from_row(row))
@@ -449,15 +486,20 @@ impl DBConnection {
         };
     }
 
-    pub fn get_messages_sorted(
-        &mut self,
+    pub async fn get_messages_sorted(
+        conn: Arc<Mutex<rusqlite::Connection>>,
         username: &str,
         address: &str,
         mailbox_path: &str,
         start: u32,
         end: u32,
     ) -> Result<Vec<Message>, MyError> {
-        let mut stmt = match self.conn.prepare(
+        let limit = end - start + 1;
+
+        let conn_locked = conn.lock().await;
+        dbg!("locked conn");
+
+        let mut stmt = match conn_locked.prepare(
             "SELECT * FROM messages WHERE c_username = ?1 AND c_address = ?2 AND m_path = ?3 ORDER BY received DESC LIMIT ?4 OFFSET ?5",
         ) {
             Ok(stmt) => stmt,
@@ -466,8 +508,6 @@ impl DBConnection {
                 return Err(MyError::Sqlite(e));
             }
         };
-
-        let limit = end - start + 1;
 
         match stmt.query_map(
             params![username, address, mailbox_path, limit, start],

@@ -1,10 +1,15 @@
-use std::sync::{Arc, Mutex};
+use async_std::sync::{Arc, Mutex};
 
 use crate::http_server::params;
 use crate::inbox_client::inbox_client::InboxClient;
-use crate::types::session::Session;
+use crate::types::session::{Client, Session};
 
-pub fn login(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn login(
+    uri: &str,
+    sessions: Arc<Mutex<Vec<Session>>>,
+    database_conn: Arc<Mutex<rusqlite::Connection>>,
+    clients: Arc<Mutex<Vec<Client>>>,
+) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let username = uri_params.get("username");
@@ -28,9 +33,9 @@ pub fn login(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     let address = address.unwrap();
     let port = port.unwrap();
 
-    let mut locked_inbox_client = inbox_client.lock().unwrap();
-    match locked_inbox_client
-        .sessions
+    let mut locked_clients = clients.lock().await;
+    dbg!("locked clients");
+    match locked_clients
         .iter()
         .position(|x| x.username == username.to_string() && x.address == address.to_string())
     {
@@ -40,15 +45,20 @@ pub fn login(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
         None => {}
     };
 
-    match locked_inbox_client.connect(Session {
-        stream: None,
+    locked_clients.push(Client {
         username: username.to_string(),
         password: password.to_string(),
         address: address.to_string(),
         port,
-    }) {
+    });
+
+    let idx = locked_clients.len() - 1;
+
+    drop(locked_clients);
+
+    match InboxClient::connect(sessions, database_conn, clients, idx).await {
         Ok(idx) => {
-            format!("{{\"success\": true, \"message\": \"Connected to IMAP server\", \"data\": {{ \"session_id\": {}}}}}", idx)
+            return format!("{{\"success\": true, \"message\": \"Connected to IMAP server\", \"data\": {{ \"session_id\": {}}}}}", idx);
         }
         Err(e) => {
             eprintln!("Error connecting to IMAP server: {:?}", e);
@@ -57,7 +67,11 @@ pub fn login(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     }
 }
 
-pub fn logout(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn logout(
+    uri: &str,
+    sessions: Arc<Mutex<Vec<Session>>>,
+    clients: &mut Arc<Mutex<Vec<Client>>>,
+) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -77,9 +91,16 @@ pub fn logout(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
 
     let session_id = session_id.unwrap();
 
-    let mut locked_inbox_client = inbox_client.lock().unwrap();
-    match locked_inbox_client.logout_imap(session_id) {
+    let mut locked_clients = clients.lock().await;
+    dbg!("locked clients");
+
+    if session_id + 1 > locked_clients.len() {
+        return String::from("{\"success\": false, \"message\": \"Invalid session_id\"}");
+    }
+
+    match InboxClient::logout_imap(sessions, session_id).await {
         Ok(_) => {
+            locked_clients.remove(session_id);
             return String::from("{\"success\": true, \"message\": \"Logged out\"}");
         }
         Err(e) => {
@@ -89,19 +110,19 @@ pub fn logout(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     }
 }
 
-pub fn get_sessions(inbox_client: Arc<Mutex<InboxClient>>) -> String {
-    let locked_inbox_client = inbox_client.lock().unwrap();
-    let sessions = &locked_inbox_client.sessions;
-
+pub async fn get_sessions(clients: Arc<Mutex<Vec<Client>>>) -> String {
     let mut response =
         String::from("{\"success\": true, \"message\": \"Sessions retrieved\", \"data\": [");
-    for (i, session) in sessions.iter().enumerate() {
+
+    let locked_clients = clients.lock().await;
+    dbg!("locked clients");
+    for (i, client) in locked_clients.iter().enumerate() {
         response.push_str(&format!(
             "{{\"session_id\": {}, \"username\": \"{}\", \"address\": \"{}\", \"port\": {}}}",
-            i, session.username, session.address, session.port
+            i, client.username, client.address, client.port
         ));
 
-        if i < sessions.len() - 1 {
+        if i < locked_clients.len() - 1 {
             response.push_str(",");
         }
     }
@@ -110,7 +131,12 @@ pub fn get_sessions(inbox_client: Arc<Mutex<InboxClient>>) -> String {
     return response;
 }
 
-pub fn get_mailboxes(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn get_mailboxes(
+    uri: &str,
+    sessions: Arc<Mutex<Vec<Session>>>,
+    database_conn: Arc<Mutex<rusqlite::Connection>>,
+    clients: Arc<Mutex<Vec<Client>>>,
+) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -130,22 +156,25 @@ pub fn get_mailboxes(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String
 
     let session_id = session_id.unwrap();
 
-    let mut locked_inbox_client = inbox_client.lock().unwrap();
-    match locked_inbox_client.get_mailboxes(session_id) {
-        Ok(mailbox_pathes) => {
+    match InboxClient::get_mailboxes(sessions, database_conn, session_id, clients).await {
+        Ok(mailboxes) => {
             return format!(
                 "{{\"success\": true, \"message\": \"Mailboxes retrieved\", \"data\": {}}}",
-                mailbox_pathes
+                mailboxes
             )
         }
         Err(e) => {
-            eprintln!("Error getting mailbox_pathes: {:?}", e);
+            eprintln!("Error getting mailboxes: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     }
 }
 
-pub fn get_messages_with_uids(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn get_messages_with_uids(
+    uri: &str,
+    database_conn: Arc<Mutex<rusqlite::Connection>>,
+    clients: Arc<Mutex<Vec<Client>>>,
+) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -175,22 +204,33 @@ pub fn get_messages_with_uids(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) 
         .map(|x| x.parse::<u32>().unwrap())
         .collect();
 
-    let mut locked_inbox_client = inbox_client.lock().unwrap();
-    match locked_inbox_client.get_messages_with_uids(session_id, mailbox_path, &message_uids) {
+    match InboxClient::get_messages_with_uids(
+        database_conn,
+        session_id,
+        clients,
+        mailbox_path,
+        &message_uids,
+    )
+    .await
+    {
         Ok(messages) => {
             return format!(
-                "{{\"success\": true, \"message\": \"Message retrieved\", \"data\": {}}}",
+                "{{\"success\": true, \"message\": \"Messages retrieved\", \"data\": {}}}",
                 messages
             )
         }
         Err(e) => {
-            eprintln!("Error getting message: {:?}", e);
+            eprintln!("Error getting messages: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     }
 }
 
-pub fn get_messages_sorted(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn get_messages_sorted(
+    uri: &str,
+    database_conn: Arc<Mutex<rusqlite::Connection>>,
+    clients: Arc<Mutex<Vec<Client>>>,
+) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -229,8 +269,16 @@ pub fn get_messages_sorted(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> 
     let start = start.unwrap();
     let end = end.unwrap();
 
-    let mut locked_inbox_client = inbox_client.lock().unwrap();
-    match locked_inbox_client.get_messages_sorted(session_id, mailbox_path, start, end) {
+    match InboxClient::get_messages_sorted(
+        database_conn,
+        session_id,
+        clients,
+        mailbox_path,
+        start,
+        end,
+    )
+    .await
+    {
         Ok(messages) => {
             return format!(
                 "{{\"success\": true, \"message\": \"Messages retrieved\", \"data\": {}}}",
@@ -244,7 +292,12 @@ pub fn get_messages_sorted(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> 
     }
 }
 
-pub fn update_mailbox(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn update_mailbox(
+    uri: &str,
+    sessions: Arc<Mutex<Vec<Session>>>,
+    database_conn: Arc<Mutex<rusqlite::Connection>>,
+    clients: Arc<Mutex<Vec<Client>>>,
+) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -267,13 +320,11 @@ pub fn update_mailbox(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> Strin
     let session_id = session_id.unwrap();
     let mailbox_path = mailbox_path.unwrap();
 
-    let mut locked_inbox_client = inbox_client.lock().unwrap();
-    match locked_inbox_client.update_mailbox(session_id, mailbox_path) {
-        Ok(messages) => {
-            return format!(
-                "{{\"success\": true, \"message\": \"Mailbox updated\", \"data\": {}}}",
-                messages
-            )
+    match InboxClient::update_mailbox(sessions, database_conn, session_id, clients, mailbox_path)
+        .await
+    {
+        Ok(_) => {
+            return String::from("{\"success\": true, \"message\": \"Mailbox updated\"}");
         }
         Err(e) => {
             eprintln!("Error updating mailbox: {:?}", e);
@@ -282,7 +333,12 @@ pub fn update_mailbox(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> Strin
     }
 }
 
-pub fn modify_flags(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn modify_flags(
+    uri: &str,
+    sessions: Arc<Mutex<Vec<Session>>>,
+    database_conn: Arc<Mutex<rusqlite::Connection>>,
+    clients: Arc<Mutex<Vec<Client>>>,
+) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -328,8 +384,18 @@ pub fn modify_flags(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String 
     let flags = flags.unwrap();
     let add = add.unwrap();
 
-    let mut locked_inbox_client = inbox_client.lock().unwrap();
-    match locked_inbox_client.modify_flags(session_id, mailbox_path, message_uid, flags, add) {
+    match InboxClient::modify_flags(
+        sessions,
+        database_conn,
+        session_id,
+        clients,
+        mailbox_path,
+        message_uid,
+        flags,
+        add,
+    )
+    .await
+    {
         Ok(message) => {
             return format!(
                 "{{\"success\": true, \"message\": \"Flags successfully updated\", \"data\": {}}}",
@@ -343,7 +409,12 @@ pub fn modify_flags(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String 
     }
 }
 
-pub fn move_message(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn move_message(
+    uri: &str,
+    sessions: Arc<Mutex<Vec<Session>>>,
+    database_conn: Arc<Mutex<rusqlite::Connection>>,
+    clients: Arc<Mutex<Vec<Client>>>,
+) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -380,8 +451,16 @@ pub fn move_message(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String 
     let message_uid = message_uid.unwrap();
     let mailbox_path_dest = mailbox_path_dest.unwrap();
 
-    let mut locked_inbox_client = inbox_client.lock().unwrap();
-    match locked_inbox_client.move_message(session_id, mailbox_path, message_uid, mailbox_path_dest)
+    match InboxClient::move_message(
+        sessions,
+        database_conn,
+        session_id,
+        clients,
+        mailbox_path,
+        message_uid,
+        mailbox_path_dest,
+    )
+    .await
     {
         Ok(message) => {
             return format!(
