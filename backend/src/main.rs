@@ -72,5 +72,4 @@ async fn main() {
     }
 
     http_server::http_server::create_server(sessions, database_conn, clients).await;
-    // websocket::websocket::create_server(&mut inbox_client);
 }

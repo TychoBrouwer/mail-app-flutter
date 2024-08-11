@@ -54,7 +54,7 @@ impl InboxClient {
 
         let mut response = String::from("[");
 
-        for (i, mailbox_path) in mailboxes.iter().cloned().enumerate() {
+        for (i, mailbox_path) in mailboxes.iter().enumerate() {
             let mailbox_path = mailbox_path.to_string();
             response.push_str(&format!("\"{}\"", mailbox_path));
 
@@ -114,7 +114,7 @@ impl InboxClient {
         let mut sessions_lock = sessions.lock().await;
         dbg!("locked sessions");
 
-        if session_id >= sessions_lock.len() {
+        if session_id + 1 > sessions_lock.len() {
             return Err(MyError::String("Invalid session ID".to_string()));
         }
 
@@ -142,6 +142,8 @@ impl InboxClient {
             Ok(m) => m.collect().await,
             Err(e) => return Err(MyError::Imap(e)),
         };
+
+        drop(sessions_lock);
 
         let mailboxes: Vec<String> = mailboxes
             .iter()

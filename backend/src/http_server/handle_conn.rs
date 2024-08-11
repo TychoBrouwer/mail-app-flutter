@@ -70,7 +70,7 @@ pub async fn login(
 pub async fn logout(
     uri: &str,
     sessions: Arc<Mutex<Vec<Session>>>,
-    clients: &mut Arc<Mutex<Vec<Client>>>,
+    clients: Arc<Mutex<Vec<Client>>>,
 ) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
@@ -116,6 +116,7 @@ pub async fn get_sessions(clients: Arc<Mutex<Vec<Client>>>) -> String {
 
     let locked_clients = clients.lock().await;
     dbg!("locked clients");
+
     for (i, client) in locked_clients.iter().enumerate() {
         response.push_str(&format!(
             "{{\"session_id\": {}, \"username\": \"{}\", \"address\": \"{}\", \"port\": {}}}",

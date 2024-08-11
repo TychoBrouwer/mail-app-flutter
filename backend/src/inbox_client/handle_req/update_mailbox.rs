@@ -47,15 +47,13 @@ impl InboxClient {
             Err(e) => return Err(e),
         };
 
-        dbg!(highest_seq, highest_seq_uid);
-
         let database_conn_2 = Arc::clone(&database_conn);
-        let clients_3 = Arc::clone(&clients);
+        let clients_2 = Arc::clone(&clients);
 
         match InboxClient::get_highest_seq_db(
             database_conn_2,
             session_id,
-            clients_3,
+            clients_2,
             mailbox_path,
             highest_seq_uid,
         )
@@ -68,8 +66,6 @@ impl InboxClient {
             }
             Err(_) => {}
         };
-
-        dbg!("highest_seq_local != highest_seq");
 
         let mut changed_uids: Vec<u32> = Vec::new();
         let mut end = 0;
@@ -95,16 +91,16 @@ impl InboxClient {
                 idx: None,
             };
 
-            let clients_4 = Arc::clone(&clients);
-            let sessions_3 = Arc::clone(&sessions);
+            let clients_2 = Arc::clone(&clients);
+            let sessions_2 = Arc::clone(&sessions);
             let database_conn_2 = Arc::clone(&database_conn);
 
             let (moved_message_seq_to_uids, new_message_uids) =
                 match InboxClient::get_changed_message_uids(
-                    sessions_3,
+                    sessions_2,
                     session_id,
                     database_conn_2,
-                    clients_4,
+                    clients_2,
                     mailbox_path,
                     &sequence_set,
                 )
@@ -127,15 +123,15 @@ impl InboxClient {
             }
 
             if !new_message_uids.is_empty() {
-                let sessions = Arc::clone(&sessions);
-                let database_conn = Arc::clone(&database_conn);
-                let clients = Arc::clone(&clients);
+                let sessions_2 = Arc::clone(&sessions);
+                let database_conn_2 = Arc::clone(&database_conn);
+                let clients_2 = Arc::clone(&clients);
 
                 match InboxClient::get_new_messages(
-                    sessions,
+                    sessions_2,
                     session_id,
-                    database_conn,
-                    clients,
+                    database_conn_2,
+                    clients_2,
                     mailbox_path,
                     &new_message_uids,
                 )
@@ -147,12 +143,12 @@ impl InboxClient {
             }
 
             if !moved_message_seq_to_uids.is_empty() {
-                let database_conn = Arc::clone(&database_conn);
-                let clients = Arc::clone(&clients);
+                let database_conn_2 = Arc::clone(&database_conn);
+                let clients_2 = Arc::clone(&clients);
 
                 match InboxClient::update_moved_messeages(
-                    database_conn,
-                    clients,
+                    database_conn_2,
+                    clients_2,
                     session_id,
                     mailbox_path,
                     &moved_message_seq_to_uids,
@@ -205,7 +201,6 @@ impl InboxClient {
         let session = &mut locked_sessions[session_id];
 
         let sessions_2 = Arc::clone(&sessions);
-
         let clients_2 = Arc::clone(&clients);
 
         let mailbox = match session.select(mailbox_path).await {
@@ -307,11 +302,11 @@ impl InboxClient {
         sequence_set: &SequenceSet,
     ) -> Result<(Vec<(u32, u32)>, Vec<u32>), MyError> {
         let sessions_2 = Arc::clone(&sessions);
+        let clients_2 = Arc::clone(&clients);
 
         let mut locked_sessions = sessions.lock().await;
         dbg!("locked sessions");
 
-        let clients_2 = Arc::clone(&clients);
         let session = &mut locked_sessions[session_id];
 
         let mailbox = match session.select(mailbox_path).await {
@@ -352,6 +347,9 @@ impl InboxClient {
                     return Err(MyError::Imap(e));
                 }
             };
+
+        drop(locked_sessions);
+
         let messages_uids_imap: Vec<u32> = fetches
             .iter()
             .filter_map(|fetch| match fetch {
@@ -385,6 +383,8 @@ impl InboxClient {
             Ok(m) => m,
             Err(e) => return Err(e),
         };
+
+        drop(locked_clients);
 
         let seq_to_uids_db: HashMap<u32, u32> = messages
             .iter()
@@ -489,14 +489,15 @@ impl InboxClient {
                 }
             };
 
-            let database_conn = Arc::clone(&database_conn);
+            let database_conn_2 = Arc::clone(&database_conn);
+
             let locked_clients = clients.lock().await;
             dbg!("locked clients");
 
             let client = &locked_clients[session_id];
 
             match DBConnection::insert_message(
-                database_conn,
+                database_conn_2,
                 &client.username,
                 &client.address,
                 mailbox_path,
@@ -557,11 +558,11 @@ impl InboxClient {
         mailbox_path: &str,
     ) -> Result<Vec<u32>, MyError> {
         let sessions_2 = Arc::clone(&sessions);
+        let clients_2 = Arc::clone(&clients);
 
         let mut locked_sessions = sessions.lock().await;
         dbg!("locked sessions");
 
-        let clients_2 = Arc::clone(&clients);
         let session = &mut locked_sessions[session_id];
 
         match session.select(mailbox_path).await {
@@ -589,6 +590,9 @@ impl InboxClient {
             Ok(e) => e.collect().await,
             Err(e) => return Err(MyError::Imap(e)),
         };
+
+        drop(locked_sessions);
+
         let mut updated_uids: Vec<u32> = Vec::new();
 
         for fetch in fetches {
@@ -611,7 +615,7 @@ impl InboxClient {
 
             let flags_str = flags_to_string(&flags);
 
-            let database_conn = Arc::clone(&database_conn);
+            let database_conn_2 = Arc::clone(&database_conn);
 
             let locked_clients = clients.lock().await;
             dbg!("locked clients");
@@ -619,7 +623,7 @@ impl InboxClient {
             let client = &locked_clients[session_id];
 
             match DBConnection::update_message_flags(
-                database_conn,
+                database_conn_2,
                 &client.username,
                 &client.address,
                 mailbox_path,

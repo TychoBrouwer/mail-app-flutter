@@ -32,7 +32,7 @@ async fn handle_connection(
     mut stream: TcpStream,
     sessions: Arc<Mutex<Vec<Session>>>,
     database_conn: Arc<Mutex<rusqlite::Connection>>,
-    mut clients: Arc<Mutex<Vec<Client>>>,
+    clients: Arc<Mutex<Vec<Client>>>,
 ) {
     let mut buffer = [0; 1024];
     stream.read(&mut buffer).await.unwrap();
@@ -49,7 +49,7 @@ async fn handle_connection(
 
     let data = match path {
         "/login" => handle_conn::login(params, sessions, database_conn, clients).await,
-        "/logout" => handle_conn::logout(params, sessions, &mut clients).await,
+        "/logout" => handle_conn::logout(params, sessions, clients).await,
         "/get_sessions" => handle_conn::get_sessions(clients).await,
         "/get_mailboxes" => {
             handle_conn::get_mailboxes(params, sessions, database_conn, clients).await

@@ -16,6 +16,7 @@ impl InboxClient {
         mailbox_path_dest: &str,
     ) -> Result<String, MyError> {
         let clients_2 = Arc::clone(&clients);
+        let sessions_2 = Arc::clone(&sessions);
 
         let locked_clients = clients.lock().await;
         dbg!("locked clients");
@@ -25,8 +26,6 @@ impl InboxClient {
         }
 
         drop(locked_clients);
-
-        let sessions_2 = Arc::clone(&sessions);
 
         let mut locked_sessions = sessions.lock().await;
         dbg!("locked sessions");
@@ -66,6 +65,8 @@ impl InboxClient {
                 return Err(MyError::Imap(e));
             }
         };
+
+        drop(locked_sessions);
 
         return InboxClient::move_message_db(
             database_conn,

@@ -20,6 +20,7 @@ impl InboxClient {
         add: bool,
     ) -> Result<String, MyError> {
         let clients_2 = Arc::clone(&clients);
+        let sessions_2 = Arc::clone(&sessions);
 
         let locked_clients = clients.lock().await;
         dbg!("locked clients");
@@ -29,8 +30,6 @@ impl InboxClient {
         }
 
         drop(locked_clients);
-
-        let sessions_2 = Arc::clone(&sessions);
 
         let mut locked_sessions = sessions.lock().await;
         dbg!("locked sessions");
@@ -61,20 +60,7 @@ impl InboxClient {
             }
         };
 
-        let mut query = if add { "+" } else { "-" }.to_string();
-
-        query.push_str("FLAGS (");
-
-        for (i, flag) in flags.split(",").enumerate() {
-            query.push_str("\\");
-            query.push_str(&flag);
-
-            if i < flags.split(",").count() - 1 {
-                query.push_str(" ");
-            }
-        }
-
-        query.push_str(")");
+        let query = InboxClient::query(flags, add);
 
         let fetches: Vec<Result<Fetch, ImapError>> =
             match session.uid_store(message_uid.to_string(), query).await {
@@ -85,6 +71,8 @@ impl InboxClient {
                     return Err(MyError::Imap(e));
                 }
             };
+
+        drop(locked_sessions);
 
         let fetch = if let Some(m) = fetches.first() {
             m
@@ -137,5 +125,24 @@ impl InboxClient {
             Ok(_) => return Ok(flags_str),
             Err(e) => return Err(e),
         };
+    }
+
+    fn query(flags: &str, add: bool) -> String {
+        let mut query = if add { "+" } else { "-" }.to_string();
+
+        query.push_str("FLAGS (");
+
+        for (i, flag) in flags.split(",").enumerate() {
+            query.push_str("\\");
+            query.push_str(&flag);
+
+            if i < flags.split(",").count() - 1 {
+                query.push_str(" ");
+            }
+        }
+
+        query.push_str(")");
+
+        return query;
     }
 }
