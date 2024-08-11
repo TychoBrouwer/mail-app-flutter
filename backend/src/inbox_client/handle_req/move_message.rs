@@ -2,7 +2,7 @@ use crate::inbox_client::inbox_client::InboxClient;
 use crate::my_error::MyError;
 
 impl InboxClient {
-    pub fn move_message(
+    pub async fn move_message(
         &mut self,
         session_id: usize,
         mailbox_path: &str,
@@ -18,22 +18,26 @@ impl InboxClient {
             None => return Err(MyError::String("Session not found".to_string())),
         };
 
-        match session.select(mailbox_path) {
+        match session.select(mailbox_path).await {
             Ok(_) => {}
-            Err(e) => match self.handle_disconnect(session_id, e) {
+            Err(e) => match self.handle_disconnect(session_id, e).await {
                 Ok(_) => {
-                    return self.move_message(
+                    return Box::pin(self.move_message(
                         session_id,
                         mailbox_path,
                         message_uid,
                         mailbox_path_dest,
-                    );
+                    ))
+                    .await;
                 }
                 Err(e) => return Err(e),
             },
         };
 
-        match session.uid_mv(message_uid.to_string(), mailbox_path_dest) {
+        match session
+            .uid_mv(message_uid.to_string(), mailbox_path_dest)
+            .await
+        {
             Ok(e) => e,
             Err(e) => {
                 eprintln!("Error moving message");

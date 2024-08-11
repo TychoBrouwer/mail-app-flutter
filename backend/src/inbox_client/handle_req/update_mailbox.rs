@@ -1,3 +1,6 @@
+use async_imap::error::Error as ImapError;
+use async_imap::types::Fetch;
+use futures::StreamExt;
 use std::{collections::HashMap, u32, vec};
 
 use crate::inbox_client::{
@@ -8,7 +11,7 @@ use crate::my_error::MyError;
 use crate::types::sequence_set::{SequenceSet, StartEnd};
 
 impl InboxClient {
-    pub fn update_mailbox(
+    pub async fn update_mailbox(
         &mut self,
         session_id: usize,
         mailbox_path: &str,
@@ -18,7 +21,7 @@ impl InboxClient {
         }
 
         let (highest_seq, highest_seq_uid) =
-            match self.get_highest_seq_imap(session_id, mailbox_path) {
+            match self.get_highest_seq_imap(session_id, mailbox_path).await {
                 Ok(e) => e,
                 Err(e) => return Err(e),
             };
@@ -56,11 +59,13 @@ impl InboxClient {
                 idx: None,
             };
 
-            let (moved_message_seq_to_uids, new_message_uids) =
-                match self.get_changed_message_uids(session_id, mailbox_path, &sequence_set) {
-                    Ok(e) => e,
-                    Err(e) => return Err(e),
-                };
+            let (moved_message_seq_to_uids, new_message_uids) = match self
+                .get_changed_message_uids(session_id, mailbox_path, &sequence_set)
+                .await
+            {
+                Ok(e) => e,
+                Err(e) => return Err(e),
+            };
 
             changed_uids.extend(
                 &moved_message_seq_to_uids
@@ -75,7 +80,10 @@ impl InboxClient {
             }
 
             if !new_message_uids.is_empty() {
-                match self.get_new_messages(session_id, mailbox_path, &new_message_uids) {
+                match self
+                    .get_new_messages(session_id, mailbox_path, &new_message_uids)
+                    .await
+                {
                     Ok(e) => e,
                     Err(e) => return Err(e),
                 };
@@ -93,7 +101,7 @@ impl InboxClient {
             }
         }
 
-        let changed_flags_uids = match self.update_flags(session_id, mailbox_path) {
+        let changed_flags_uids = match self.update_flags(session_id, mailbox_path).await {
             Ok(f) => f,
             Err(e) => return Err(e),
         };
@@ -113,7 +121,7 @@ impl InboxClient {
         return Ok(changed_uids_string);
     }
 
-    fn get_highest_seq_imap(
+    async fn get_highest_seq_imap(
         &mut self,
         session_id: usize,
         mailbox_path: &str,
@@ -123,11 +131,11 @@ impl InboxClient {
             None => return Err(MyError::String("Session not found".to_string())),
         };
 
-        let mailbox = match session.select(mailbox_path) {
+        let mailbox = match session.select(mailbox_path).await {
             Ok(m) => m,
-            Err(e) => match self.handle_disconnect(session_id, e) {
+            Err(e) => match self.handle_disconnect(session_id, e).await {
                 Ok(_) => {
-                    return self.get_highest_seq_imap(session_id, mailbox_path);
+                    return Box::pin(self.get_highest_seq_imap(session_id, mailbox_path)).await;
                 }
                 Err(e) => return Err(e),
             },
@@ -135,16 +143,31 @@ impl InboxClient {
 
         let highest_seq = mailbox.exists;
 
-        let fetches = match session.fetch(highest_seq.to_string(), "UID") {
-            Ok(e) => e,
-            Err(e) => {
-                eprintln!("Error fetching messages");
+        let fetches: Vec<Result<Fetch, ImapError>> =
+            match session.fetch(highest_seq.to_string(), "UID").await {
+                Ok(e) => e.collect().await,
+                Err(e) => {
+                    eprintln!("Error fetching messages");
 
-                return Err(MyError::Imap(e));
-            }
-        };
+                    return Err(MyError::Imap(e));
+                }
+            };
 
-        let fetch = match fetches.first() {
+        let mut first_fetch: Option<Fetch> = None;
+        for fetch in fetches {
+            first_fetch = match fetch {
+                Ok(first_fetch) => Some(first_fetch),
+                Err(e) => {
+                    eprintln!("Failed to get last message in inbox from imap");
+
+                    return Err(MyError::Imap(e));
+                }
+            };
+
+            break;
+        }
+
+        let fetch = match first_fetch {
             Some(e) => e,
             None => {
                 return Err(MyError::String(
@@ -194,7 +217,7 @@ impl InboxClient {
         }
     }
 
-    fn get_changed_message_uids(
+    async fn get_changed_message_uids(
         &mut self,
         session_id: usize,
         mailbox_path: &str,
@@ -205,11 +228,16 @@ impl InboxClient {
             None => return Err(MyError::String("Session not found".to_string())),
         };
 
-        let mailbox = match session.select(mailbox_path) {
+        let mailbox = match session.select(mailbox_path).await {
             Ok(m) => m,
-            Err(e) => match self.handle_disconnect(session_id, e) {
+            Err(e) => match self.handle_disconnect(session_id, e).await {
                 Ok(_) => {
-                    return self.get_changed_message_uids(session_id, mailbox_path, sequence_set);
+                    return Box::pin(self.get_changed_message_uids(
+                        session_id,
+                        mailbox_path,
+                        sequence_set,
+                    ))
+                    .await;
                 }
                 Err(e) => {
                     return Err(e);
@@ -222,19 +250,30 @@ impl InboxClient {
             Err(e) => return Err(e),
         };
 
-        let fetches = match session.fetch(sequence_set_string, "UID") {
-            Ok(e) => e,
-            Err(e) => {
-                eprintln!("Error fetching messages");
+        let fetches: Vec<Result<Fetch, ImapError>> =
+            match session.fetch(sequence_set_string, "UID").await {
+                Ok(e) => e.collect().await,
+                Err(e) => {
+                    eprintln!("Error fetching messages");
 
-                return Err(MyError::Imap(e));
-            }
-        };
-        let messages_uids_imap: Vec<u32> = fetches.iter().filter_map(|fetch| fetch.uid).collect();
+                    return Err(MyError::Imap(e));
+                }
+            };
+
+        let messages_uids_imap: Vec<u32> = fetches
+            .iter()
+            .filter_map(|fetch| match fetch {
+                Ok(fetch) => fetch.uid,
+                Err(_) => None,
+            })
+            .collect();
 
         let seq_to_uids_imap: HashMap<u32, u32> = fetches
             .iter()
-            .filter_map(|fetch| fetch.uid.map(|uid| (fetch.message, uid)))
+            .filter_map(|fetch| match fetch {
+                Ok(fetch) => fetch.uid.map(|uid| (fetch.message, uid)),
+                Err(_) => None,
+            })
             .collect();
 
         let username = &self.sessions[session_id].username;
@@ -276,7 +315,7 @@ impl InboxClient {
         return Ok((moved_message_seq_to_uids, new_messages_uids));
     }
 
-    fn get_new_messages(
+    async fn get_new_messages(
         &mut self,
         session_id: usize,
         mailbox_path: &str,
@@ -287,11 +326,16 @@ impl InboxClient {
             None => return Err(MyError::String("Session not found".to_string())),
         };
 
-        match session.select(mailbox_path) {
+        match session.select(mailbox_path).await {
             Ok(m) => m,
-            Err(e) => match self.handle_disconnect(session_id, e) {
+            Err(e) => match self.handle_disconnect(session_id, e).await {
                 Ok(_) => {
-                    return self.get_new_messages(session_id, mailbox_path, new_message_uids);
+                    return Box::pin(self.get_new_messages(
+                        session_id,
+                        mailbox_path,
+                        new_message_uids,
+                    ))
+                    .await;
                 }
                 Err(e) => {
                     return Err(e);
@@ -305,8 +349,11 @@ impl InboxClient {
             .collect::<Vec<String>>()
             .join(",");
 
-        let fetches = match session.uid_fetch(&uid_set, "(UID ENVELOPE FLAGS BODY.PEEK[])") {
-            Ok(e) => e,
+        let fetches: Vec<Result<Fetch, ImapError>> = match session
+            .uid_fetch(&uid_set, "(UID ENVELOPE FLAGS BODY.PEEK[])")
+            .await
+        {
+            Ok(e) => e.collect().await,
             Err(e) => {
                 eprintln!("Error fetching messages");
 
@@ -317,8 +364,16 @@ impl InboxClient {
         let username = &self.sessions[session_id].username;
         let address = &self.sessions[session_id].address;
 
-        for fetch in &fetches {
-            let message = match parse_message(fetch) {
+        for fetch in fetches {
+            let fetch = match fetch {
+                Ok(fetch) => fetch,
+                Err(e) => {
+                    eprintln!("Error fetching message: {:?}", e);
+                    return Err(MyError::Imap(e));
+                }
+            };
+
+            let message = match parse_message(&fetch) {
                 Ok(m) => m,
                 Err(e) => {
                     eprintln!("Error parsing message: {:?}", e);
@@ -366,24 +421,28 @@ impl InboxClient {
         return Ok({});
     }
 
-    fn update_flags(&mut self, session_id: usize, mailbox_path: &str) -> Result<Vec<u32>, MyError> {
+    async fn update_flags(
+        &mut self,
+        session_id: usize,
+        mailbox_path: &str,
+    ) -> Result<Vec<u32>, MyError> {
         let session = match &mut self.sessions[session_id].stream {
             Some(s) => s,
             None => return Err(MyError::String("Session not found".to_string())),
         };
 
-        match session.select(mailbox_path) {
+        match session.select(mailbox_path).await {
             Ok(m) => m,
-            Err(e) => match self.handle_disconnect(session_id, e) {
+            Err(e) => match self.handle_disconnect(session_id, e).await {
                 Ok(_) => {
-                    return self.update_flags(session_id, mailbox_path);
+                    return Box::pin(self.update_flags(session_id, mailbox_path)).await;
                 }
                 Err(e) => return Err(e),
             },
         };
 
-        let fetches = match session.fetch("1:*", "FLAGS") {
-            Ok(e) => e,
+        let fetches: Vec<Result<Fetch, ImapError>> = match session.fetch("1:*", "FLAGS").await {
+            Ok(e) => e.collect().await,
             Err(e) => return Err(MyError::Imap(e)),
         };
 
@@ -393,6 +452,14 @@ impl InboxClient {
         let mut updated_uids: Vec<u32> = Vec::new();
 
         for fetch in &fetches {
+            let fetch = match fetch {
+                Ok(e) => e,
+                Err(e) => {
+                    eprintln!("Error fetching message: {:?}", e);
+                    continue;
+                }
+            };
+
             let message_uid = match fetch.uid {
                 Some(e) => e,
                 None => continue,
@@ -400,7 +467,9 @@ impl InboxClient {
 
             updated_uids.push(message_uid);
 
-            let flags_str = flags_to_string(fetch.flags());
+            let flags = fetch.flags().collect::<Vec<_>>();
+
+            let flags_str = flags_to_string(&flags);
 
             match self.database_conn.update_message_flags(
                 username,

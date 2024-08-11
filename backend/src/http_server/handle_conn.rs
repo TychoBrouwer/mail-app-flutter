@@ -4,7 +4,7 @@ use crate::http_server::params;
 use crate::inbox_client::inbox_client::InboxClient;
 use crate::types::session::Session;
 
-pub fn login(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn login(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let username = uri_params.get("username");
@@ -40,13 +40,16 @@ pub fn login(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
         None => {}
     };
 
-    match locked_inbox_client.connect(Session {
-        stream: None,
-        username: username.to_string(),
-        password: password.to_string(),
-        address: address.to_string(),
-        port,
-    }) {
+    match locked_inbox_client
+        .connect(Session {
+            stream: None,
+            username: username.to_string(),
+            password: password.to_string(),
+            address: address.to_string(),
+            port,
+        })
+        .await
+    {
         Ok(idx) => {
             format!("{{\"success\": true, \"message\": \"Connected to IMAP server\", \"data\": {{ \"session_id\": {}}}}}", idx)
         }
@@ -57,7 +60,7 @@ pub fn login(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     }
 }
 
-pub fn logout(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn logout(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -78,7 +81,7 @@ pub fn logout(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     let session_id = session_id.unwrap();
 
     let mut locked_inbox_client = inbox_client.lock().unwrap();
-    match locked_inbox_client.logout_imap(session_id) {
+    match locked_inbox_client.logout_imap(session_id).await {
         Ok(_) => {
             return String::from("{\"success\": true, \"message\": \"Logged out\"}");
         }
@@ -89,7 +92,7 @@ pub fn logout(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     }
 }
 
-pub fn get_sessions(inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn get_sessions(inbox_client: Arc<Mutex<InboxClient>>) -> String {
     let locked_inbox_client = inbox_client.lock().unwrap();
     let sessions = &locked_inbox_client.sessions;
 
@@ -110,7 +113,7 @@ pub fn get_sessions(inbox_client: Arc<Mutex<InboxClient>>) -> String {
     return response;
 }
 
-pub fn get_mailboxes(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn get_mailboxes(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -131,7 +134,7 @@ pub fn get_mailboxes(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String
     let session_id = session_id.unwrap();
 
     let mut locked_inbox_client = inbox_client.lock().unwrap();
-    match locked_inbox_client.get_mailboxes(session_id) {
+    match locked_inbox_client.get_mailboxes(session_id).await {
         Ok(mailbox_pathes) => {
             return format!(
                 "{{\"success\": true, \"message\": \"Mailboxes retrieved\", \"data\": {}}}",
@@ -145,7 +148,7 @@ pub fn get_mailboxes(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String
     }
 }
 
-pub fn get_messages_with_uids(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn get_messages_with_uids(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -190,7 +193,7 @@ pub fn get_messages_with_uids(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) 
     }
 }
 
-pub fn get_messages_sorted(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn get_messages_sorted(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -244,7 +247,7 @@ pub fn get_messages_sorted(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> 
     }
 }
 
-pub fn update_mailbox(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn update_mailbox(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -268,7 +271,10 @@ pub fn update_mailbox(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> Strin
     let mailbox_path = mailbox_path.unwrap();
 
     let mut locked_inbox_client = inbox_client.lock().unwrap();
-    match locked_inbox_client.update_mailbox(session_id, mailbox_path) {
+    match locked_inbox_client
+        .update_mailbox(session_id, mailbox_path)
+        .await
+    {
         Ok(messages) => {
             return format!(
                 "{{\"success\": true, \"message\": \"Mailbox updated\", \"data\": {}}}",
@@ -282,7 +288,7 @@ pub fn update_mailbox(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> Strin
     }
 }
 
-pub fn modify_flags(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn modify_flags(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -329,7 +335,10 @@ pub fn modify_flags(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String 
     let add = add.unwrap();
 
     let mut locked_inbox_client = inbox_client.lock().unwrap();
-    match locked_inbox_client.modify_flags(session_id, mailbox_path, message_uid, flags, add) {
+    match locked_inbox_client
+        .modify_flags(session_id, mailbox_path, message_uid, flags, add)
+        .await
+    {
         Ok(message) => {
             return format!(
                 "{{\"success\": true, \"message\": \"Flags successfully updated\", \"data\": {}}}",
@@ -343,7 +352,7 @@ pub fn modify_flags(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String 
     }
 }
 
-pub fn move_message(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn move_message(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -381,7 +390,9 @@ pub fn move_message(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String 
     let mailbox_path_dest = mailbox_path_dest.unwrap();
 
     let mut locked_inbox_client = inbox_client.lock().unwrap();
-    match locked_inbox_client.move_message(session_id, mailbox_path, message_uid, mailbox_path_dest)
+    match locked_inbox_client
+        .move_message(session_id, mailbox_path, message_uid, mailbox_path_dest)
+        .await
     {
         Ok(message) => {
             return format!(

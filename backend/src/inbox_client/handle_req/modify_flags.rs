@@ -1,10 +1,12 @@
-use imap::types::Flag;
+use async_imap::error::Error as ImapError;
+use async_imap::types::{Fetch, Flag};
+use futures::StreamExt;
 
 use crate::inbox_client::{inbox_client::InboxClient, parse_message::flags_to_string};
 use crate::my_error::MyError;
 
 impl InboxClient {
-    pub fn modify_flags(
+    pub async fn modify_flags(
         &mut self,
         session_id: usize,
         mailbox_path: &str,
@@ -21,11 +23,18 @@ impl InboxClient {
             None => return Err(MyError::String("Session not found".to_string())),
         };
 
-        match session.select(mailbox_path) {
+        match session.select(mailbox_path).await {
             Ok(_) => {}
-            Err(e) => match self.handle_disconnect(session_id, e) {
+            Err(e) => match self.handle_disconnect(session_id, e).await {
                 Ok(_) => {
-                    return self.modify_flags(session_id, mailbox_path, message_uid, flags, add);
+                    return Box::pin(self.modify_flags(
+                        session_id,
+                        mailbox_path,
+                        message_uid,
+                        flags,
+                        add,
+                    ))
+                    .await;
                 }
                 Err(e) => return Err(e),
             },
@@ -46,25 +55,38 @@ impl InboxClient {
 
         query.push_str(")");
 
-        let fetches = match session.uid_store(message_uid.to_string(), query) {
-            Ok(e) => e,
-            Err(e) => {
-                eprintln!("Error updating message flag");
+        let fetches: Vec<Result<Fetch, ImapError>> =
+            match session.uid_store(message_uid.to_string(), query).await {
+                Ok(e) => e.collect().await,
+                Err(e) => {
+                    eprintln!("Error updating message flag");
 
-                return Err(MyError::Imap(e));
-            }
-        };
+                    return Err(MyError::Imap(e));
+                }
+            };
 
-        let fetch = match fetches.first() {
-            Some(e) => e,
+        let mut first_fetch: Option<Fetch> = None;
+        for fetch in fetches {
+            first_fetch = match fetch {
+                Ok(first_fetch) => Some(first_fetch),
+                Err(e) => {
+                    eprintln!("Error updating message flag");
+
+                    return Err(MyError::Imap(e));
+                }
+            };
+        }
+
+        let fetch = match first_fetch {
+            Some(fetch) => fetch,
             None => {
-                return Err(MyError::String("No messages updated".to_string()));
+                return Err(MyError::String("No fetches found".to_string()));
             }
         };
 
-        let updated_flags = fetch.flags();
+        let updated_flags = fetch.flags().collect::<Vec<_>>();
 
-        return self.modify_flags_db(session_id, mailbox_path, message_uid, updated_flags);
+        return self.modify_flags_db(session_id, mailbox_path, message_uid, &updated_flags);
     }
 
     fn modify_flags_db(

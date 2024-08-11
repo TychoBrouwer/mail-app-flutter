@@ -55,7 +55,7 @@ async fn main() {
 
     for session in sessions {
         let mut locked_inbox_client = inbox_client.lock().unwrap();
-        match locked_inbox_client.connect(session) {
+        match locked_inbox_client.connect(session).await {
             Ok(_) => {}
             Err(e) => eprintln!("Error connecting to IMAP stored in local database: {:?}", e),
         }

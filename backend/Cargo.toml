@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 base64 = "0.22.1"
 chrono = "0.4.38"
-imap = "2.4.1"
+async-imap = "0.9.7"
 imap-proto = "0.10.2"
 mail-parser = "0.9.3"
 native-tls = "0.2.12"
@@ -14,5 +14,6 @@ regex = "1.10.5"
 rusqlite = { version = "0.32.0", features = ["bundled", "array"] }
 tungstenite = "0.23.0"
 async-std = { version = "1.10.0", features = ["attributes"] }
+async-native-tls = "0.5.0"
 futures = "0.3.17"
 url-escape = "0.1.0"

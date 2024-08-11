@@ -38,15 +38,17 @@ async fn handle_connection(mut stream: TcpStream, inbox_client: Arc<Mutex<InboxC
     let params: &str = uri_parts.get(1).unwrap_or(&"");
 
     let data = match path {
-        "/login" => handle_conn::login(params, inbox_client),
-        "/logout" => handle_conn::logout(params, inbox_client),
-        "/get_sessions" => handle_conn::get_sessions(inbox_client),
-        "/get_mailboxes" => handle_conn::get_mailboxes(params, inbox_client),
-        "/get_messages_with_uids" => handle_conn::get_messages_with_uids(params, inbox_client),
-        "/get_messages_sorted" => handle_conn::get_messages_sorted(params, inbox_client),
-        "/update_mailbox" => handle_conn::update_mailbox(params, inbox_client),
-        "/modify_flags" => handle_conn::modify_flags(params, inbox_client),
-        "/move_message" => handle_conn::move_message(params, inbox_client),
+        "/login" => handle_conn::login(params, inbox_client).await,
+        "/logout" => handle_conn::logout(params, inbox_client).await,
+        "/get_sessions" => handle_conn::get_sessions(inbox_client).await,
+        "/get_mailboxes" => handle_conn::get_mailboxes(params, inbox_client).await,
+        "/get_messages_with_uids" => {
+            handle_conn::get_messages_with_uids(params, inbox_client).await
+        }
+        "/get_messages_sorted" => handle_conn::get_messages_sorted(params, inbox_client).await,
+        "/update_mailbox" => handle_conn::update_mailbox(params, inbox_client).await,
+        "/modify_flags" => handle_conn::modify_flags(params, inbox_client).await,
+        "/move_message" => handle_conn::move_message(params, inbox_client).await,
         _ => String::from("{\"success\": false, \"message\": \"Not Found\"}"),
     };
 

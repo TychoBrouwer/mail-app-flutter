@@ -1,5 +1,6 @@
-use imap;
-use native_tls::TlsConnector;
+use async_imap;
+use async_native_tls::TlsConnector;
+use async_std::net::TcpStream;
 
 use crate::database::conn::DBConnection;
 use crate::my_error::MyError;
@@ -18,7 +19,7 @@ impl InboxClient {
         }
     }
 
-    pub fn connect(&mut self, session: Session) -> Result<usize, MyError> {
+    pub async fn connect(&mut self, session: Session) -> Result<usize, MyError> {
         if (self
             .sessions
             .iter()
@@ -39,7 +40,7 @@ impl InboxClient {
             Err(e) => eprintln!("Error inserting connection into database: {:?}", e),
         }
 
-        match self.connect_imap(idx) {
+        match self.connect_imap(idx).await {
             Ok(_) => {
                 return Ok(idx);
             }
@@ -50,9 +51,13 @@ impl InboxClient {
         }
     }
 
-    pub fn connect_imap(&mut self, session_id: usize) -> Result<(), MyError> {
-        let tls = TlsConnector::builder().build().unwrap();
+    fn tls() -> TlsConnector {
+        TlsConnector::new()
+            .danger_accept_invalid_hostnames(true)
+            .danger_accept_invalid_certs(true)
+    }
 
+    pub async fn connect_imap(&mut self, session_id: usize) -> Result<(), MyError> {
         if session_id >= self.sessions.len() {
             return Err(MyError::String("Session not found".to_string()));
         }
@@ -62,34 +67,53 @@ impl InboxClient {
         let username = &self.sessions[session_id].username;
         let password = &self.sessions[session_id].password;
 
-        match imap::connect((address.as_str(), port), address, &tls) {
-            Ok(c) => match c.login(username, password) {
-                Ok(s) => {
-                    self.sessions[session_id].stream = Some(s);
-
-                    match self.get_mailboxes(session_id) {
-                        Ok(_) => {
-                            return Ok(());
-                        }
-                        Err(e) => {
-                            eprintln!("Error getting mailboxes: {:?}", e);
-                            return Err(MyError::String(e.to_string()));
-                        }
-                    }
-                }
-                Err(e) => {
-                    eprintln!("Error logging in: {:?}", e);
-                    return Err(MyError::Imap(e.0));
-                }
-            },
+        let tcp_stream = match TcpStream::connect((address.as_str(), port)).await {
+            Ok(s) => s,
             Err(e) => {
                 eprintln!("Error connecting to IMAP server: {}", e);
+                return Err(MyError::Io(e));
+            }
+        };
+
+        let tls = Self::tls();
+        let tls_stream = match tls.connect(address, tcp_stream).await {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Error establishing TLS connection: {}", e);
+                return Err(MyError::Tls(e));
+            }
+        };
+
+        let mut client = async_imap::Client::new(tls_stream);
+        let _greeting = match client.read_response().await {
+            Some(Ok(g)) => g,
+            Some(Err(e)) => {
+                eprintln!("Error reading greeting: {:?}", e);
+                return Err(MyError::Io(e));
+            }
+            None => {
+                return Err(MyError::String("No greeting received".to_string()));
+            }
+        };
+
+        let session = match client
+            .login(username, password)
+            .await
+            .map_err(|(err, _client)| err)
+        {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Error logging in: {:?}", e);
                 return Err(MyError::Imap(e));
             }
         };
+
+        self.sessions[session_id].stream = Some(session);
+
+        return Ok({});
     }
 
-    pub fn logout_imap(&mut self, session_id: usize) -> Result<(), MyError> {
+    pub async fn logout_imap(&mut self, session_id: usize) -> Result<(), MyError> {
         if session_id >= self.sessions.len() {
             return Err(MyError::String("Session not found".to_string()));
         }
@@ -101,7 +125,7 @@ impl InboxClient {
             }
         };
 
-        match session.logout() {
+        match session.logout().await {
             Ok(_) => {
                 self.sessions.remove(session_id);
 
@@ -114,24 +138,28 @@ impl InboxClient {
         }
     }
 
-    pub fn handle_disconnect(&mut self, session_id: usize, e: imap::Error) -> Result<(), MyError> {
+    pub async fn handle_disconnect(
+        &mut self,
+        session_id: usize,
+        e: async_imap::error::Error,
+    ) -> Result<(), MyError> {
         eprintln!("IMAP communication error: {:?}", e);
 
         match e {
-            imap::Error::ConnectionLost => {
+            async_imap::error::Error::ConnectionLost => {
                 eprintln!("Reconnecting to IMAP server");
 
-                match self.connect_imap(session_id) {
+                match self.connect_imap(session_id).await {
                     Ok(_) => {}
                     Err(e) => return Err(e),
                 }
 
                 return Ok({});
             }
-            imap::Error::Io(_) => {
+            async_imap::error::Error::Io(_) => {
                 eprintln!("Reconnecting to IMAP server");
 
-                match self.connect_imap(session_id) {
+                match self.connect_imap(session_id).await {
                     Ok(_) => {}
                     Err(e) => return Err(e),
                 }
