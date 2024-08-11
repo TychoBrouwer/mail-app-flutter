@@ -2,6 +2,7 @@ use base64::{prelude::BASE64_STANDARD, Engine};
 use rusqlite::{params, vtab, Connection, OpenFlags};
 
 use crate::my_error::MyError;
+use crate::types::client::Client;
 use crate::types::{message::Message, session::Session};
 
 pub struct DBConnection {
@@ -494,4 +495,53 @@ impl DBConnection {
             }
         };
     }
+}
+
+pub fn insert_mailbox(
+    conn: &Connection,
+    client: &Client,
+    mailbox_path: &str,
+) -> Result<(), MyError> {
+    match conn.execute(
+        "INSERT OR IGNORE INTO mailboxes (
+            c_username,
+            c_address,
+            path
+        ) VALUES (?1, ?2, ?3)",
+        params![client.username, client.address, mailbox_path],
+    ) {
+        Ok(_) => Ok({}),
+        Err(e) => {
+            eprintln!("Error inserting mailbox: {}", e);
+
+            return Err(MyError::Sqlite(e));
+        }
+    }
+}
+
+pub fn get_mailboxes(conn: &Connection, client: &Client) -> Result<Vec<String>, MyError> {
+    let mut stmt =
+        match conn.prepare("SELECT * FROM mailboxes WHERE c_username = ?1 AND c_address = ?2") {
+            Ok(stmt) => stmt,
+            Err(e) => {
+                eprintln!("Error preparing statement at mailboxes: {}", e);
+                return Err(MyError::Sqlite(e));
+            }
+        };
+
+    let mut mailboxes: Vec<String> = Vec::new();
+
+    match stmt.query_map(params![client.username, client.address], |row| row.get(2)) {
+        Ok(rows) => {
+            for row in rows {
+                mailboxes.push(row.unwrap());
+            }
+        }
+        Err(e) => {
+            eprintln!("Error getting mailboxes: {}", e);
+            return Err(MyError::Sqlite(e));
+        }
+    }
+
+    return Ok(mailboxes);
 }

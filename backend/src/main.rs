@@ -16,6 +16,7 @@ mod inbox_client {
 }
 
 pub mod types {
+    pub mod client;
     pub mod message;
     pub mod sequence_set;
     pub mod session;
