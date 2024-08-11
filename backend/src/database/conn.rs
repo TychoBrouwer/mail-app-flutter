@@ -3,39 +3,34 @@ use rusqlite::{params, vtab, Connection, OpenFlags};
 
 use crate::my_error::MyError;
 use crate::types::client::Client;
-use crate::types::{message::Message, session::Session};
+use crate::types::message::Message;
 
-pub struct DBConnection {
-    conn: Connection,
-}
-
-impl DBConnection {
-    pub fn new(database_path: &str) -> Result<DBConnection, MyError> {
-        let conn = match Connection::open_with_flags(
-            database_path,
-            OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE,
-        ) {
-            Ok(conn) => conn,
-            Err(e) => {
-                eprintln!("Error opening database: {}", e);
-                return Err(MyError::Sqlite(e));
-            }
-        };
-
-        match vtab::array::load_module(&conn) {
-            Ok(_) => {}
-            Err(e) => {
-                eprintln!("Error loading array module: {}", e);
-                return Err(MyError::Sqlite(e));
-            }
+pub fn new(database_path: &str) -> Result<Connection, MyError> {
+    let conn = match Connection::open_with_flags(
+        database_path,
+        OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE,
+    ) {
+        Ok(conn) => conn,
+        Err(e) => {
+            eprintln!("Error opening database: {}", e);
+            return Err(MyError::Sqlite(e));
         }
+    };
 
-        return Ok(DBConnection { conn });
+    match vtab::array::load_module(&conn) {
+        Ok(_) => {}
+        Err(e) => {
+            eprintln!("Error loading array module: {}", e);
+            return Err(MyError::Sqlite(e));
+        }
     }
 
-    pub fn initialise(&mut self) -> Result<(), MyError> {
-        match self.conn.execute(
-            "CREATE TABLE IF NOT EXISTS connections (
+    return Ok(conn);
+}
+
+pub fn initialise(conn: &Connection) -> Result<(), MyError> {
+    match conn.execute(
+        "CREATE TABLE IF NOT EXISTS connections (
                 username VARCHAR(500) NOT NULL,
                 password VARCHAR(500) NOT NULL,
                 address VARCHAR(500) NOT NULL,
@@ -43,17 +38,17 @@ impl DBConnection {
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY(username, address)
             )",
-            params![],
-        ) {
-            Ok(_) => {}
-            Err(e) => {
-                eprintln!("Error creating connections table: {}", e);
+        params![],
+    ) {
+        Ok(_) => {}
+        Err(e) => {
+            eprintln!("Error creating connections table: {}", e);
 
-                return Err(MyError::Sqlite(e));
-            }
+            return Err(MyError::Sqlite(e));
         }
+    }
 
-        match self.conn.execute(
+    match conn.execute(
             "CREATE TABLE IF NOT EXISTS mailboxes (
                 c_username VARCHAR(500) NOT NULL,
                 c_address VARCHAR(500) NOT NULL,
@@ -72,7 +67,7 @@ impl DBConnection {
             }
         }
 
-        match self.conn.execute(
+    match conn.execute(
             "CREATE TABLE IF NOT EXISTS messages (
                 message_uid INTEGER NOT NULL,
                 c_username VARCHAR(500) NOT NULL,
@@ -109,392 +104,345 @@ impl DBConnection {
             }
         }
 
-        return Ok(());
-    }
+    return Ok(());
+}
 
-    pub fn insert_connection(&mut self, session: &Session) -> Result<(), MyError> {
-        match self.conn.execute(
-            "INSERT OR IGNORE INTO connections (
+pub fn insert_connection(conn: &Connection, client: &Client) -> Result<(), MyError> {
+    match conn.execute(
+        "INSERT OR IGNORE INTO connections (
                 username,
                 password,
                 address,
                 port
             ) VALUES (?1, ?2, ?3, ?4)",
-            params![
-                session.username,
-                session.password,
-                session.address,
-                session.port
-            ],
-        ) {
-            Ok(_) => Ok({}),
-            Err(e) => {
-                eprintln!("Error inserting connection: {}", e);
+        params![
+            client.username,
+            client.password,
+            client.address,
+            client.port
+        ],
+    ) {
+        Ok(_) => Ok({}),
+        Err(e) => {
+            eprintln!("Error inserting connection: {}", e);
 
-                return Err(MyError::Sqlite(e));
+            return Err(MyError::Sqlite(e));
+        }
+    }
+}
+
+pub fn get_connections(conn: &Connection) -> Result<Vec<Client>, MyError> {
+    let mut stmt = match conn.prepare("SELECT * FROM connections") {
+        Ok(stmt) => stmt,
+        Err(e) => {
+            eprintln!("Error preparing statement at connections: {}", e);
+            return Err(MyError::Sqlite(e));
+        }
+    };
+
+    match stmt.query_map(params![], |row| {
+        Ok(Client {
+            username: row.get(0).unwrap(),
+            password: row.get(1).unwrap(),
+            address: row.get(2).unwrap(),
+            port: row.get(3).unwrap(),
+        })
+    }) {
+        Ok(rows) => {
+            let mut connections: Vec<Client> = Vec::new();
+
+            for row in rows {
+                connections.push(match row {
+                    Ok(session) => session,
+                    Err(_) => continue,
+                });
             }
+
+            return Ok(connections);
+        }
+        Err(e) => {
+            eprintln!("Error getting connections: {}", e);
+            return Err(MyError::Sqlite(e));
+        }
+    };
+}
+
+pub fn update_message_sequence_id(
+    conn: &Connection,
+    client: &Client,
+    mailbox_path: &str,
+    message_uid: u32,
+    sequence_id: u32,
+) -> Result<(), MyError> {
+    match conn.execute(
+        "UPDATE messages
+         SET sequence_id = NULL
+         WHERE sequence_id = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
+        params![sequence_id, client.username, client.address, mailbox_path],
+    ) {
+        Ok(_) => {}
+        Err(e) => {
+            eprintln!("Error updating sequence_id column: {}", e);
+            return Err(MyError::Sqlite(e));
+        }
+    };
+
+    match conn.execute(
+        "UPDATE messages
+         SET sequence_id = ?1
+         WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
+        params![
+            sequence_id,
+            message_uid,
+            client.username,
+            client.address,
+            mailbox_path
+        ],
+    ) {
+        Ok(_) => {}
+        Err(e) => {
+            eprintln!("Error updating sequence_id column: {}", e);
+            return Err(MyError::Sqlite(e));
         }
     }
 
-    pub fn insert_mailbox(
-        &mut self,
-        username: &str,
-        address: &str,
-        mailbox_path: &str,
-    ) -> Result<(), MyError> {
-        match self.conn.execute(
-            "INSERT OR IGNORE INTO mailboxes (
-                c_username,
-                c_address,
-                path
-            ) VALUES (?1, ?2, ?3)",
-            params![username, address, mailbox_path],
-        ) {
-            Ok(_) => Ok({}),
-            Err(e) => {
-                eprintln!("Error inserting mailbox: {}", e);
+    return Ok(());
+}
 
-                return Err(MyError::Sqlite(e));
-            }
+pub fn insert_message(
+    conn: &Connection,
+    client: &Client,
+    mailbox_path: &str,
+    message: &Message,
+) -> Result<(), MyError> {
+    let html = match String::from_utf8(BASE64_STANDARD.decode(message.html.as_str()).unwrap()) {
+        Ok(html) => html,
+        Err(e) => {
+            eprintln!("Error decoding HTML: {}", e);
+
+            return Err(MyError::FromUtf8(e));
+        }
+    };
+
+    let decode_text = match BASE64_STANDARD.decode(message.text.as_str()) {
+        Ok(decode) => decode,
+        Err(e) => {
+            eprintln!("Error decoding text: {}", e);
+
+            return Err(MyError::Base64(e));
+        }
+    };
+
+    let text = match String::from_utf8(decode_text) {
+        Ok(text) => text,
+        Err(e) => {
+            eprintln!("Error decoding text bytes: {}", e);
+
+            return Err(MyError::FromUtf8(e));
+        }
+    };
+
+    match conn.execute(
+        "INSERT OR IGNORE INTO messages (
+            message_uid,
+            c_username,
+            c_address,
+            m_path,
+            sequence_id,
+            message_id,
+            subject,
+            from_,
+            sender,
+            to_,
+            cc,
+            bcc,
+            reply_to,
+            in_reply_to,
+            delivered_to,
+            date_,
+            received,
+            flags,
+            html,
+            text
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
+        params![
+            message.message_uid,
+            client.username,
+            client.address,
+            mailbox_path,
+            message.sequence_id,
+            message.message_id,
+            message.subject,
+            message.from,
+            message.sender,
+            message.to,
+            message.cc,
+            message.bcc,
+            message.reply_to,
+            message.in_reply_to,
+            message.delivered_to,
+            message.date,
+            message.received,
+            message.flags,
+            html,
+            text
+        ],
+    ) {
+        Ok(_) => Ok({}),
+        Err(e) => {
+            eprintln!("Error inserting message: {}", e);
+
+            return Err(MyError::Sqlite(e));
         }
     }
+}
 
-    pub fn insert_message(
-        &mut self,
-        username: &str,
-        address: &str,
-        mailbox_path: &str,
-        message: &Message,
-    ) -> Result<(), MyError> {
-        let html = match String::from_utf8(BASE64_STANDARD.decode(message.html.as_str()).unwrap()) {
-            Ok(html) => html,
-            Err(e) => {
-                eprintln!("Error decoding HTML: {}", e);
-
-                return Err(MyError::FromUtf8(e));
-            }
-        };
-
-        let decode_text = match BASE64_STANDARD.decode(message.text.as_str()) {
-            Ok(decode) => decode,
-            Err(e) => {
-                eprintln!("Error decoding text: {}", e);
-
-                return Err(MyError::Base64(e));
-            }
-        };
-
-        let text = match String::from_utf8(decode_text) {
-            Ok(text) => text,
-            Err(e) => {
-                eprintln!("Error decoding text bytes: {}", e);
-
-                return Err(MyError::FromUtf8(e));
-            }
-        };
-
-        match self.conn.execute(
-            "INSERT OR IGNORE INTO messages (
-                message_uid,
-                c_username,
-                c_address,
-                m_path,
-                sequence_id,
-                message_id,
-                subject,
-                from_,
-                sender,
-                to_,
-                cc,
-                bcc,
-                reply_to,
-                in_reply_to,
-                delivered_to,
-                date_,
-                received,
-                flags,
-                html,
-                text
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
-            params![
-                message.message_uid,
-                username,
-                address,
-                mailbox_path,
-                message.sequence_id,
-                message.message_id,
-                message.subject,
-                message.from,
-                message.sender,
-                message.to,
-                message.cc,
-                message.bcc,
-                message.reply_to,
-                message.in_reply_to,
-                message.delivered_to,
-                message.date,
-                message.received,
-                message.flags,
-                html,
-                text
-            ],
-        ) {
-            Ok(_) => Ok({}),
-            Err(e) => {
-                eprintln!("Error inserting message: {}", e);
-
-                return Err(MyError::Sqlite(e));
-            }
+pub fn move_message(
+    conn: &Connection,
+    client: &Client,
+    mailbox_path: &str,
+    message_uid: u32,
+    mailbox_path_dest: &str,
+) -> Result<(), MyError> {
+    match conn.execute(
+        "UPDATE messages
+         SET m_path = ?1
+         WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
+        params![
+            mailbox_path_dest,
+            message_uid,
+            client.username,
+            client.address,
+            mailbox_path
+        ],
+    ) {
+        Ok(_) => Ok({}),
+        Err(e) => {
+            eprintln!("Error moving message: {}", e);
+            return Err(MyError::Sqlite(e));
         }
     }
+}
 
-    pub fn update_message_flags(
-        &mut self,
-        username: &str,
-        address: &str,
-        mailbox_path: &str,
-        message_uid: u32,
-        flags_str: &str,
-    ) -> Result<(), MyError> {
-        match self.conn.execute(
-            "UPDATE messages
-             SET flags = ?1
-             WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
-            params![flags_str, message_uid, username, address, mailbox_path],
-        ) {
-            Ok(_) => Ok({}),
-            Err(e) => {
-                eprintln!("Error updating flags column: {}", e);
-                return Err(MyError::Sqlite(e));
-            }
+pub fn update_message_flags(
+    conn: &Connection,
+    client: &Client,
+    mailbox_path: &str,
+    message_uid: u32,
+    flags_str: &str,
+) -> Result<(), MyError> {
+    match conn.execute(
+        "UPDATE messages
+         SET flags = ?1
+         WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
+        params![
+            flags_str,
+            message_uid,
+            client.username,
+            client.address,
+            mailbox_path
+        ],
+    ) {
+        Ok(_) => Ok({}),
+        Err(e) => {
+            eprintln!("Error updating flags column: {}", e);
+            return Err(MyError::Sqlite(e));
         }
     }
+}
 
-    pub fn move_message(
-        &mut self,
-        username: &str,
-        address: &str,
-        mailbox_path: &str,
-        message_uid: u32,
-        mailbox_path_dest: &str,
-    ) -> Result<(), MyError> {
-        match self.conn.execute(
-            "UPDATE messages
-             SET m_path = ?1
-             WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
-            params![
-                mailbox_path_dest,
-                message_uid,
-                username,
-                address,
-                mailbox_path
-            ],
-        ) {
-            Ok(_) => Ok({}),
-            Err(e) => {
-                eprintln!("Error moving message: {}", e);
-                return Err(MyError::Sqlite(e));
-            }
+pub fn get_messages_with_uids(
+    conn: &Connection,
+    client: &Client,
+    mailbox_path: &str,
+    message_uids: &Vec<u32>,
+) -> Result<Vec<Message>, MyError> {
+    let mut stmt = match conn.prepare(
+        "SELECT * FROM messages WHERE message_uid IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
+    ) {
+        Ok(stmt) => stmt,
+        Err(e) => {
+            eprintln!("Error preparing statement: {}", e);
+            return Err(MyError::Sqlite(e));
         }
-    }
+    };
 
-    pub fn update_message_sequence_id(
-        &mut self,
-        username: &str,
-        address: &str,
-        mailbox_path: &str,
-        message_uid: u32,
-        sequence_id: u32,
-    ) -> Result<(), MyError> {
-        match self.conn.execute(
-            "UPDATE messages
-             SET sequence_id = NULL
-             WHERE sequence_id = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
-            params![sequence_id, username, address, mailbox_path],
-        ) {
-            Ok(_) => {}
-            Err(e) => {
-                eprintln!("Error updating sequence_id column: {}", e);
-                return Err(MyError::Sqlite(e));
-            }
-        };
+    let uid_list: vtab::array::Array = std::rc::Rc::new(
+        message_uids
+            .into_iter()
+            .map(|uid| rusqlite::types::Value::from(*uid))
+            .collect::<Vec<rusqlite::types::Value>>(),
+    );
 
-        match self.conn.execute(
-            "UPDATE messages
-             SET sequence_id = ?1
-             WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
-            params![sequence_id, message_uid, username, address, mailbox_path],
-        ) {
-            Ok(_) => {}
-            Err(e) => {
-                eprintln!("Error updating sequence_id column: {}", e);
-                return Err(MyError::Sqlite(e));
-            }
-        }
+    match stmt.query_map(
+        params![uid_list, client.username, client.address, mailbox_path],
+        |row| Ok(Message::from_row(row)),
+    ) {
+        Ok(messages) => {
+            let mut messages_list: Vec<Message> = Vec::new();
 
-        return Ok(());
-    }
-
-    pub fn get_connections(&mut self) -> Result<Vec<Session>, MyError> {
-        let mut stmt = match self.conn.prepare("SELECT * FROM connections") {
-            Ok(stmt) => stmt,
-            Err(e) => {
-                eprintln!("Error preparing statement at connections: {}", e);
-                return Err(MyError::Sqlite(e));
-            }
-        };
-
-        match stmt.query_map(params![], |row| {
-            Ok(Session {
-                stream: None,
-                username: row.get(0).unwrap(),
-                password: row.get(1).unwrap(),
-                address: row.get(2).unwrap(),
-                port: row.get(3).unwrap(),
-            })
-        }) {
-            Ok(rows) => {
-                let mut connections: Vec<Session> = Vec::new();
-
-                for row in rows {
-                    connections.push(match row {
-                        Ok(session) => session,
-                        Err(_) => continue,
-                    });
-                }
-
-                return Ok(connections);
-            }
-            Err(e) => {
-                eprintln!("Error getting connections: {}", e);
-                return Err(MyError::Sqlite(e));
-            }
-        };
-    }
-
-    pub fn get_mailboxes(&mut self, username: &str, address: &str) -> Result<Vec<String>, MyError> {
-        let mut stmt = match self
-            .conn
-            .prepare("SELECT * FROM mailboxes WHERE c_username = ?1 AND c_address = ?2")
-        {
-            Ok(stmt) => stmt,
-            Err(e) => {
-                eprintln!("Error preparing statement at mailboxes: {}", e);
-                return Err(MyError::Sqlite(e));
-            }
-        };
-
-        let mut mailboxes: Vec<String> = Vec::new();
-
-        match stmt.query_map(params![username, address], |row| row.get(2)) {
-            Ok(rows) => {
-                for row in rows {
-                    mailboxes.push(row.unwrap());
-                }
-            }
-            Err(e) => {
-                eprintln!("Error getting mailboxes: {}", e);
-                return Err(MyError::Sqlite(e));
-            }
-        }
-
-        return Ok(mailboxes);
-    }
-
-    pub fn get_messages_with_uids(
-        &mut self,
-        username: &str,
-        address: &str,
-        mailbox_path: &str,
-        message_uids: &Vec<u32>,
-    ) -> Result<Vec<Message>, MyError> {
-        let mut stmt = match self.conn.prepare(
-            "SELECT * FROM messages WHERE message_uid IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
-        ) {
-            Ok(stmt) => stmt,
-            Err(e) => {
-                eprintln!("Error preparing statement: {}", e);
-                return Err(MyError::Sqlite(e));
-            }
-        };
-
-        let uid_list: vtab::array::Array = std::rc::Rc::new(
-            message_uids
-                .into_iter()
-                .map(|uid| rusqlite::types::Value::from(*uid))
-                .collect::<Vec<rusqlite::types::Value>>(),
-        );
-
-        match stmt.query_map(params![uid_list, username, address, mailbox_path], |row| {
-            Ok(Message::from_row(row))
-        }) {
-            Ok(messages) => {
-                let mut messages_list: Vec<Message> = Vec::new();
-
-                for message in messages {
-                    match message {
-                        Ok(message) => messages_list.push(message),
-                        Err(_) => {
-                            eprintln!("Message not present in local database");
-                            continue;
-                        }
+            for message in messages {
+                match message {
+                    Ok(message) => messages_list.push(message),
+                    Err(_) => {
+                        eprintln!("Message not present in local database");
+                        continue;
                     }
                 }
-
-                return Ok(messages_list);
             }
-            Err(e) => {
-                eprintln!("Error getting message: {}", e);
-                return Err(MyError::Sqlite(e));
-            }
-        };
-    }
 
-    pub fn get_messages_sorted(
-        &mut self,
-        username: &str,
-        address: &str,
-        mailbox_path: &str,
-        start: u32,
-        end: u32,
-    ) -> Result<Vec<Message>, MyError> {
-        let mut stmt = match self.conn.prepare(
-            "SELECT * FROM messages WHERE c_username = ?1 AND c_address = ?2 AND m_path = ?3 ORDER BY received DESC LIMIT ?4 OFFSET ?5",
-        ) {
-            Ok(stmt) => stmt,
-            Err(e) => {
-                eprintln!("Error preparing statement: {}", e);
-                return Err(MyError::Sqlite(e));
-            }
-        };
+            return Ok(messages_list);
+        }
+        Err(e) => {
+            eprintln!("Error getting message: {}", e);
+            return Err(MyError::Sqlite(e));
+        }
+    };
+}
 
-        let limit = end - start + 1;
+pub fn get_messages_sorted(
+    conn: &Connection,
+    client: &Client,
+    mailbox_path: &str,
+    start: u32,
+    end: u32,
+) -> Result<Vec<Message>, MyError> {
+    let mut stmt = match conn.prepare(
+        "SELECT * FROM messages WHERE c_username = ?1 AND c_address = ?2 AND m_path = ?3 ORDER BY received DESC LIMIT ?4 OFFSET ?5",
+    ) {
+        Ok(stmt) => stmt,
+        Err(e) => {
+            eprintln!("Error preparing statement: {}", e);
+            return Err(MyError::Sqlite(e));
+        }
+    };
 
-        match stmt.query_map(
-            params![username, address, mailbox_path, limit, start],
-            |row| Ok(Message::from_row(row)),
-        ) {
-            Ok(messages) => {
-                let mut messages_list: Vec<Message> = Vec::new();
+    let limit = end - start + 1;
 
-                for message in messages {
-                    match message {
-                        Ok(message) => messages_list.push(message),
-                        Err(_) => {
-                            eprintln!("Message not present in local database");
-                            continue;
-                        }
+    match stmt.query_map(
+        params![client.username, client.address, mailbox_path, limit, start],
+        |row| Ok(Message::from_row(row)),
+    ) {
+        Ok(messages) => {
+            let mut messages_list: Vec<Message> = Vec::new();
+
+            for message in messages {
+                match message {
+                    Ok(message) => messages_list.push(message),
+                    Err(_) => {
+                        eprintln!("Message not present in local database");
+                        continue;
                     }
                 }
+            }
 
-                return Ok(messages_list);
-            }
-            Err(e) => {
-                eprintln!("Error getting message: {}", e);
-                return Err(MyError::Sqlite(e));
-            }
-        };
-    }
+            return Ok(messages_list);
+        }
+        Err(e) => {
+            eprintln!("Error getting message: {}", e);
+            return Err(MyError::Sqlite(e));
+        }
+    };
 }
 
 pub fn insert_mailbox(

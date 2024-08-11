@@ -3,7 +3,7 @@ mod database {
 }
 
 mod inbox_client {
-    pub mod handle_req {
+    mod handle_req {
         pub mod get_mailboxes;
         pub mod get_messages_sorted;
         pub mod get_messages_with_uids;
@@ -15,11 +15,11 @@ mod inbox_client {
     pub mod parse_message;
 }
 
-pub mod types {
+mod types {
     pub mod client;
     pub mod message;
     pub mod sequence_set;
-    pub mod session;
+    pub mod tcp_session;
 }
 
 mod http_server {
@@ -30,38 +30,38 @@ mod http_server {
 
 mod my_error;
 
-use std::sync::{Arc, Mutex};
-
-use crate::database::conn::DBConnection;
-use crate::inbox_client::inbox_client::InboxClient;
+use async_std::sync::{Arc, Mutex};
+use database::conn;
+use types::tcp_session::TcpSessions;
 
 #[async_std::main]
 async fn main() {
-    let mut database_conn = match DBConnection::new("mail.db") {
+    let database_conn = match conn::new("mail.db") {
         Ok(conn) => conn,
         Err(e) => panic!("Error opening database: {}", e),
     };
 
-    match database_conn.initialise() {
+    match conn::initialise(&database_conn) {
         Ok(_) => {}
         Err(e) => panic!("Error initialising database: {}", e),
     };
 
-    let sessions = match database_conn.get_connections() {
-        Ok(sessions) => sessions,
+    let clients = match conn::get_connections(&database_conn) {
+        Ok(clients) => clients,
         Err(e) => panic!("Error getting connections: {}", e),
     };
 
-    let inbox_client = Arc::new(Mutex::new(InboxClient::new(database_conn)));
+    let mut sessions = Vec::new();
+    for client in clients {
+        let session = inbox_client::inbox_client::connect_imap(&client).await;
 
-    for session in sessions {
-        let mut locked_inbox_client = inbox_client.lock().unwrap();
-        match locked_inbox_client.connect(session).await {
-            Ok(_) => {}
-            Err(e) => eprintln!("Error connecting to IMAP stored in local database: {:?}", e),
+        match session {
+            Ok(s) => sessions.push(s),
+            Err(e) => eprintln!("Error connecting to IMAP: {:?}", e),
         }
     }
 
-    http_server::http_server::create_server(inbox_client).await;
-    // websocket::websocket::create_server(&mut inbox_client);
+    let sessions: TcpSessions = Arc::new(Mutex::new(sessions));
+
+    http_server::http_server::create_server(&database_conn, sessions).await;
 }

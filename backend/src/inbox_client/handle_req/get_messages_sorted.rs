@@ -1,42 +1,31 @@
-use crate::inbox_client::inbox_client::InboxClient;
+use rusqlite::Connection;
+
+use crate::database::conn;
 use crate::my_error::MyError;
+use crate::types::client::Client;
 
-impl InboxClient {
-    pub fn get_messages_sorted(
-        &mut self,
-        session_id: usize,
-        mailbox_path: &str,
-        start: u32,
-        end: u32,
-    ) -> Result<String, MyError> {
-        if session_id >= self.sessions.len() {
-            return Err(MyError::String("Invalid session ID".to_string()));
+pub fn get_messages_sorted(
+    database_conn: &Connection,
+    client: &Client,
+    mailbox_path: &str,
+    start: u32,
+    end: u32,
+) -> Result<String, MyError> {
+    let messages = match conn::get_messages_sorted(database_conn, client, mailbox_path, start, end)
+    {
+        Ok(m) => m,
+        Err(e) => return Err(e),
+    };
+
+    let mut result = String::from("[");
+    for (i, message) in messages.iter().enumerate() {
+        result.push_str(&message.to_string());
+
+        if i < messages.len() - 1 {
+            result.push_str(",");
         }
-
-        let username = &self.sessions[session_id].username;
-        let address = &self.sessions[session_id].address;
-
-        let messages = match self.database_conn.get_messages_sorted(
-            username,
-            address,
-            mailbox_path,
-            start,
-            end,
-        ) {
-            Ok(m) => m,
-            Err(e) => return Err(e),
-        };
-
-        let mut result = String::from("[");
-        for (i, message) in messages.iter().enumerate() {
-            result.push_str(&message.to_string());
-
-            if i < messages.len() - 1 {
-                result.push_str(",");
-            }
-        }
-        result.push_str("]");
-
-        return Ok(result);
     }
+    result.push_str("]");
+
+    return Ok(result);
 }

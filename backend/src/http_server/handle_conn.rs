@@ -1,10 +1,9 @@
-use std::sync::{Arc, Mutex};
+use rusqlite::Connection;
 
-use crate::http_server::params;
-use crate::inbox_client::inbox_client::InboxClient;
-use crate::types::session::Session;
+use crate::{http_server::params, types::client::Client};
+use crate::types::tcp_session::TcpSessions;
 
-pub async fn login(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn login(uri: &str, database_conn: &Connection, sessions: TcpSessions) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let username = uri_params.get("username");
@@ -41,8 +40,7 @@ pub async fn login(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     };
 
     match locked_inbox_client
-        .connect(Session {
-            stream: None,
+        .connect(Client {
             username: username.to_string(),
             password: password.to_string(),
             address: address.to_string(),
@@ -60,7 +58,7 @@ pub async fn login(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
     }
 }
 
-pub async fn logout(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn logout(uri: &str, database_conn: &Connection, sessions: TcpSessions) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -92,7 +90,7 @@ pub async fn logout(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String 
     }
 }
 
-pub async fn get_sessions(inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn get_sessions(database_conn: &Connection, sessions: TcpSessions) -> String {
     let locked_inbox_client = inbox_client.lock().unwrap();
     let sessions = &locked_inbox_client.sessions;
 
@@ -113,7 +111,7 @@ pub async fn get_sessions(inbox_client: Arc<Mutex<InboxClient>>) -> String {
     return response;
 }
 
-pub async fn get_mailboxes(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn get_mailboxes(uri: &str, database_conn: &Connection, sessions: TcpSessions) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -133,6 +131,8 @@ pub async fn get_mailboxes(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> 
 
     let session_id = session_id.unwrap();
 
+    get_mailboxes::get_mailboxes(session, session_id, database_conn, client).await
+
     let mut locked_inbox_client = inbox_client.lock().unwrap();
     match locked_inbox_client.get_mailboxes(session_id).await {
         Ok(mailbox_pathes) => {
@@ -148,7 +148,7 @@ pub async fn get_mailboxes(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> 
     }
 }
 
-pub async fn get_messages_with_uids(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn get_messages_with_uids(uri: &str, database_conn: &Connection, sessions: TcpSessions) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -193,7 +193,7 @@ pub async fn get_messages_with_uids(uri: &str, inbox_client: Arc<Mutex<InboxClie
     }
 }
 
-pub async fn get_messages_sorted(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn get_messages_sorted(uri: &str, database_conn: &Connection, sessions: TcpSessions) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -232,22 +232,24 @@ pub async fn get_messages_sorted(uri: &str, inbox_client: Arc<Mutex<InboxClient>
     let start = start.unwrap();
     let end = end.unwrap();
 
-    let mut locked_inbox_client = inbox_client.lock().unwrap();
-    match locked_inbox_client.get_messages_sorted(session_id, mailbox_path, start, end) {
-        Ok(messages) => {
-            return format!(
-                "{{\"success\": true, \"message\": \"Messages retrieved\", \"data\": {}}}",
-                messages
-            )
-        }
-        Err(e) => {
-            eprintln!("Error getting messages: {:?}", e);
-            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
-        }
-    }
+    // let mut locked_inbox_client = inbox_client.lock().unwrap();
+    // match locked_inbox_client.get_messages_sorted(session_id, mailbox_path, start, end) {
+    //     Ok(messages) => {
+    //         return format!(
+    //             "{{\"success\": true, \"message\": \"Messages retrieved\", \"data\": {}}}",
+    //             messages
+    //         )
+    //     }
+    //     Err(e) => {
+    //         eprintln!("Error getting messages: {:?}", e);
+    //         return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
+    //     }
+    // }
+
+    return String::from("{\"success\": true, \"message\": \"Mailboxes retrieved\"}");
 }
 
-pub async fn update_mailbox(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn update_mailbox(uri: &str, database_conn: &Connection, sessions: TcpSessions) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -288,7 +290,7 @@ pub async fn update_mailbox(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) ->
     }
 }
 
-pub async fn modify_flags(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn modify_flags(uri: &str, database_conn: &Connection, sessions: TcpSessions) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {
@@ -334,25 +336,27 @@ pub async fn modify_flags(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> S
     let flags = flags.unwrap();
     let add = add.unwrap();
 
-    let mut locked_inbox_client = inbox_client.lock().unwrap();
-    match locked_inbox_client
-        .modify_flags(session_id, mailbox_path, message_uid, flags, add)
-        .await
-    {
-        Ok(message) => {
-            return format!(
-                "{{\"success\": true, \"message\": \"Flags successfully updated\", \"data\": {}}}",
-                message
-            )
-        }
-        Err(e) => {
-            eprintln!("Error updating flags: {:?}", e);
-            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
-        }
-    }
+    // let mut locked_inbox_client = inbox_client.lock().unwrap();
+    // match locked_inbox_client
+    //     .modify_flags(session_id, mailbox_path, message_uid, flags, add)
+    //     .await
+    // {
+    //     Ok(message) => {
+    //         return format!(
+    //             "{{\"success\": true, \"message\": \"Flags successfully updated\", \"data\": {}}}",
+    //             message
+    //         )
+    //     }
+    //     Err(e) => {
+    //         eprintln!("Error updating flags: {:?}", e);
+    //         return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
+    //     }
+    // }
+
+    return String::from("{\"success\": true, \"message\": \"Mailboxes retrieved\"}");
 }
 
-pub async fn move_message(uri: &str, inbox_client: Arc<Mutex<InboxClient>>) -> String {
+pub async fn move_message(uri: &str, database_conn: &Connection, sessions: TcpSessions) -> String {
     let uri_params = params::parse_params(String::from(uri));
 
     let session_id = match params::get_usize(uri_params.get("session_id")) {

@@ -6,14 +6,14 @@ use futures::StreamExt;
 use rusqlite::Connection;
 
 use crate::database::conn;
+use crate::inbox_client::inbox_client::handle_disconnect;
 use crate::my_error::MyError;
 use crate::types::client::Client;
 
-pub async fn get_mailboxes<'a>(
+pub async fn get_mailboxes(
     session: Session<TlsStream<TcpStream>>,
-    session_id: usize,
     database_conn: &Connection,
-    client: &Client<'a>,
+    client: &Client,
 ) -> Result<String, MyError> {
     let mailboxes_db = get_mailboxes_db(&database_conn, &client);
 
@@ -23,7 +23,7 @@ pub async fn get_mailboxes<'a>(
                 mailboxes
             } else {
                 let mailboxes_imap: Result<Vec<String>, MyError> =
-                    get_mailboxes_imap(session, session_id).await;
+                    get_mailboxes_imap(session, client).await;
 
                 match mailboxes_imap {
                     Ok(mailboxes_imap) => mailboxes_imap,
@@ -75,13 +75,13 @@ fn get_mailboxes_db(conn: &Connection, client: &Client) -> Result<Vec<String>, M
 
 async fn get_mailboxes_imap(
     mut session: Session<TlsStream<TcpStream>>,
-    session_id: usize,
+    client: &Client,
 ) -> Result<Vec<String>, MyError> {
     match session.capabilities().await {
         Ok(_) => {}
-        Err(e) => match handle_disconnect(session_id, e).await {
+        Err(e) => match handle_disconnect(client, e).await {
             Ok(_) => {
-                return Box::pin(get_mailboxes_imap(session, session_id)).await;
+                return Box::pin(get_mailboxes_imap(session, client)).await;
             }
             Err(e) => return Err(e),
         },
@@ -108,34 +108,4 @@ async fn get_mailboxes_imap(
         .collect();
 
     return Ok(mailboxes);
-}
-
-async fn handle_disconnect(session_id: usize, e: async_imap::error::Error) -> Result<(), MyError> {
-    eprintln!("IMAP communication error: {:?}", e);
-
-    match e {
-        async_imap::error::Error::ConnectionLost => {
-            eprintln!("Reconnecting to IMAP server");
-
-            // match connect_imap(session_id).await {
-            //     Ok(_) => {}
-            //     Err(e) => return Err(e),
-            // }
-
-            return Ok({});
-        }
-        async_imap::error::Error::Io(_) => {
-            eprintln!("Reconnecting to IMAP server");
-
-            // match connect_imap(session_id).await {
-            //     Ok(_) => {}
-            //     Err(e) => return Err(e),
-            // }
-
-            return Ok({});
-        }
-        _ => {}
-    }
-
-    return Err(MyError::Imap(e));
 }

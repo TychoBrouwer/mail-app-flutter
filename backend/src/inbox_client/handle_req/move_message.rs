@@ -1,72 +1,74 @@
-use crate::inbox_client::inbox_client::InboxClient;
+use async_imap::Session;
+use async_native_tls::TlsStream;
+use async_std::net::TcpStream;
+use rusqlite::Connection;
+
+use crate::database::conn;
+use crate::inbox_client::inbox_client::handle_disconnect;
 use crate::my_error::MyError;
+use crate::types::client::Client;
 
-impl InboxClient {
-    pub async fn move_message(
-        &mut self,
-        session_id: usize,
-        mailbox_path: &str,
-        message_uid: u32,
-        mailbox_path_dest: &str,
-    ) -> Result<String, MyError> {
-        if session_id >= self.sessions.len() {
-            return Err(MyError::String("Invalid session ID".to_string()));
-        }
-
-        let session = match &mut self.sessions[session_id].stream {
-            Some(s) => s,
-            None => return Err(MyError::String("Session not found".to_string())),
-        };
-
-        match session.select(mailbox_path).await {
-            Ok(_) => {}
-            Err(e) => match self.handle_disconnect(session_id, e).await {
-                Ok(_) => {
-                    return Box::pin(self.move_message(
-                        session_id,
-                        mailbox_path,
-                        message_uid,
-                        mailbox_path_dest,
-                    ))
-                    .await;
-                }
-                Err(e) => return Err(e),
-            },
-        };
-
-        match session
-            .uid_mv(message_uid.to_string(), mailbox_path_dest)
-            .await
-        {
-            Ok(e) => e,
-            Err(e) => {
-                eprintln!("Error moving message");
-                return Err(MyError::Imap(e));
+pub async fn move_message(
+    mut session: Session<TlsStream<TcpStream>>,
+    database_conn: &Connection,
+    client: &Client,
+    mailbox_path: &str,
+    message_uid: u32,
+    mailbox_path_dest: &str,
+) -> Result<String, MyError> {
+    match session.select(mailbox_path).await {
+        Ok(_) => {}
+        Err(e) => match handle_disconnect(client, e).await {
+            Ok(_) => {
+                return Box::pin(move_message(
+                    session,
+                    database_conn,
+                    client,
+                    mailbox_path,
+                    message_uid,
+                    mailbox_path_dest,
+                ))
+                .await;
             }
-        };
-
-        return self.move_message_db(session_id, mailbox_path, message_uid, mailbox_path_dest);
-    }
-
-    fn move_message_db(
-        &mut self,
-        session_id: usize,
-        mailbox_path: &str,
-        message_uid: u32,
-        mailbox_path_dest: &str,
-    ) -> Result<String, MyError> {
-        let username = &self.sessions[session_id].username;
-        let address = &self.sessions[session_id].address;
-
-        match self.database_conn.move_message(
-            username,
-            address,
-            mailbox_path,
-            message_uid,
-            mailbox_path_dest,
-        ) {
-            Ok(_) => return Ok(format!("\"{}\"", mailbox_path_dest)),
             Err(e) => return Err(e),
-        };
-    }
+        },
+    };
+
+    match session
+        .uid_mv(message_uid.to_string(), mailbox_path_dest)
+        .await
+    {
+        Ok(e) => e,
+        Err(e) => {
+            eprintln!("Error moving message");
+            return Err(MyError::Imap(e));
+        }
+    };
+
+    return move_message_db(
+        database_conn,
+        client,
+        mailbox_path,
+        message_uid,
+        mailbox_path_dest,
+    );
+}
+
+fn move_message_db(
+    database_conn: &Connection,
+    client: &Client,
+    mailbox_path: &str,
+    message_uid: u32,
+    mailbox_path_dest: &str,
+) -> Result<String, MyError> {
+    match conn::move_message(
+        database_conn,
+        client,
+        mailbox_path,
+        message_uid,
+        mailbox_path_dest,
+    ) {
+        Ok(_) => return Ok(format!("\"{}\"", mailbox_path_dest)),
+        Err(e) => return Err(e),
+    };
 }

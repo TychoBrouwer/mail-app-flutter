@@ -1,6 +1,7 @@
-pub struct Client<'a> {
-    pub address: &'a str,
+#[derive(Debug, Clone)]
+pub struct Client {
+    pub address: String,
     pub port: u16,
-    pub username: &'a str,
-    pub password: &'a str,
+    pub username: String,
+    pub password: String,
 }

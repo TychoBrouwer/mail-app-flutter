@@ -1,29 +1,34 @@
+use async_std::sync::Arc;
 use async_std::{
     net::{TcpListener, TcpStream},
     prelude::*,
 };
 use futures::stream::StreamExt;
-use std::sync::{Arc, Mutex};
+use rusqlite::Connection;
 
 use crate::http_server::handle_conn;
-use crate::inbox_client::inbox_client::InboxClient;
+use crate::types::tcp_session::TcpSessions;
 
-pub async fn create_server(inbox_client: Arc<Mutex<InboxClient>>) {
+pub async fn create_server(database_conn: &Connection, sessions: TcpSessions) {
     let listener = TcpListener::bind("127.0.0.1:9001").await.unwrap();
 
     let _ = listener
         .incoming()
         .for_each_concurrent(/* limit */ None, |tcpstream| {
-            let inbox_client = Arc::clone(&inbox_client);
+            let sessions = Arc::clone(&sessions);
 
             async move {
-                handle_connection(tcpstream.unwrap(), inbox_client).await;
+                handle_connection(tcpstream.unwrap(), database_conn, sessions).await;
             }
         })
         .await;
 }
 
-async fn handle_connection(mut stream: TcpStream, inbox_client: Arc<Mutex<InboxClient>>) {
+async fn handle_connection(
+    mut stream: TcpStream,
+    database_conn: &Connection,
+    sessions: TcpSessions,
+) {
     let mut buffer = [0; 1024];
     stream.read(&mut buffer).await.unwrap();
 
@@ -38,17 +43,19 @@ async fn handle_connection(mut stream: TcpStream, inbox_client: Arc<Mutex<InboxC
     let params: &str = uri_parts.get(1).unwrap_or(&"");
 
     let data = match path {
-        "/login" => handle_conn::login(params, inbox_client).await,
-        "/logout" => handle_conn::logout(params, inbox_client).await,
-        "/get_sessions" => handle_conn::get_sessions(inbox_client).await,
-        "/get_mailboxes" => handle_conn::get_mailboxes(params, inbox_client).await,
+        "/login" => handle_conn::login(params, database_conn, sessions).await,
+        "/logout" => handle_conn::logout(params, database_conn, sessions).await,
+        "/get_sessions" => handle_conn::get_sessions(database_conn, sessions).await,
+        "/get_mailboxes" => handle_conn::get_mailboxes(params, database_conn, sessions).await,
         "/get_messages_with_uids" => {
-            handle_conn::get_messages_with_uids(params, inbox_client).await
+            handle_conn::get_messages_with_uids(params, database_conn, sessions).await
         }
-        "/get_messages_sorted" => handle_conn::get_messages_sorted(params, inbox_client).await,
-        "/update_mailbox" => handle_conn::update_mailbox(params, inbox_client).await,
-        "/modify_flags" => handle_conn::modify_flags(params, inbox_client).await,
-        "/move_message" => handle_conn::move_message(params, inbox_client).await,
+        "/get_messages_sorted" => {
+            handle_conn::get_messages_sorted(params, database_conn, sessions).await
+        }
+        "/update_mailbox" => handle_conn::update_mailbox(params, database_conn, sessions).await,
+        "/modify_flags" => handle_conn::modify_flags(params, database_conn, sessions).await,
+        "/move_message" => handle_conn::move_message(params, database_conn, sessions).await,
         _ => String::from("{\"success\": false, \"message\": \"Not Found\"}"),
     };
 
