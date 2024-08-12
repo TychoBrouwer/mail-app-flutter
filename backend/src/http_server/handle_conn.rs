@@ -56,7 +56,7 @@ pub async fn login(
 
     drop(locked_clients);
 
-    match inbox_client::connect(sessions, database_conn, clients, idx).await {
+    match inbox_client::connect::connect(sessions, database_conn, clients, idx).await {
         Ok(idx) => {
             return format!("{{\"success\": true, \"message\": \"Connected to IMAP server\", \"data\": {{ \"session_id\": {}}}}}", idx);
         }
@@ -98,7 +98,7 @@ pub async fn logout(
         return String::from("{\"success\": false, \"message\": \"Invalid session_id\"}");
     }
 
-    match inbox_client::logout_imap(sessions, session_id).await {
+    match inbox_client::logout::logout_imap(sessions, session_id).await {
         Ok(_) => {
             locked_clients.remove(session_id);
             return String::from("{\"success\": true, \"message\": \"Logged out\"}");

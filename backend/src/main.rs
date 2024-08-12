@@ -53,7 +53,7 @@ async fn main() {
         let database_conn = Arc::clone(&database_conn);
         let clients = Arc::clone(&clients);
 
-        match inbox_client::connect(sessions, database_conn, clients, i).await {
+        match inbox_client::connect::connect(sessions, database_conn, clients, i).await {
             Ok(_) => {}
             Err(e) => eprintln!("Error connecting to IMAP stored in local database: {:?}", e),
         }
