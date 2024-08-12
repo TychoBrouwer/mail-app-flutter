@@ -11,102 +11,117 @@ use std::string::FromUtf8Error;
 
 #[derive(Debug)]
 pub enum MyError {
-    String(String),
-    Imap(ImapError),
-    Sqlite(SqliteError),
-    FromUtf8(FromUtf8Error),
-    Utf8(Utf8Error),
-    Base64(DecodeError),
-    ParseInt(ParseIntError),
-    ParseBool(ParseBoolError),
-    Tls(TlsError),
-    Io(IoError),
+    String(String, String),
+    Imap(ImapError, String),
+    Sqlite(SqliteError, String),
+    FromUtf8(FromUtf8Error, String),
+    Utf8(Utf8Error, String),
+    Base64(DecodeError, String),
+    ParseInt(ParseIntError, String),
+    ParseBool(ParseBoolError, String),
+    Tls(TlsError, String),
+    Io(IoError, String),
+}
+
+impl MyError {
+    pub fn log_error(&self) {
+        eprintln!("{}", format!("{}", self));
+    }
 }
 
 impl fmt::Display for MyError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            MyError::String(str) => write!(f, "GENERAL: {}", str),
-            MyError::Imap(err) => write!(f, "IMAP: {}", err),
-            MyError::Sqlite(err) => write!(f, "SQLITE: {}", err),
-            MyError::FromUtf8(err) => write!(f, "FROM_UTF8: {}", err),
-            MyError::Utf8(err) => write!(f, "UTF8: {}", err),
-            MyError::Base64(err) => write!(f, "BASE64: {}", err),
-            MyError::ParseInt(err) => write!(f, "PARSE_INT: {}", err),
-            MyError::ParseBool(str) => write!(f, "PARSE_BOOL: {}", str),
-            MyError::Tls(err) => write!(f, "TLS: {}", err),
-            MyError::Io(err) => write!(f, "IO: {}", err),
+            MyError::String(err, context) => write!(f, "Error - {}: {}", context, err),
+            MyError::Imap(err, context) => write!(f, "Error - {}: {}", context, err),
+            MyError::Sqlite(err, context) => write!(f, "Error - {}: {}", context, err),
+            MyError::FromUtf8(err, context) => write!(f, "Error - {}: {}", context, err),
+            MyError::Utf8(err, context) => write!(f, "Error - {}: {}", context, err),
+            MyError::Base64(err, context) => write!(f, "Error - {}: {}", context, err),
+            MyError::ParseInt(err, context) => write!(f, "Error - {}: {}", context, err),
+            MyError::ParseBool(err, context) => write!(f, "Error - {}: {}", context, err),
+            MyError::Tls(err, context) => write!(f, "Error - {}: {}", context, err),
+            MyError::Io(err, context) => write!(f, "Error - {}: {}", context, err),
         }
     }
 }
 
 impl Error for MyError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match *self {
-            MyError::String(_) => None,
-            MyError::Imap(ref e) => Some(e),
-            MyError::Sqlite(ref e) => Some(e),
-            MyError::FromUtf8(ref e) => Some(e),
-            MyError::Utf8(ref e) => Some(e),
-            MyError::Base64(ref e) => Some(e),
-            MyError::ParseInt(ref e) => Some(e),
-            MyError::ParseBool(_) => None,
-            MyError::Tls(ref e) => Some(e),
-            MyError::Io(ref e) => Some(e),
+        match self {
+            MyError::String(_, _) => None,
+            MyError::Imap(ref e, _) => Some(e),
+            MyError::Sqlite(ref e, _) => Some(e),
+            MyError::FromUtf8(ref e, _) => Some(e),
+            MyError::Utf8(ref e, _) => Some(e),
+            MyError::Base64(ref e, _) => Some(e),
+            MyError::ParseInt(ref e, _) => Some(e),
+            MyError::ParseBool(_, _) => None,
+            MyError::Tls(ref e, _) => Some(e),
+            MyError::Io(ref e, _) => Some(e),
         }
     }
 }
 
-impl From<ImapError> for MyError {
-    fn from(err: ImapError) -> MyError {
-        MyError::Imap(err)
+impl From<(ImapError, String)> for MyError {
+    fn from(err_context: (ImapError, String)) -> MyError {
+        let err = MyError::Imap(err_context.0, err_context.1);
+        return err;
     }
 }
 
-impl From<SqliteError> for MyError {
-    fn from(err: SqliteError) -> MyError {
-        MyError::Sqlite(err)
+impl From<(SqliteError, String)> for MyError {
+    fn from(err_context: (SqliteError, String)) -> MyError {
+        let err = MyError::Sqlite(err_context.0, err_context.1);
+        return err;
     }
 }
 
-impl From<FromUtf8Error> for MyError {
-    fn from(err: FromUtf8Error) -> MyError {
-        MyError::FromUtf8(err)
+impl From<(FromUtf8Error, String)> for MyError {
+    fn from(err_context: (FromUtf8Error, String)) -> MyError {
+        let err = MyError::FromUtf8(err_context.0, err_context.1);
+        return err;
     }
 }
 
-impl From<Utf8Error> for MyError {
-    fn from(err: Utf8Error) -> MyError {
-        MyError::Utf8(err)
+impl From<(Utf8Error, String)> for MyError {
+    fn from(err_context: (Utf8Error, String)) -> MyError {
+        let err = MyError::Utf8(err_context.0, err_context.1);
+        return err;
     }
 }
 
-impl From<DecodeError> for MyError {
-    fn from(err: DecodeError) -> MyError {
-        MyError::Base64(err)
+impl From<(DecodeError, String)> for MyError {
+    fn from(err_context: (DecodeError, String)) -> MyError {
+        let err = MyError::Base64(err_context.0, err_context.1);
+        return err;
     }
 }
 
-impl From<ParseIntError> for MyError {
-    fn from(err: ParseIntError) -> MyError {
-        MyError::ParseInt(err)
+impl From<(ParseIntError, String)> for MyError {
+    fn from(err_context: (ParseIntError, String)) -> MyError {
+        let err = MyError::ParseInt(err_context.0, err_context.1);
+        return err;
     }
 }
 
-impl From<ParseBoolError> for MyError {
-    fn from(err: ParseBoolError) -> MyError {
-        MyError::ParseBool(err)
+impl From<(ParseBoolError, String)> for MyError {
+    fn from(err_context: (ParseBoolError, String)) -> MyError {
+        let err = MyError::ParseBool(err_context.0, err_context.1);
+        return err;
     }
 }
 
-impl From<TlsError> for MyError {
-    fn from(err: TlsError) -> MyError {
-        MyError::Tls(err)
+impl From<(TlsError, String)> for MyError {
+    fn from(err_context: (TlsError, String)) -> MyError {
+        let err = MyError::Tls(err_context.0, err_context.1);
+        return err;
     }
 }
 
-impl From<IoError> for MyError {
-    fn from(err: IoError) -> MyError {
-        MyError::Io(err)
+impl From<(IoError, String)> for MyError {
+    fn from(err_context: (IoError, String)) -> MyError {
+        let err = MyError::Io(err_context.0, err_context.1);
+        return err;
     }
 }

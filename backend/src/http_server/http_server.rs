@@ -3,10 +3,8 @@ use async_std::sync::{Arc, Mutex};
 use async_std::{net::TcpListener, prelude::*};
 use futures::stream::StreamExt;
 
-use crate::{
-    http_server::handle_conn,
-    types::session::{Client, Session},
-};
+use crate::http_server::handle_conn;
+use crate::types::session::{Client, Session};
 
 pub async fn create_server(
     sessions: Arc<Mutex<Vec<Session>>>,

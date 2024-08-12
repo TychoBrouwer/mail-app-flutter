@@ -1,19 +1,8 @@
 mod database {
-    pub mod conn;
+    pub mod db_connection;
 }
 
-mod inbox_client {
-    pub mod handle_req {
-        pub mod get_mailboxes;
-        pub mod get_messages_sorted;
-        pub mod get_messages_with_uids;
-        pub mod modify_flags;
-        pub mod move_message;
-        pub mod update_mailbox;
-    }
-    pub mod inbox_client;
-    pub mod parse_message;
-}
+pub mod inbox_client;
 
 pub mod types {
     pub mod message;
@@ -31,18 +20,17 @@ mod my_error;
 
 use async_std::sync::{Arc, Mutex};
 
-use crate::database::conn::DBConnection;
-use crate::inbox_client::inbox_client::InboxClient;
+use crate::database::db_connection;
 use crate::types::session::Session;
 
 #[async_std::main]
 async fn main() {
-    let database_conn = match DBConnection::new("mail.db").await {
+    let database_conn = match db_connection::new("mail.db").await {
         Ok(conn) => conn,
         Err(e) => panic!("Error opening database: {}", e),
     };
 
-    match DBConnection::initialise(&database_conn).await {
+    match db_connection::initialise(&database_conn).await {
         Ok(_) => {}
         Err(e) => panic!("Error initialising database: {}", e),
     };
@@ -50,7 +38,7 @@ async fn main() {
     let database_conn = Arc::new(Mutex::new(database_conn));
 
     let database_conn_2 = Arc::clone(&database_conn);
-    let clients = match DBConnection::get_connections(database_conn_2).await {
+    let clients = match db_connection::get_connections(database_conn_2).await {
         Ok(clients) => clients,
         Err(e) => panic!("Error getting connections: {}", e),
     };
@@ -65,7 +53,7 @@ async fn main() {
         let database_conn = Arc::clone(&database_conn);
         let clients = Arc::clone(&clients);
 
-        match InboxClient::connect(sessions, database_conn, clients, i).await {
+        match inbox_client::connect(sessions, database_conn, clients, i).await {
             Ok(_) => {}
             Err(e) => eprintln!("Error connecting to IMAP stored in local database: {:?}", e),
         }

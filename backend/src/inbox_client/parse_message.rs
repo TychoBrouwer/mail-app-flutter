@@ -288,20 +288,49 @@ fn parse_message_body(body: &str) -> Message {
 pub fn parse_message(fetch: &Fetch) -> Result<Message, MyError> {
     let envelope = match fetch.envelope() {
         Some(e) => e,
-        None => return Err(MyError::String("Error getting envelope".to_string())),
+        None => {
+            let err = MyError::String(
+                String::from("Message envelope not found in fetch"),
+                String::from("Error parsing message"),
+            );
+            err.log_error();
+
+            return Err(err);
+        }
     };
 
     let message_uid = match fetch.uid {
         Some(u) => u,
-        None => return Err(MyError::String("Error getting UID".to_string())),
+        None => {
+            let err = MyError::String(
+                String::from("Message UID not found in fetch"),
+                String::from("Error parsing message"),
+            );
+            err.log_error();
+
+            return Err(err);
+        }
     };
 
     let body_str = match fetch.body() {
         Some(b) => match std::str::from_utf8(b) {
             Ok(b) => b,
-            Err(e) => return Err(MyError::Utf8(e)),
+            Err(e) => {
+                let err = MyError::Utf8(e, String::from("Error parsing message"));
+                err.log_error();
+
+                return Err(err);
+            }
         },
-        None => return Err(MyError::String("Error getting body".to_string())),
+        None => {
+            let err = MyError::String(
+                String::from("Message body not found in fetch"),
+                String::from("Error parsing message"),
+            );
+            err.log_error();
+
+            return Err(err);
+        }
     };
 
     let flags = fetch.flags().into_iter().collect::<Vec<_>>();

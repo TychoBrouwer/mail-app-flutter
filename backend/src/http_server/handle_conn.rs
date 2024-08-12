@@ -1,7 +1,7 @@
 use async_std::sync::{Arc, Mutex};
 
 use crate::http_server::params;
-use crate::inbox_client::inbox_client::InboxClient;
+use crate::inbox_client;
 use crate::types::session::{Client, Session};
 
 pub async fn login(
@@ -56,7 +56,7 @@ pub async fn login(
 
     drop(locked_clients);
 
-    match InboxClient::connect(sessions, database_conn, clients, idx).await {
+    match inbox_client::connect(sessions, database_conn, clients, idx).await {
         Ok(idx) => {
             return format!("{{\"success\": true, \"message\": \"Connected to IMAP server\", \"data\": {{ \"session_id\": {}}}}}", idx);
         }
@@ -98,7 +98,7 @@ pub async fn logout(
         return String::from("{\"success\": false, \"message\": \"Invalid session_id\"}");
     }
 
-    match InboxClient::logout_imap(sessions, session_id).await {
+    match inbox_client::logout_imap(sessions, session_id).await {
         Ok(_) => {
             locked_clients.remove(session_id);
             return String::from("{\"success\": true, \"message\": \"Logged out\"}");
@@ -157,7 +157,9 @@ pub async fn get_mailboxes(
 
     let session_id = session_id.unwrap();
 
-    match InboxClient::get_mailboxes(sessions, database_conn, session_id, clients).await {
+    match inbox_client::get_mailboxes::get_mailboxes(sessions, database_conn, session_id, clients)
+        .await
+    {
         Ok(mailboxes) => {
             return format!(
                 "{{\"success\": true, \"message\": \"Mailboxes retrieved\", \"data\": {}}}",
@@ -205,7 +207,7 @@ pub async fn get_messages_with_uids(
         .map(|x| x.parse::<u32>().unwrap())
         .collect();
 
-    match InboxClient::get_messages_with_uids(
+    match inbox_client::get_messages_with_uids::get_messages_with_uids(
         database_conn,
         session_id,
         clients,
@@ -270,7 +272,7 @@ pub async fn get_messages_sorted(
     let start = start.unwrap();
     let end = end.unwrap();
 
-    match InboxClient::get_messages_sorted(
+    match inbox_client::get_messages_sorted::get_messages_sorted(
         database_conn,
         session_id,
         clients,
@@ -321,8 +323,14 @@ pub async fn update_mailbox(
     let session_id = session_id.unwrap();
     let mailbox_path = mailbox_path.unwrap();
 
-    match InboxClient::update_mailbox(sessions, database_conn, session_id, clients, mailbox_path)
-        .await
+    match inbox_client::update_mailbox::update_mailbox(
+        sessions,
+        database_conn,
+        session_id,
+        clients,
+        mailbox_path,
+    )
+    .await
     {
         Ok(_) => {
             return String::from("{\"success\": true, \"message\": \"Mailbox updated\"}");
@@ -385,7 +393,7 @@ pub async fn modify_flags(
     let flags = flags.unwrap();
     let add = add.unwrap();
 
-    match InboxClient::modify_flags(
+    match inbox_client::modify_flags::modify_flags(
         sessions,
         database_conn,
         session_id,
@@ -452,7 +460,7 @@ pub async fn move_message(
     let message_uid = message_uid.unwrap();
     let mailbox_path_dest = mailbox_path_dest.unwrap();
 
-    match InboxClient::move_message(
+    match inbox_client::move_message::move_message(
         sessions,
         database_conn,
         session_id,

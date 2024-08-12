@@ -34,9 +34,13 @@ impl SequenceSet {
                 idx: None,
             } => {
                 if start > end {
-                    return Err(MyError::String(
-                        "Start must be less than or equal to end".to_string(),
-                    ));
+                    let err = MyError::String(
+                        String::from("Start must be less than or equal to end"),
+                        String::from("Error converting SequenceSet to string representation"),
+                    );
+                    err.log_error();
+
+                    return Err(err);
                 }
 
                 if reversed {
