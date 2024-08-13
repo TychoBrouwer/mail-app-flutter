@@ -1,5 +1,6 @@
 use async_std::sync::{Arc, Mutex};
 
+use crate::database::mailbox;
 use crate::http_server::params;
 use crate::inbox_client;
 use crate::mime_parser::parser;
@@ -214,8 +215,13 @@ pub async fn update_mailboxes(
     drop(locked_clients);
 
     match inbox_client::mailboxes::update(sessions, database_conn, session_id, client).await {
-        Ok(_) => {
-            return String::from("{\"success\": true, \"message\": \"Mailboxes updated\"}");
+        Ok(mailboxes) => {
+            let mailboxes_str = parser::parse_string_vec(mailboxes);
+
+            return format!(
+                "{{\"success\": true, \"message\": \"Mailboxes updated\", \"data\": {}}}",
+                mailboxes_str
+            );
         }
         Err(e) => {
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);

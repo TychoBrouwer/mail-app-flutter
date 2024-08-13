@@ -59,7 +59,7 @@ Get all the logged in IMAP sessions
 
 ## GET_MAILBOXES
 
-Get all the mailbox paths of a session.
+Get all the mailbox paths of a session from the local database only.
 
 /get_mailboxes
 
