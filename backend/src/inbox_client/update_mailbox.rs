@@ -202,8 +202,6 @@ async fn get_highest_seq_imap(
         match session.fetch(highest_seq.to_string(), "UID").await {
             Ok(e) => e.collect().await,
             Err(e) => {
-                eprintln!("Error fetching messages");
-
                 let err = MyError::Imap(e, String::from("Error fetching messages"));
                 err.log_error();
 
@@ -330,8 +328,6 @@ async fn get_changed_message_uids(
         match session.fetch(sequence_set_string, "UID").await {
             Ok(e) => e.collect().await,
             Err(e) => {
-                eprintln!("Error fetching messages");
-
                 let err = MyError::Imap(e, String::from("Error fetching messages"));
                 err.log_error();
 
@@ -447,8 +443,6 @@ async fn get_new_messages(
     {
         Ok(e) => e.collect().await,
         Err(e) => {
-            eprintln!("Error fetching messages");
-
             let err = MyError::Imap(e, String::from("Error fetching messages"));
             err.log_error();
 
@@ -484,39 +478,8 @@ async fn get_new_messages(
     .await
     {
         Ok(_) => {}
-        Err(e) => {
-            eprintln!("Error inserting message into db: {:?}", e);
-            return Err(e);
-        }
+        Err(e) => return Err(e),
     }
-
-    // for fetch in fetches {
-    //     let message = match parse_message(&fetch) {
-    //         Ok(m) => m,
-    //         Err(e) => {
-    //             eprintln!("Error parsing message: {:?}", e);
-    //             return Err(e);
-    //         }
-    //     };
-
-    //     let database_conn_2 = Arc::clone(&database_conn);
-
-    //     match database::message::insert(
-    //         database_conn_2,
-    //         &client.username,
-    //         &client.address,
-    //         mailbox_path,
-    //         &message,
-    //     )
-    //     .await
-    //     {
-    //         Ok(_) => {}
-    //         Err(e) => {
-    //             eprintln!("Error inserting message into db: {:?}", e);
-    //             return Err(e);
-    //         }
-    //     };
-    // }
 
     return Ok({});
 }
@@ -541,7 +504,7 @@ async fn update_moved_messeages(
         .await
         {
             Ok(_) => {}
-            Err(e) => eprintln!("Error moving message: {:?}", e),
+            Err(e) => return Err(e),
         }
     }
 
@@ -601,7 +564,6 @@ async fn update_flags(
         let fetch = match fetch {
             Ok(fetch) => fetch,
             Err(e) => {
-                eprintln!("Error updating message flag: {:?}", e);
                 let err = MyError::Imap(e, String::from("Error updating message flag"));
                 err.log_error();
 

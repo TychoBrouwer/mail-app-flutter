@@ -23,8 +23,6 @@ pub async fn handle_disconnect(
 ) -> Result<(), MyError> {
     match e {
         ImapError::ConnectionLost => {
-            eprintln!("Reconnecting to IMAP server");
-
             match inbox_client::connect::connect_imap(sessions, client).await {
                 Ok(_) => {}
                 Err(e) => return Err(e),
@@ -33,8 +31,6 @@ pub async fn handle_disconnect(
             return Ok({});
         }
         ImapError::Io(_) => {
-            eprintln!("Reconnecting to IMAP server");
-
             match inbox_client::connect::connect_imap(sessions, client).await {
                 Ok(_) => {}
                 Err(e) => return Err(e),

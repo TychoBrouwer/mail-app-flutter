@@ -37,17 +37,12 @@ pub async fn get_mailboxes(
                 match mailboxes_imap {
                     Ok(mailboxes_imap) => mailboxes_imap,
                     Err(e) => {
-                        eprintln!("Error getting mailboxes from IMAP: {:?}", e);
                         return Err(e);
                     }
                 }
             }
         }
-        Err(e) => {
-            eprintln!("Error getting mailboxes from local database: {:?}", e);
-
-            return Err(e);
-        }
+        Err(e) => return Err(e),
     };
 
     let mut response = String::from("[");
@@ -68,8 +63,8 @@ pub async fn get_mailboxes(
             )
             .await
             {
-                Ok(_) => {}
-                Err(e) => eprintln!("Error inserting mailbox into local database: {:?}", e),
+                Ok(_) => Ok({}),
+                Err(e) => return Err(e),
             }
         });
 
@@ -91,7 +86,6 @@ async fn get_mailboxes_db(
         match database::mailbox::get(database_conn, &client.username, &client.address).await {
             Ok(m) => m,
             Err(e) => {
-                eprintln!("Error getting mailboxes: {:?}", e);
                 return Err(e);
             }
         };
@@ -152,8 +146,7 @@ async fn get_mailboxes_imap(
         .map(|mailbox| {
             let mailbox = match mailbox {
                 Ok(m) => m.name(),
-                Err(e) => {
-                    eprintln!("Error getting mailbox: {:?}", e);
+                Err(_) => {
                     return "".to_string();
                 }
             };

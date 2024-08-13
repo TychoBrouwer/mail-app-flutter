@@ -18,13 +18,15 @@ pub async fn login(
     let port = match params::get_u16(uri_params.get("port")) {
         Ok(port) => port,
         Err(e) => {
-            eprintln!("Error parsing port: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     };
 
     if username.is_none() || password.is_none() || address.is_none() || port.is_none() {
-        eprintln!("Provide all GET parameters: {}", uri);
+        eprintln!(
+            "Provide username, password, address, and port GET parameters: {}",
+            uri
+        );
         return String::from("{\"success\": false, \"message\": \"Provide all GET parameters\"}");
     }
 
@@ -61,7 +63,6 @@ pub async fn login(
             return format!("{{\"success\": true, \"message\": \"Connected to IMAP server\", \"data\": {{ \"session_id\": {}}}}}", idx);
         }
         Err(e) => {
-            eprintln!("Error connecting to IMAP server: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     }
@@ -77,7 +78,6 @@ pub async fn logout(
     let session_id = match params::get_usize(uri_params.get("session_id")) {
         Ok(session_id) => session_id,
         Err(e) => {
-            eprintln!("Error parsing session_id: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     };
@@ -104,7 +104,6 @@ pub async fn logout(
             return String::from("{\"success\": true, \"message\": \"Logged out\"}");
         }
         Err(e) => {
-            eprintln!("Error logging out: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     }
@@ -143,7 +142,6 @@ pub async fn get_mailboxes(
     let session_id = match params::get_usize(uri_params.get("session_id")) {
         Ok(session_id) => session_id,
         Err(e) => {
-            eprintln!("Error parsing session_id: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     };
@@ -167,7 +165,6 @@ pub async fn get_mailboxes(
             )
         }
         Err(e) => {
-            eprintln!("Error getting mailboxes: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     }
@@ -183,7 +180,6 @@ pub async fn get_messages_with_uids(
     let session_id = match params::get_usize(uri_params.get("session_id")) {
         Ok(session_id) => session_id,
         Err(e) => {
-            eprintln!("Error parsing session_id: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     };
@@ -192,7 +188,7 @@ pub async fn get_messages_with_uids(
 
     if session_id.is_none() || mailbox_path.is_none() || message_uids.is_none() {
         eprintln!(
-            "Provide session_id, mailbox_path and message_id GET parameters: {}",
+            "Provide session_id, mailbox_path, and message_uids GET parameters: {}",
             uri
         );
         return String::from("{\"success\": false, \"message\": \"Provide session_id, mailbox_path and message_uid GET parameters\"}");
@@ -223,7 +219,6 @@ pub async fn get_messages_with_uids(
             )
         }
         Err(e) => {
-            eprintln!("Error getting messages: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     }
@@ -239,7 +234,6 @@ pub async fn get_messages_sorted(
     let session_id = match params::get_usize(uri_params.get("session_id")) {
         Ok(session_id) => session_id,
         Err(e) => {
-            eprintln!("Error parsing session_id: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     };
@@ -248,20 +242,21 @@ pub async fn get_messages_sorted(
     let start = match params::get_u32(uri_params.get("start")) {
         Ok(start) => start,
         Err(e) => {
-            eprintln!("Error parsing start: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     };
     let end = match params::get_u32(uri_params.get("end")) {
         Ok(end) => end,
         Err(e) => {
-            eprintln!("Error parsing end: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     };
 
     if session_id.is_none() || mailbox_path.is_none() || start.is_none() || end.is_none() {
-        eprintln!("Provide session_id GET parameter: {}", uri);
+        eprintln!(
+            "Provide session_id, mailbox_path, start, and end GET parameters: {}",
+            uri
+        );
         return String::from(
             "{\"success\": false, \"message\": \"Provide session_id, mailbox_path, start, and end GET parameters\"}",
         );
@@ -289,7 +284,6 @@ pub async fn get_messages_sorted(
             )
         }
         Err(e) => {
-            eprintln!("Error getting messages: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     }
@@ -306,7 +300,6 @@ pub async fn update_mailbox(
     let session_id = match params::get_usize(uri_params.get("session_id")) {
         Ok(session_id) => session_id,
         Err(e) => {
-            eprintln!("Error parsing session_id: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     };
@@ -339,7 +332,6 @@ pub async fn update_mailbox(
             );
         }
         Err(e) => {
-            eprintln!("Error updating mailbox: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     }
@@ -356,7 +348,6 @@ pub async fn modify_flags(
     let session_id = match params::get_usize(uri_params.get("session_id")) {
         Ok(session_id) => session_id,
         Err(e) => {
-            eprintln!("Error parsing session_id: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     };
@@ -364,7 +355,6 @@ pub async fn modify_flags(
     let message_uid = match params::get_u32(uri_params.get("message_uid")) {
         Ok(message_uid) => message_uid,
         Err(e) => {
-            eprintln!("Error parsing message_uid: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     };
@@ -372,7 +362,6 @@ pub async fn modify_flags(
     let add = match params::get_bool(uri_params.get("add")) {
         Ok(add) => add,
         Err(e) => {
-            eprintln!("Error parsing add: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     };
@@ -384,7 +373,7 @@ pub async fn modify_flags(
         || add.is_none()
     {
         eprintln!(
-            "Provide session_id, mailbox_path, message_id, flags, and add GET parameters: {}",
+            "Provide session_id, mailbox_path, message_uid, flags, and add GET parameters: {}",
             uri
         );
         return String::from("{\"success\": false, \"message\": \"Provide session_id, mailbox_path, message_uid, flags, and add GET parameters\"}");
@@ -415,7 +404,6 @@ pub async fn modify_flags(
             )
         }
         Err(e) => {
-            eprintln!("Error updating flags: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     }
@@ -432,7 +420,6 @@ pub async fn move_message(
     let session_id = match params::get_usize(uri_params.get("session_id")) {
         Ok(session_id) => session_id,
         Err(e) => {
-            eprintln!("Error parsing session_id: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     };
@@ -440,7 +427,6 @@ pub async fn move_message(
     let message_uid = match params::get_u32(uri_params.get("message_uid")) {
         Ok(message_uid) => message_uid,
         Err(e) => {
-            eprintln!("Error parsing message_uid: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     };
@@ -452,7 +438,7 @@ pub async fn move_message(
         || mailbox_path_dest.is_none()
     {
         eprintln!(
-            "Provide session_id, mailbox_path, message_id, and mailbox_path_dest GET parameters: {}",
+            "Provide session_id, mailbox_path, message_uid, and mailbox_path_dest GET parameters: {}",
             uri
         );
         return String::from("{\"success\": false, \"message\": \"Provide session_id, mailbox_path, message_uid, and mailbox_path_dest GET parameters\"}");
@@ -481,7 +467,6 @@ pub async fn move_message(
             )
         }
         Err(e) => {
-            eprintln!("Error moving message: {:?}", e);
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
         }
     }

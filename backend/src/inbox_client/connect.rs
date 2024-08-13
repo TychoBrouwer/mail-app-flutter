@@ -36,7 +36,9 @@ pub async fn connect(
 
     match database::connections::insert(database_conn, client.clone()).await {
         Ok(_) => {}
-        Err(e) => eprintln!("Error inserting connection into database: {:?}", e),
+        Err(e) => {
+            return Err(e);
+        }
     }
 
     match connect_imap(sessions_2, &client).await {
@@ -61,7 +63,6 @@ pub async fn connect_imap(
     let tcp_stream = match TcpStream::connect((address.as_str(), port)).await {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("Error connecting to IMAP server: {}", e);
             let err = MyError::Io(e, String::from("Error connecting to IMAP server"));
             err.log_error();
 
@@ -75,7 +76,6 @@ pub async fn connect_imap(
     let tls_stream = match tls.connect(address, tcp_stream).await {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("Error connecting to IMAP server: {}", e);
             let err = MyError::Tls(e, String::from("Error connecting to IMAP server"));
             err.log_error();
 
@@ -94,7 +94,6 @@ pub async fn connect_imap(
             return Ok(());
         }
         Err(e) => {
-            eprintln!("Error logging in: {:?}", e);
             let err = MyError::Imap(e.0, String::from("Error logging in"));
             err.log_error();
 

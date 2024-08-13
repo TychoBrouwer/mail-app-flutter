@@ -71,8 +71,6 @@ pub async fn modify_flags(
         match session.uid_store(message_uid.to_string(), query).await {
             Ok(e) => e.collect().await,
             Err(e) => {
-                eprintln!("Error updating message flag");
-
                 let err = MyError::Imap(
                     e,
                     String::from("Error retrieving message while updating flags"),

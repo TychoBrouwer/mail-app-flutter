@@ -240,6 +240,8 @@ class InboxService {
       'mailbox_path_dest': mailboxDest,
     };
 
+    print(body);
+
     final messageData =
         await HttpService().sendRequest(HttpRequestPath.move_message, body);
 

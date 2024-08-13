@@ -1,4 +1,8 @@
+use async_imap::error::Error as ImapError;
+use async_imap::types::Fetch;
+use async_std::stream::StreamExt;
 use async_std::sync::{Arc, Mutex};
+use std::u32;
 
 use crate::database;
 use crate::inbox_client;
@@ -74,14 +78,86 @@ pub async fn move_message(
         }
     };
 
+    match session.select(mailbox_path_dest).await {
+        Ok(_) => {}
+        Err(e) => {
+            drop(locked_sessions);
+
+            match inbox_client::handle_disconnect(sessions, client, e).await {
+                Ok(_) => {
+                    return Box::pin(move_message(
+                        sessions_2,
+                        database_conn,
+                        session_id,
+                        clients,
+                        mailbox_path,
+                        message_uid,
+                        mailbox_path_dest,
+                    ))
+                    .await;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+    };
+
+    let sequence_set_str = format!("{}:*", u32::MAX);
+
+    let fetches: Vec<Result<Fetch, ImapError>> = match session.fetch(sequence_set_str, "UID").await
+    {
+        Ok(e) => e.collect().await,
+        Err(e) => {
+            let err = MyError::Imap(e, String::from("Error fetching messages"));
+            err.log_error();
+
+            return Err(err);
+        }
+    };
+
     drop(locked_sessions);
+
+    let mut message_uid_new = message_uid;
+    let mut sequence_id_new = 0;
+    for fetch in fetches {
+        match fetch {
+            Ok(f) => {
+                dbg!("new message uid found");
+
+                message_uid_new = match f.uid {
+                    Some(u) => u,
+                    None => {
+                        let err = MyError::String(
+                            String::from("No UID found"),
+                            String::from("Error fetching message"),
+                        );
+                        err.log_error();
+
+                        return Err(err);
+                    }
+                };
+
+                sequence_id_new = f.message;
+            }
+            Err(e) => {
+                let err = MyError::Imap(e, String::from("Error fetching message"));
+                err.log_error();
+
+                return Err(err);
+            }
+        }
+    }
+
+    dbg!(&message_uid);
+    dbg!(&message_uid_new);
 
     return move_message_db(
         database_conn,
         client,
         mailbox_path,
-        message_uid,
         mailbox_path_dest,
+        message_uid,
+        message_uid_new,
+        sequence_id_new,
     )
     .await;
 }
@@ -90,16 +166,20 @@ async fn move_message_db(
     database_conn: Arc<Mutex<rusqlite::Connection>>,
     client: &Client,
     mailbox_path: &str,
-    message_uid: u32,
     mailbox_path_dest: &str,
+    message_uid: u32,
+    message_uid_new: u32,
+    sequence_id_new: u32,
 ) -> Result<String, MyError> {
     match database::message::change_mailbox(
         database_conn,
         &client.username,
         &client.address,
         mailbox_path,
-        message_uid,
         mailbox_path_dest,
+        message_uid,
+        message_uid_new,
+        sequence_id_new,
     )
     .await
     {
