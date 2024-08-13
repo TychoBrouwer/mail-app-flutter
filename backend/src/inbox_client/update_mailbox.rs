@@ -458,44 +458,65 @@ async fn get_new_messages(
 
     drop(locked_sessions);
 
-    for fetch in fetches {
-        let fetch = match fetch {
-            Ok(fetch) => fetch,
-            Err(e) => {
-                eprintln!("Error updating message flag: {:?}", e);
-                let err = MyError::Imap(e, String::from("Error updating message flag"));
-                err.log_error();
+    let fetches = fetches
+        .iter()
+        .filter_map(|fetch| match fetch {
+            Ok(f) => Some(f),
+            Err(_) => None,
+        })
+        .collect::<Vec<&Fetch>>();
 
-                return Err(err);
-            }
-        };
+    let messages = fetches
+        .iter()
+        .filter_map(|fetch| match parse_message(fetch) {
+            Ok(m) => Some(m),
+            Err(_) => None,
+        })
+        .collect::<Vec<_>>();
 
-        let message = match parse_message(&fetch) {
-            Ok(m) => m,
-            Err(e) => {
-                eprintln!("Error parsing message: {:?}", e);
-                return Err(e);
-            }
-        };
-
-        let database_conn_2 = Arc::clone(&database_conn);
-
-        match database::message::insert(
-            database_conn_2,
-            &client.username,
-            &client.address,
-            mailbox_path,
-            &message,
-        )
-        .await
-        {
-            Ok(_) => {}
-            Err(e) => {
-                eprintln!("Error inserting message into db: {:?}", e);
-                return Err(e);
-            }
-        };
+    match database::messages::insert(
+        database_conn,
+        &client.username,
+        &client.address,
+        mailbox_path,
+        &messages,
+    )
+    .await
+    {
+        Ok(_) => {}
+        Err(e) => {
+            eprintln!("Error inserting message into db: {:?}", e);
+            return Err(e);
+        }
     }
+
+    // for fetch in fetches {
+    //     let message = match parse_message(&fetch) {
+    //         Ok(m) => m,
+    //         Err(e) => {
+    //             eprintln!("Error parsing message: {:?}", e);
+    //             return Err(e);
+    //         }
+    //     };
+
+    //     let database_conn_2 = Arc::clone(&database_conn);
+
+    //     match database::message::insert(
+    //         database_conn_2,
+    //         &client.username,
+    //         &client.address,
+    //         mailbox_path,
+    //         &message,
+    //     )
+    //     .await
+    //     {
+    //         Ok(_) => {}
+    //         Err(e) => {
+    //             eprintln!("Error inserting message into db: {:?}", e);
+    //             return Err(e);
+    //         }
+    //     };
+    // }
 
     return Ok({});
 }

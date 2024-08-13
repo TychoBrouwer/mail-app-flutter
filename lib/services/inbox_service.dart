@@ -97,11 +97,11 @@ class InboxService {
     return session;
   }
 
-  Future<List<MailAccount>> getSessions() async {
+  Future<List<MailAccount>?> getSessions() async {
     final messageData =
         await httpService.sendRequest(HttpRequestPath.get_sessions, {});
 
-    if (!messageData.success) return [];
+    if (!messageData.success) return null;
 
     for (var session in (messageData.data as List)) {
       _sessions.add(MailAccount.fromJson(session));
@@ -166,8 +166,8 @@ class InboxService {
       'reversed': 'true',
     };
 
-    final messageData =
-        await HttpService().sendRequest(HttpRequestPath.get_messages, body);
+    final messageData = await HttpService()
+        .sendRequest(HttpRequestPath.get_messages_sorted, body);
 
     if (!messageData.success) return [];
 
@@ -246,5 +246,31 @@ class InboxService {
     if (!messageData.success) return '';
 
     return messageData.data;
+  }
+
+  Future<void> updateInbox({
+    int? session,
+    String? mailbox,
+  }) async {
+    if (session == null) {
+      session = _activeSession;
+
+      if (_activeSession == null) return;
+    }
+    if (mailbox == null) {
+      mailbox = _activeMailbox;
+
+      if (_activeMailbox == null) return;
+    }
+
+    final body = {
+      'session_id': session.toString(),
+      'mailbox_path': mailbox!,
+    };
+
+    final messageData =
+        await HttpService().sendRequest(HttpRequestPath.update_mailbox, body);
+
+    if (!messageData.success) return;
   }
 }

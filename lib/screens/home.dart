@@ -130,7 +130,7 @@ class HomePageState extends State<HomePage> {
   // }
 
   Future<void> _refreshAll() async {
-    // await _inboxService.updateInbox();
+    await _inboxService.updateInbox();
   }
 
   void _addMailAccount() {

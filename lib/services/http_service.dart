@@ -16,8 +16,12 @@ class HttpService {
 
     final url = '$address/${request.name}$query';
 
-    final response = await http.get(Uri.parse(url));
+    try {
+      final response = await http.get(Uri.parse(url));
 
-    return MessageResponse.fromJson(convert.jsonDecode(response.body));
+      return MessageResponse.fromJson(convert.jsonDecode(response.body));
+    } catch (e) {
+      return MessageResponse(false, null, "Failed to connect to server");
+    }
   }
 }

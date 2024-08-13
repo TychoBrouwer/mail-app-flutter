@@ -16,6 +16,7 @@ class SplashPage extends StatefulWidget {
 class SplashPageState extends State<SplashPage> {
   double _turns = 0;
   String _status = '';
+  bool _loadingFinished = false;
 
   @override
   void initState() {
@@ -25,10 +26,12 @@ class SplashPageState extends State<SplashPage> {
   }
 
   void _loadHomePage() async {
-    setState(() => _turns += 100);
-    final inboxService = await _loadInboxService();
+    _refreshRotate();
+
     setState(() => _status = 'Loading inboxes');
-    setState(() => _turns += 100);
+    final inboxService = await _loadInboxService();
+
+    _loadingFinished = true;
 
     if (!mounted) return;
     Navigator.pushReplacement(
@@ -43,13 +46,31 @@ class SplashPageState extends State<SplashPage> {
 
   Future<InboxService> _loadInboxService() async {
     final inboxService = InboxService();
+
     final sessions = await inboxService.getSessions();
+
+    if (sessions == null) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      final inboxService = await _loadInboxService();
+
+      return inboxService;
+    }
 
     if (sessions.isNotEmpty) {
       inboxService.setActiveSessionId(sessions[0].sessionId);
     }
 
     return inboxService;
+  }
+
+  void _refreshRotate() async {
+    setState(() {
+      _turns += 1;
+    });
+
+    await Future.delayed(const Duration(seconds: 1), () {});
+
+    if (!_loadingFinished) _refreshRotate();
   }
 
   @override
@@ -77,7 +98,7 @@ class SplashPageState extends State<SplashPage> {
               AnimatedRotation(
                 alignment: Alignment.center,
                 turns: _turns,
-                duration: const Duration(seconds: 100),
+                duration: const Duration(seconds: 1),
                 child: SvgPicture.asset(
                   'assets/icons/arrows-rotate.svg',
                   color: ProjectColors.main(false),
