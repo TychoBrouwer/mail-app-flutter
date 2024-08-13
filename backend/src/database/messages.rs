@@ -13,8 +13,7 @@ pub async fn insert(
     messages: &Vec<Message>,
   ) -> Result<(), MyError> {
     let mut locked_conn = conn.lock().await;
-    dbg!("locked conn");
-
+    
     let tx = match locked_conn.transaction() {
         Ok(tx) => tx,
         Err(e) => {
@@ -119,7 +118,7 @@ pub async fn insert(
     }
 
     match tx.commit() {
-        Ok(_) => return Ok({}),
+        Ok(_) => return Ok(()),
         Err(e) => {
             let err = MyError::Sqlite(e, String::from("Error committing transaction for inserting messages"));
             err.log_error();
@@ -144,8 +143,7 @@ pub async fn get_with_uids(
   );
 
   let conn_locked = conn.lock().await;
-  dbg!("locked conn");
-
+  
   let mut stmt = match conn_locked.prepare(
           "SELECT * FROM messages WHERE message_uid IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
       ) {
@@ -198,8 +196,7 @@ pub async fn get_sorted(
   let limit = end - start + 1;
 
   let conn_locked = conn.lock().await;
-  dbg!("locked conn");
-
+  
   let mut stmt = match conn_locked.prepare(
           "SELECT * FROM messages WHERE c_username = ?1 AND c_address = ?2 AND m_path = ?3 ORDER BY received DESC LIMIT ?4 OFFSET ?5",
       ) {

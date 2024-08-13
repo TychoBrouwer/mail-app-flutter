@@ -4,9 +4,8 @@ use rusqlite::{params, Connection};
 use crate::my_error::MyError;
 use crate::types::session::Client;
 
-pub async fn insert(conn: Arc<Mutex<Connection>>, client: Client) -> Result<(), MyError> {
+pub async fn insert(conn: Arc<Mutex<Connection>>, client: &Client) -> Result<(), MyError> {
     let conn_locked = conn.lock().await;
-    dbg!("locked conn");
 
     match conn_locked.execute(
         "INSERT OR IGNORE INTO connections (
@@ -22,7 +21,7 @@ pub async fn insert(conn: Arc<Mutex<Connection>>, client: Client) -> Result<(), 
             client.port
         ],
     ) {
-        Ok(_) => Ok({}),
+        Ok(_) => Ok(()),
         Err(e) => {
             let err = MyError::Sqlite(e, String::from("Error inserting connection into database"));
             err.log_error();
@@ -34,7 +33,6 @@ pub async fn insert(conn: Arc<Mutex<Connection>>, client: Client) -> Result<(), 
 
 pub async fn get_all(conn: Arc<Mutex<Connection>>) -> Result<Vec<Client>, MyError> {
     let conn_locked = conn.lock().await;
-    dbg!("locked conn");
 
     let mut stmt = match conn_locked.prepare("SELECT * FROM connections") {
         Ok(stmt) => stmt,
@@ -73,4 +71,21 @@ pub async fn get_all(conn: Arc<Mutex<Connection>>) -> Result<Vec<Client>, MyErro
             return Err(err);
         }
     };
+}
+
+pub async fn remove(conn: Arc<Mutex<Connection>>, client: &Client) -> Result<(), MyError> {
+    let conn_locked = conn.lock().await;
+
+    match conn_locked.execute(
+        "DELETE FROM connections WHERE username = ?1 AND address = ?2",
+        params![client.username, client.address],
+    ) {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            let err = MyError::Sqlite(e, String::from("Error deleting connection from database"));
+            err.log_error();
+
+            return Err(err);
+        }
+    }
 }

@@ -1,4 +1,5 @@
 use async_imap;
+use async_imap::error::Error as ImapError;
 use async_native_tls::TlsConnector;
 use async_std::net::TcpStream;
 use async_std::sync::{Arc, Mutex};
@@ -11,50 +12,85 @@ pub async fn connect(
     sessions: Arc<Mutex<Vec<Session>>>,
     database_conn: Arc<Mutex<rusqlite::Connection>>,
     clients: Arc<Mutex<Vec<Client>>>,
-    idx: usize,
+    client_add: &Client,
 ) -> Result<usize, MyError> {
-    let sessions_2 = Arc::clone(&sessions);
-    let locked_sessions = sessions.lock().await;
-    dbg!("locked sessions");
+    let idx_db = match database(database_conn, clients, client_add).await {
+        Ok(idx) => idx,
+        Err(e) => return Err(e),
+    };
 
-    let locked_clients = clients.lock().await;
-    dbg!("locked clients");
+    let idx_imap = match imap(sessions, &client_add).await {
+        Ok(_) => idx_db,
+        Err(e) => return Err(e),
+    };
 
-    let client = &locked_clients[idx];
+    assert!(idx_db == idx_imap);
+
+    return Ok(idx_db);
+}
+
+async fn database(
+    database_conn: Arc<Mutex<rusqlite::Connection>>,
+    clients: Arc<Mutex<Vec<Client>>>,
+    client_add: &Client,
+) -> Result<usize, MyError> {
+    let mut locked_clients = clients.lock().await;
 
     let pos = locked_clients
         .iter()
-        .position(|x| x.username == client.username && x.address == client.address);
+        .position(|x| x.username == client_add.username && x.address == client_add.address);
 
-    if locked_sessions.len() > pos.unwrap_or(0) {
+    if locked_clients.len() > pos.unwrap_or(0) {
         return Ok(pos.unwrap());
     }
 
-    let idx = locked_sessions.len();
+    locked_clients.push(client_add.clone());
+    let idx = locked_clients.len() - 1;
 
-    drop(locked_sessions);
+    drop(locked_clients);
 
-    match database::connections::insert(database_conn, client.clone()).await {
+    match database::connections::insert(database_conn, client_add).await {
         Ok(_) => {}
         Err(e) => {
             return Err(e);
         }
     }
 
-    match connect_imap(sessions_2, &client).await {
-        Ok(_) => {
-            return Ok(idx);
-        }
-        Err(e) => {
-            return Err(e);
-        }
-    }
+    return Ok(idx);
 }
 
-pub async fn connect_imap(
+pub async fn handle_disconnect(
     sessions: Arc<Mutex<Vec<Session>>>,
     client: &Client,
+    e: ImapError,
 ) -> Result<(), MyError> {
+    match e {
+        ImapError::ConnectionLost => {
+            match imap(sessions, client).await {
+                Ok(_) => {}
+                Err(e) => return Err(e),
+            }
+
+            return Ok(());
+        }
+        ImapError::Io(_) => {
+            match imap(sessions, client).await {
+                Ok(_) => {}
+                Err(e) => return Err(e),
+            }
+
+            return Ok(());
+        }
+        _ => {}
+    }
+
+    let err = MyError::Imap(e, String::from("Error handling disconnect"));
+    err.log_error();
+
+    return Err(err);
+}
+
+async fn imap(sessions: Arc<Mutex<Vec<Session>>>, client: &Client) -> Result<(), MyError> {
     let address = &client.address;
     let port = client.port;
     let username = &client.username;

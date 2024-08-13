@@ -6,7 +6,7 @@ use rusqlite::Row;
 #[derive(Debug)]
 pub struct Message {
     pub message_uid: u32,
-    pub sequence_id: Option<u32>,
+    pub sequence_id: u32,
     pub message_id: String,
     pub subject: String,
     pub from: String,
@@ -54,10 +54,7 @@ impl Message {
         let mut result = String::from("{");
 
         result.push_str(&format!("\"uid\": {},", self.message_uid));
-        result.push_str(&format!(
-            "\"sequence_id\": {},",
-            self.sequence_id.unwrap_or(u32::MAX)
-        ));
+        result.push_str(&format!("\"sequence_id\": {},", self.sequence_id));
         result.push_str(&format!("\"message_id\": \"{}\",", self.message_id));
         result.push_str(&format!("\"subject\": \"{}\",", self.subject));
         result.push_str(&format!("\"from\": {},", self.from));

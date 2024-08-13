@@ -86,7 +86,7 @@ pub async fn initialise(conn: &Connection) -> Result<(), MyError> {
                 c_username VARCHAR(500) NOT NULL,
                 c_address VARCHAR(500) NOT NULL,
                 m_path VARCHAR(500) NOT NULL,
-                sequence_id INTEGER NULL,
+                sequence_id INTEGER NOT NULL,
                 message_id VARCHAR(500) NOT NULL,
                 subject VARCHAR(500) NOT NULL,
                 from_ VARCHAR(500) NOT NULL,

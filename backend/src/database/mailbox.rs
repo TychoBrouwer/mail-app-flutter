@@ -10,8 +10,7 @@ pub async fn insert(
     mailbox_path: &str,
 ) -> Result<(), MyError> {
     let conn_locked = conn.lock().await;
-    dbg!("locked conn");
-
+    
     match conn_locked.execute(
         "INSERT OR IGNORE INTO mailboxes (
               c_username,
@@ -20,7 +19,7 @@ pub async fn insert(
           ) VALUES (?1, ?2, ?3)",
         params![username, address, mailbox_path],
     ) {
-        Ok(_) => Ok({}),
+        Ok(_) => Ok(()),
         Err(e) => {
             let err = MyError::Sqlite(e, String::from("Error inserting mailbox into database"));
             err.log_error();
@@ -36,8 +35,7 @@ pub async fn get(
     address: &str,
 ) -> Result<Vec<String>, MyError> {
     let conn_locked = conn.lock().await;
-    dbg!("locked conn");
-
+    
     let mut stmt = match conn_locked
         .prepare("SELECT * FROM mailboxes WHERE c_username = ?1 AND c_address = ?2")
     {

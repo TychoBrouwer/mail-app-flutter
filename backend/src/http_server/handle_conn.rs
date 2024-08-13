@@ -2,6 +2,7 @@ use async_std::sync::{Arc, Mutex};
 
 use crate::http_server::params;
 use crate::inbox_client;
+use crate::mime_parser::parser;
 use crate::types::session::{Client, Session};
 
 pub async fn login(
@@ -35,8 +36,7 @@ pub async fn login(
     let address = address.unwrap();
     let port = port.unwrap();
 
-    let mut locked_clients = clients.lock().await;
-    dbg!("locked clients");
+    let locked_clients = clients.lock().await;
     match locked_clients
         .iter()
         .position(|x| x.username == username.to_string() && x.address == address.to_string())
@@ -47,18 +47,16 @@ pub async fn login(
         None => {}
     };
 
-    locked_clients.push(Client {
+    drop(locked_clients);
+
+    let client_add = Client {
         username: username.to_string(),
         password: password.to_string(),
         address: address.to_string(),
         port,
-    });
+    };
 
-    let idx = locked_clients.len() - 1;
-
-    drop(locked_clients);
-
-    match inbox_client::connect::connect(sessions, database_conn, clients, idx).await {
+    match inbox_client::connect::connect(sessions, database_conn, clients, &client_add).await {
         Ok(idx) => {
             return format!("{{\"success\": true, \"message\": \"Connected to IMAP server\", \"data\": {{ \"session_id\": {}}}}}", idx);
         }
@@ -69,69 +67,6 @@ pub async fn login(
 }
 
 pub async fn logout(
-    uri: &str,
-    sessions: Arc<Mutex<Vec<Session>>>,
-    clients: Arc<Mutex<Vec<Client>>>,
-) -> String {
-    let uri_params = params::parse_params(String::from(uri));
-
-    let session_id = match params::get_usize(uri_params.get("session_id")) {
-        Ok(session_id) => session_id,
-        Err(e) => {
-            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
-        }
-    };
-
-    if session_id.is_none() {
-        eprintln!("Provide session_id GET parameter: {}", uri);
-        return String::from(
-            "{\"success\": false, \"message\": \"Provide session_id GET parameter\"}",
-        );
-    }
-
-    let session_id = session_id.unwrap();
-
-    let mut locked_clients = clients.lock().await;
-    dbg!("locked clients");
-
-    if session_id + 1 > locked_clients.len() {
-        return String::from("{\"success\": false, \"message\": \"Invalid session_id\"}");
-    }
-
-    match inbox_client::logout::logout_imap(sessions, session_id).await {
-        Ok(_) => {
-            locked_clients.remove(session_id);
-            return String::from("{\"success\": true, \"message\": \"Logged out\"}");
-        }
-        Err(e) => {
-            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
-        }
-    }
-}
-
-pub async fn get_sessions(clients: Arc<Mutex<Vec<Client>>>) -> String {
-    let mut response =
-        String::from("{\"success\": true, \"message\": \"Sessions retrieved\", \"data\": [");
-
-    let locked_clients = clients.lock().await;
-    dbg!("locked clients");
-
-    for (i, client) in locked_clients.iter().enumerate() {
-        response.push_str(&format!(
-            "{{\"session_id\": {}, \"username\": \"{}\", \"address\": \"{}\", \"port\": {}}}",
-            i, client.username, client.address, client.port
-        ));
-
-        if i < locked_clients.len() - 1 {
-            response.push_str(",");
-        }
-    }
-    response.push_str("]}");
-
-    return response;
-}
-
-pub async fn get_mailboxes(
     uri: &str,
     sessions: Arc<Mutex<Vec<Session>>>,
     database_conn: Arc<Mutex<rusqlite::Connection>>,
@@ -155,14 +90,132 @@ pub async fn get_mailboxes(
 
     let session_id = session_id.unwrap();
 
-    match inbox_client::get_mailboxes::get_mailboxes(sessions, database_conn, session_id, clients)
-        .await
-    {
+    let locked_clients = clients.lock().await;
+
+    if session_id + 1 > locked_clients.len() {
+        return String::from("{\"success\": false, \"message\": \"Invalid session_id\"}");
+    }
+
+    let client = &locked_clients[session_id].clone();
+    drop(locked_clients);
+
+    match inbox_client::logout::logout(sessions, database_conn, client, session_id).await {
+        Ok(_) => {
+            return format!(
+                "{{\"success\": true, \"message\": \"Logged out\", \"data\": {}}}",
+                session_id
+            );
+        }
+        Err(e) => {
+            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
+        }
+    }
+}
+
+pub async fn get_sessions(clients: Arc<Mutex<Vec<Client>>>) -> String {
+    let mut response =
+        String::from("{\"success\": true, \"message\": \"Sessions retrieved\", \"data\": [");
+
+    let locked_clients = clients.lock().await;
+
+    for (i, client) in locked_clients.iter().enumerate() {
+        response.push_str(&format!(
+            "{{\"session_id\": {}, \"username\": \"{}\", \"address\": \"{}\", \"port\": {}}}",
+            i, client.username, client.address, client.port
+        ));
+
+        if i < locked_clients.len() - 1 {
+            response.push_str(",");
+        }
+    }
+    response.push_str("]}");
+
+    return response;
+}
+
+pub async fn get_mailboxes(
+    uri: &str,
+    database_conn: Arc<Mutex<rusqlite::Connection>>,
+    clients: Arc<Mutex<Vec<Client>>>,
+) -> String {
+    let uri_params = params::parse_params(String::from(uri));
+
+    let session_id = match params::get_usize(uri_params.get("session_id")) {
+        Ok(session_id) => session_id,
+        Err(e) => {
+            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
+        }
+    };
+
+    if session_id.is_none() {
+        eprintln!("Provide session_id GET parameter: {}", uri);
+        return String::from(
+            "{\"success\": false, \"message\": \"Provide session_id GET parameter\"}",
+        );
+    }
+
+    let session_id = session_id.unwrap();
+
+    let locked_clients = clients.lock().await;
+
+    if session_id + 1 > locked_clients.len() {
+        return String::from("{\"success\": false, \"message\": \"Invalid session_id\"}");
+    }
+
+    let client = &locked_clients[session_id].clone();
+    drop(locked_clients);
+
+    match inbox_client::mailboxes::get_database(database_conn, client).await {
         Ok(mailboxes) => {
+            let mailboxes_str = parser::parse_string_vec(mailboxes);
+
             return format!(
                 "{{\"success\": true, \"message\": \"Mailboxes retrieved\", \"data\": {}}}",
-                mailboxes
-            )
+                mailboxes_str
+            );
+        }
+        Err(e) => {
+            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
+        }
+    }
+}
+
+pub async fn update_mailboxes(
+    uri: &str,
+    sessions: Arc<Mutex<Vec<Session>>>,
+    database_conn: Arc<Mutex<rusqlite::Connection>>,
+    clients: Arc<Mutex<Vec<Client>>>,
+) -> String {
+    let uri_params = params::parse_params(String::from(uri));
+
+    let session_id = match params::get_usize(uri_params.get("session_id")) {
+        Ok(session_id) => session_id,
+        Err(e) => {
+            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
+        }
+    };
+
+    if session_id.is_none() {
+        eprintln!("Provide session_id GET parameter: {}", uri);
+        return String::from(
+            "{\"success\": false, \"message\": \"Provide session_id GET parameter\"}",
+        );
+    }
+
+    let session_id = session_id.unwrap();
+
+    let locked_clients = clients.lock().await;
+
+    if session_id + 1 > locked_clients.len() {
+        return String::from("{\"success\": false, \"message\": \"Invalid session_id\"}");
+    }
+
+    let client = &locked_clients[session_id].clone();
+    drop(locked_clients);
+
+    match inbox_client::mailboxes::update(sessions, database_conn, session_id, client).await {
+        Ok(_) => {
+            return String::from("{\"success\": true, \"message\": \"Mailboxes updated\"}");
         }
         Err(e) => {
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
@@ -203,20 +256,30 @@ pub async fn get_messages_with_uids(
         .map(|x| x.parse::<u32>().unwrap())
         .collect();
 
-    match inbox_client::get_messages_with_uids::get_messages_with_uids(
+    let locked_clients = clients.lock().await;
+
+    if session_id + 1 > locked_clients.len() {
+        return String::from("{\"success\": false, \"message\": \"Invalid session_id\"}");
+    }
+
+    let client = &locked_clients[session_id].clone();
+    drop(locked_clients);
+
+    match inbox_client::messages::get_database_with_uids(
         database_conn,
-        session_id,
-        clients,
+        client,
         mailbox_path,
         &message_uids,
     )
     .await
     {
         Ok(messages) => {
+            let messages_str = parser::parse_message_vec(messages);
+
             return format!(
                 "{{\"success\": true, \"message\": \"Messages retrieved\", \"data\": {}}}",
-                messages
-            )
+                messages_str
+            );
         }
         Err(e) => {
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
@@ -267,10 +330,18 @@ pub async fn get_messages_sorted(
     let start = start.unwrap();
     let end = end.unwrap();
 
-    match inbox_client::get_messages_sorted::get_messages_sorted(
+    let locked_clients = clients.lock().await;
+
+    if session_id + 1 > locked_clients.len() {
+        return String::from("{\"success\": false, \"message\": \"Invalid session_id\"}");
+    }
+
+    let client = &locked_clients[session_id].clone();
+    drop(locked_clients);
+
+    match inbox_client::messages::get_database_sorted(
         database_conn,
-        session_id,
-        clients,
+        client,
         mailbox_path,
         start,
         end,
@@ -278,10 +349,12 @@ pub async fn get_messages_sorted(
     .await
     {
         Ok(messages) => {
+            let messages_str = parser::parse_message_vec(messages);
+
             return format!(
                 "{{\"success\": true, \"message\": \"Messages retrieved\", \"data\": {}}}",
-                messages
-            )
+                messages_str
+            );
         }
         Err(e) => {
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
@@ -385,11 +458,20 @@ pub async fn modify_flags(
     let flags = flags.unwrap();
     let add = add.unwrap();
 
-    match inbox_client::modify_flags::modify_flags(
-        sessions,
+    let locked_clients = clients.lock().await;
+
+    if session_id + 1 > locked_clients.len() {
+        return String::from("{\"success\": false, \"message\": \"Invalid session_id\"}");
+    }
+
+    let client = &locked_clients[session_id].clone();
+    drop(locked_clients);
+
+    match inbox_client::message_flags::modify(
         database_conn,
+        sessions,
         session_id,
-        clients,
+        client,
         mailbox_path,
         message_uid,
         flags,
@@ -397,11 +479,23 @@ pub async fn modify_flags(
     )
     .await
     {
-        Ok(message) => {
+        Ok(flags) => {
+            let mut flags_str = String::from("[");
+
+            for (i, flag) in flags.iter().enumerate() {
+                flags_str.push_str(&format!("\"{}\"", flag));
+
+                if i < flags.len() - 1 {
+                    flags_str.push_str(",");
+                }
+            }
+
+            flags_str.push_str("]");
+
             return format!(
                 "{{\"success\": true, \"message\": \"Flags successfully updated\", \"data\": {}}}",
-                message
-            )
+                flags_str
+            );
         }
         Err(e) => {
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
@@ -449,22 +543,28 @@ pub async fn move_message(
     let message_uid = message_uid.unwrap();
     let mailbox_path_dest = mailbox_path_dest.unwrap();
 
-    match inbox_client::move_message::move_message(
+    let locked_clients = clients.lock().await;
+
+    if session_id + 1 > locked_clients.len() {
+        return String::from("{\"success\": false, \"message\": \"Invalid session_id\"}");
+    }
+
+    let client = &locked_clients[session_id].clone();
+    drop(locked_clients);
+
+    match inbox_client::message::mv(
         sessions,
         database_conn,
         session_id,
-        clients,
+        client,
         mailbox_path,
         message_uid,
         mailbox_path_dest,
     )
     .await
     {
-        Ok(message) => {
-            return format!(
-                "{{\"success\": true, \"message\": \"Message successfully moved\", \"data\": {}}}",
-                message
-            )
+        Ok(_) => {
+            return String::from("{\"success\": true, \"message\": \"Message successfully moved\"}")
         }
         Err(e) => {
             return format!("{{\"success\": false, \"message\": \"{}\"}}", e);

@@ -48,11 +48,9 @@ async fn handle_connection(
 
     let data = match path {
         "/login" => handle_conn::login(params, sessions, database_conn, clients).await,
-        "/logout" => handle_conn::logout(params, sessions, clients).await,
+        "/logout" => handle_conn::logout(params, sessions, database_conn, clients).await,
         "/get_sessions" => handle_conn::get_sessions(clients).await,
-        "/get_mailboxes" => {
-            handle_conn::get_mailboxes(params, sessions, database_conn, clients).await
-        }
+        "/get_mailboxes" => handle_conn::get_mailboxes(params, database_conn, clients).await,
         "/get_messages_with_uids" => {
             handle_conn::get_messages_with_uids(params, database_conn, clients).await
         }
@@ -62,6 +60,10 @@ async fn handle_connection(
         "/update_mailbox" => {
             handle_conn::update_mailbox(params, sessions, database_conn, clients).await
         }
+        "/update_mailboxes" => {
+            handle_conn::update_mailboxes(params, sessions, database_conn, clients).await
+        }
+
         "/modify_flags" => {
             handle_conn::modify_flags(params, sessions, database_conn, clients).await
         }

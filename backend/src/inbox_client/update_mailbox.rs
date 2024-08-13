@@ -6,7 +6,7 @@ use std::{collections::HashMap, u32, vec};
 
 use crate::database;
 use crate::inbox_client;
-use crate::inbox_client::parse_message::parse_message;
+use crate::mime_parser::parser;
 use crate::my_error::MyError;
 use crate::types::sequence_set::{SequenceSet, StartEnd};
 use crate::types::session::{Client, Session};
@@ -19,8 +19,7 @@ pub async fn update_mailbox(
     mailbox_path: &str,
 ) -> Result<String, MyError> {
     let locked_clients = clients.lock().await;
-    dbg!("locked clients");
-
+    
     if session_id + 1 > locked_clients.len() {
         let err = MyError::String(
             String::from("Out of bounds array access"),
@@ -170,8 +169,7 @@ async fn get_highest_seq_imap(
     mailbox_path: &str,
 ) -> Result<(u32, u32), MyError> {
     let mut locked_sessions = sessions.lock().await;
-    dbg!("locked sessions");
-
+    
     let session = &mut locked_sessions[session_id];
 
     let sessions_2 = Arc::clone(&sessions);
@@ -181,7 +179,7 @@ async fn get_highest_seq_imap(
         Err(e) => {
             drop(locked_sessions);
 
-            match inbox_client::handle_disconnect(sessions, client, e).await {
+            match inbox_client::connect::handle_disconnect(sessions, client, e).await {
                 Ok(_) => {
                     return Box::pin(get_highest_seq_imap(
                         sessions_2,
@@ -268,7 +266,7 @@ async fn get_highest_seq_db(
 
     let message = messages.first();
     if message.is_some() {
-        return Ok(message.unwrap().sequence_id.unwrap_or(u32::MAX));
+        return Ok(message.unwrap().sequence_id);
     } else {
         let err = MyError::String(
             String::from("Message not found in db"),
@@ -291,8 +289,7 @@ async fn get_changed_message_uids(
     let sessions_2 = Arc::clone(&sessions);
 
     let mut locked_sessions = sessions.lock().await;
-    dbg!("locked sessions");
-
+    
     let session = &mut locked_sessions[session_id];
 
     let mailbox = match session.select(mailbox_path).await {
@@ -300,7 +297,7 @@ async fn get_changed_message_uids(
         Err(e) => {
             drop(locked_sessions);
 
-            match inbox_client::handle_disconnect(sessions, client, e).await {
+            match inbox_client::connect::handle_disconnect(sessions, client, e).await {
                 Ok(_) => {
                     return Box::pin(get_changed_message_uids(
                         sessions_2,
@@ -368,7 +365,7 @@ async fn get_changed_message_uids(
 
     let seq_to_uids_db: HashMap<u32, u32> = messages
         .iter()
-        .map(|message| (message.sequence_id.unwrap_or(u32::MAX), message.message_uid))
+        .map(|message| (message.sequence_id, message.message_uid))
         .collect();
 
     let changed_message_uids: Vec<u32> = seq_to_uids_imap
@@ -403,8 +400,7 @@ async fn get_new_messages(
     let sessions_2 = Arc::clone(&sessions);
 
     let mut locked_sessions = sessions.lock().await;
-    dbg!("locked sessions");
-
+    
     let session = &mut locked_sessions[session_id];
 
     match session.select(mailbox_path).await {
@@ -412,7 +408,7 @@ async fn get_new_messages(
         Err(e) => {
             drop(locked_sessions);
 
-            match inbox_client::handle_disconnect(sessions, client, e).await {
+            match inbox_client::connect::handle_disconnect(sessions, client, e).await {
                 Ok(_) => {
                     return Box::pin(get_new_messages(
                         sessions_2,
@@ -462,7 +458,7 @@ async fn get_new_messages(
 
     let messages = fetches
         .iter()
-        .filter_map(|fetch| match parse_message(fetch) {
+        .filter_map(|fetch| match parser::parse_fetch(fetch) {
             Ok(m) => Some(m),
             Err(_) => None,
         })
@@ -481,7 +477,7 @@ async fn get_new_messages(
         Err(e) => return Err(e),
     }
 
-    return Ok({});
+    return Ok(());
 }
 
 async fn update_moved_messeages(
@@ -508,7 +504,7 @@ async fn update_moved_messeages(
         }
     }
 
-    return Ok({});
+    return Ok(());
 }
 
 async fn update_flags(
@@ -521,8 +517,7 @@ async fn update_flags(
     let sessions_2 = Arc::clone(&sessions);
 
     let mut locked_sessions = sessions.lock().await;
-    dbg!("locked sessions");
-
+    
     let session = &mut locked_sessions[session_id];
 
     match session.select(mailbox_path).await {
@@ -530,7 +525,7 @@ async fn update_flags(
         Err(e) => {
             drop(locked_sessions);
 
-            match inbox_client::handle_disconnect(sessions, client, e).await {
+            match inbox_client::connect::handle_disconnect(sessions, client, e).await {
                 Ok(_) => {
                     return Box::pin(update_flags(
                         sessions_2,
@@ -580,7 +575,7 @@ async fn update_flags(
 
         let flags: Vec<_> = fetch.flags().collect();
 
-        let flags_str = inbox_client::parse_message::flags_to_string(&flags);
+        let flags_str = parser::parse_flag_vec(&flags);
 
         let database_conn_2 = Arc::clone(&database_conn);
 

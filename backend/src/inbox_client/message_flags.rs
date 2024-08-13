@@ -1,5 +1,5 @@
 use async_imap::error::Error as ImapError;
-use async_imap::types::{Fetch, Flag};
+use async_imap::types::Fetch;
 use async_std::stream::StreamExt;
 use async_std::sync::{Arc, Mutex};
 
@@ -8,37 +8,60 @@ use crate::inbox_client;
 use crate::my_error::MyError;
 use crate::types::session::{Client, Session};
 
-pub async fn modify_flags(
-    sessions: Arc<Mutex<Vec<Session>>>,
+pub async fn modify(
     database_conn: Arc<Mutex<rusqlite::Connection>>,
+    sessions: Arc<Mutex<Vec<Session>>>,
     session_id: usize,
-    clients: Arc<Mutex<Vec<Client>>>,
+    client: &Client,
     mailbox_path: &str,
     message_uid: u32,
     flags: &str,
     add: bool,
-) -> Result<String, MyError> {
+) -> Result<Vec<String>, MyError> {
+    let updated_flags = match modify_imap(
+        Arc::clone(&sessions),
+        session_id,
+        client,
+        mailbox_path,
+        message_uid,
+        flags,
+        add,
+    )
+    .await
+    {
+        Ok(m) => m,
+        Err(e) => return Err(e),
+    };
+
+    match modify_database(
+        database_conn,
+        client,
+        mailbox_path,
+        message_uid,
+        &updated_flags,
+    )
+    .await
+    {
+        Ok(_) => (),
+        Err(e) => return Err(e),
+    };
+
+    return Ok(updated_flags);
+}
+
+async fn modify_imap(
+    sessions: Arc<Mutex<Vec<Session>>>,
+    session_id: usize,
+    client: &Client,
+    mailbox_path: &str,
+    message_uid: u32,
+    flags: &str,
+    add: bool,
+) -> Result<Vec<String>, MyError> {
     let sessions_2 = Arc::clone(&sessions);
 
-    let locked_clients = clients.lock().await;
-    dbg!("locked clients");
-
-    if session_id + 1 > locked_clients.len() {
-        let err = MyError::String(
-            String::from("Out of bounds array access"),
-            String::from("Invalid session ID"),
-        );
-        err.log_error();
-
-        return Err(err);
-    }
-
-    let client = &locked_clients[session_id].clone();
-    drop(locked_clients);
-
     let mut locked_sessions = sessions.lock().await;
-    dbg!("locked sessions");
-
+    
     let session = &mut locked_sessions[session_id];
 
     match session.select(mailbox_path).await {
@@ -46,13 +69,12 @@ pub async fn modify_flags(
         Err(e) => {
             drop(locked_sessions);
 
-            match inbox_client::handle_disconnect(sessions, client, e).await {
+            match inbox_client::connect::handle_disconnect(sessions, client, e).await {
                 Ok(_) => {
-                    return Box::pin(modify_flags(
+                    return Box::pin(modify_imap(
                         sessions_2,
-                        database_conn,
                         session_id,
-                        clients,
+                        client,
                         mailbox_path,
                         message_uid,
                         flags,
@@ -105,26 +127,22 @@ pub async fn modify_flags(
         }
     };
 
-    let updated_flags = fetch.flags().collect();
+    let updated_flags: Vec<String> = fetch
+        .flags()
+        .map(|flag| format!("\"{:?}\"", flag))
+        .collect();
 
-    return modify_flags_db(
-        database_conn,
-        client,
-        mailbox_path,
-        message_uid,
-        updated_flags,
-    )
-    .await;
+    return Ok(updated_flags);
 }
 
-async fn modify_flags_db<'a>(
+async fn modify_database(
     database_conn: Arc<Mutex<rusqlite::Connection>>,
     client: &Client,
     mailbox_path: &str,
     message_uid: u32,
-    flags: Vec<Flag<'a>>,
-) -> Result<String, MyError> {
-    let flags_str = inbox_client::parse_message::flags_to_string(&flags);
+    flags: &Vec<String>,
+) -> Result<(), MyError> {
+    let flags_str = flags.join(",");
 
     match database::message::update_flags(
         database_conn,
@@ -136,7 +154,7 @@ async fn modify_flags_db<'a>(
     )
     .await
     {
-        Ok(_) => return Ok(flags_str),
+        Ok(_) => return Ok(()),
         Err(e) => return Err(e),
     };
 }

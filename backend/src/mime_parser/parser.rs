@@ -1,10 +1,11 @@
-use async_imap::imap_proto::Address;
 use async_imap::types::{Fetch, Flag};
 use base64::{prelude::BASE64_STANDARD, Engine};
-use chrono::{DateTime, FixedOffset};
 use regex::Regex;
 use std::collections::HashMap;
 
+use crate::mime_parser::decode;
+use crate::mime_parser::parse_address;
+use crate::mime_parser::parse_time;
 use crate::my_error::MyError;
 use crate::types::message::Message;
 
@@ -16,75 +17,6 @@ enum MimeParserState {
     HtmlHeader,
     Html,
     BlankLine,
-}
-
-fn parse_time_rfc2822(time_str: Option<&String>) -> DateTime<FixedOffset> {
-    let time_re =
-        Regex::new(r"(\w{1,3}, \d{1,2} \w{1,3} \d{4} \d{2}:\d{2}:\d{2} ([+-]\d{4})?(\w{3})?)")
-            .unwrap();
-    let binding = String::from("");
-
-    let date = match time_re.captures(time_str.unwrap_or(&binding)) {
-        Some(c) => c.get(1).unwrap().as_str(),
-        None => {
-            eprintln!("Error: Could not parse date");
-            "Thu, 1 Jan 1970 00:00:00 +0000"
-        }
-    };
-
-    let date = match DateTime::parse_from_rfc2822(&date) {
-        Ok(date) => date,
-        Err(e) => {
-            eprintln!("Error: {}", e);
-            DateTime::parse_from_rfc2822("Thu, 1 Jan 1970 00:00:00 +0000").unwrap()
-        }
-    };
-
-    return date;
-}
-
-fn decode_u8(string: Option<&[u8]>) -> String {
-    match string {
-        Some(s) => match std::str::from_utf8(s) {
-            Ok(s) => String::from(s),
-            Err(_) => String::from(""),
-        },
-        None => String::from(""),
-    }
-}
-
-fn address_to_string(address: &Option<Vec<Address>>) -> String {
-    match address {
-        Some(a) => {
-            let mut result = String::from("[");
-
-            for (i, address) in a.iter().enumerate() {
-                result.push_str("{");
-                result.push_str(&format!(
-                    "\"name\": \"{}\",",
-                    decode_u8(address.name.as_deref())
-                ));
-                result.push_str(&format!(
-                    "\"mailbox\": \"{}\",",
-                    decode_u8(address.mailbox.as_deref())
-                ));
-                result.push_str(&format!(
-                    "\"host\": \"{}\"",
-                    decode_u8(address.host.as_deref())
-                ));
-                result.push_str("}");
-
-                if i < a.len() - 1 {
-                    result.push_str(",");
-                }
-            }
-
-            result.push_str("]");
-
-            return result;
-        }
-        None => return String::from("[]"),
-    }
 }
 
 fn parse_message_body(body: &str) -> Message {
@@ -239,8 +171,8 @@ fn parse_message_body(body: &str) -> Message {
         html = BASE64_STANDARD.encode(html.as_bytes());
     }
 
-    let date = parse_time_rfc2822(headers.get("Date"));
-    let received = parse_time_rfc2822(headers.get("Received"));
+    let date = parse_time::rfc2822(headers.get("Date"));
+    let received = parse_time::rfc2822(headers.get("Received"));
 
     let binding = String::from("");
     let to = headers.get("To").unwrap_or(&binding);
@@ -251,7 +183,7 @@ fn parse_message_body(body: &str) -> Message {
 
     return Message {
         message_uid: 0,
-        sequence_id: Some(0),
+        sequence_id: 0,
         message_id: message_id.to_string(),
         subject: subject.to_string(),
         from: from.to_string(),
@@ -270,7 +202,7 @@ fn parse_message_body(body: &str) -> Message {
     };
 }
 
-pub fn flags_to_string(flags: &[Flag]) -> String {
+pub fn parse_flag_vec(flags: &[Flag]) -> String {
     let mut flags_str = String::from("[");
 
     for (i, flag) in flags.iter().enumerate() {
@@ -285,7 +217,35 @@ pub fn flags_to_string(flags: &[Flag]) -> String {
     return flags_str;
 }
 
-pub fn parse_message(fetch: &Fetch) -> Result<Message, MyError> {
+pub fn parse_message_vec(messages: Vec<Message>) -> String {
+    let mut result = String::from("[");
+
+    for message in messages {
+        result.push_str(&message.to_string());
+        result.push_str(",");
+    }
+
+    result.pop();
+    result.push_str("]");
+
+    return result;
+}
+
+pub fn parse_string_vec(strings: Vec<String>) -> String {
+    let mut result = String::from("[");
+
+    for string in strings {
+        result.push_str(&format!("\"{}\"", string));
+        result.push_str(",");
+    }
+
+    result.pop();
+    result.push_str("]");
+
+    return result;
+}
+
+pub fn parse_fetch(fetch: &Fetch) -> Result<Message, MyError> {
     let envelope = match fetch.envelope() {
         Some(e) => e,
         None => {
@@ -333,23 +293,23 @@ pub fn parse_message(fetch: &Fetch) -> Result<Message, MyError> {
         }
     };
 
-    let flags = fetch.flags().into_iter().collect::<Vec<_>>();
-    let flags_str = flags_to_string(&flags);
+    let flags = fetch.flags().collect::<Vec<Flag>>();
+    let flags_str = parse_flag_vec(&flags);
 
     let body_data = parse_message_body(body_str);
 
     return Ok(Message {
         message_uid,
-        sequence_id: Some(fetch.message),
-        message_id: decode_u8(envelope.message_id.as_deref()),
-        subject: decode_u8(envelope.subject.as_deref()),
-        from: address_to_string(&envelope.from),
-        sender: address_to_string(&envelope.sender),
-        to: address_to_string(&envelope.to),
-        cc: address_to_string(&envelope.cc),
-        bcc: address_to_string(&envelope.bcc),
-        reply_to: address_to_string(&envelope.reply_to),
-        in_reply_to: decode_u8(envelope.in_reply_to.as_deref()),
+        sequence_id: fetch.message,
+        message_id: decode::u8(envelope.message_id.as_deref()),
+        subject: decode::u8(envelope.subject.as_deref()),
+        from: parse_address::to_string(&envelope.from),
+        sender: parse_address::to_string(&envelope.sender),
+        to: parse_address::to_string(&envelope.to),
+        cc: parse_address::to_string(&envelope.cc),
+        bcc: parse_address::to_string(&envelope.bcc),
+        reply_to: parse_address::to_string(&envelope.reply_to),
+        in_reply_to: decode::u8(envelope.in_reply_to.as_deref()),
         delivered_to: body_data.delivered_to,
         date: body_data.date,
         received: body_data.received,

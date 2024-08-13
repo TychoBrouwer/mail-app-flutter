@@ -3,16 +3,23 @@ use async_std::sync::{Arc, Mutex};
 use crate::types::session::Session;
 
 pub mod database;
+mod http_server {
+    mod handle_conn;
+    pub mod http_server;
+    mod params;
+}
 pub mod inbox_client;
-pub mod types {
+mod types {
+    pub mod fetch_mode;
     pub mod message;
     pub mod sequence_set;
     pub mod session;
 }
-mod http_server {
-    pub mod handle_conn;
-    pub mod http_server;
-    pub mod params;
+pub mod mime_parser {
+    pub mod decode;
+    pub mod parse_address;
+    pub mod parse_time;
+    pub mod parser;
 }
 mod my_error;
 
@@ -46,7 +53,11 @@ async fn main() {
         let database_conn = Arc::clone(&database_conn);
         let clients = Arc::clone(&clients);
 
-        match inbox_client::connect::connect(sessions, database_conn, clients, i).await {
+        let locked_clients = clients.lock().await;
+        let client = locked_clients[i].clone();
+        drop(locked_clients);
+
+        match inbox_client::connect::connect(sessions, database_conn, clients, &client).await {
             Ok(_) => {}
             Err(e) => eprintln!("Error connecting to IMAP stored in local database: {:?}", e),
         }
