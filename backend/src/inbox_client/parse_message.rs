@@ -87,21 +87,6 @@ fn address_to_string(address: &Option<Vec<Address>>) -> String {
     }
 }
 
-pub fn flags_to_string(flags: &[Flag]) -> String {
-    let mut flags_str = String::from("[");
-
-    for (i, flag) in flags.iter().enumerate() {
-        flags_str.push_str(&format!("\"{:?}\"", flag));
-
-        if i < flags.len() - 1 {
-            flags_str.push_str(", ");
-        }
-    }
-    flags_str.push_str("]");
-
-    return flags_str;
-}
-
 fn parse_message_body(body: &str) -> Message {
     let mut state = MimeParserState::HeaderKey;
 
@@ -285,6 +270,21 @@ fn parse_message_body(body: &str) -> Message {
     };
 }
 
+pub fn flags_to_string(flags: &[Flag]) -> String {
+    let mut flags_str = String::from("[");
+
+    for (i, flag) in flags.iter().enumerate() {
+        flags_str.push_str(&format!("\"{:?}\"", flag));
+
+        if i < flags.len() - 1 {
+            flags_str.push_str(", ");
+        }
+    }
+    flags_str.push_str("]");
+
+    return flags_str;
+}
+
 pub fn parse_message(fetch: &Fetch) -> Result<Message, MyError> {
     let envelope = match fetch.envelope() {
         Some(e) => e,
@@ -334,7 +334,6 @@ pub fn parse_message(fetch: &Fetch) -> Result<Message, MyError> {
     };
 
     let flags = fetch.flags().into_iter().collect::<Vec<_>>();
-
     let flags_str = flags_to_string(&flags);
 
     let body_data = parse_message_body(body_str);

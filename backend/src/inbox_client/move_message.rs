@@ -1,6 +1,6 @@
 use async_std::sync::{Arc, Mutex};
 
-use crate::database::db_connection;
+use crate::database;
 use crate::inbox_client;
 use crate::my_error::MyError;
 use crate::types::session::{Client, Session};
@@ -99,7 +99,7 @@ async fn move_message_db(
     dbg!("locked clients");
     let client = &locked_clients[session_id];
 
-    match db_connection::move_message(
+    match database::message::change_mailbox(
         database_conn,
         &client.username,
         &client.address,

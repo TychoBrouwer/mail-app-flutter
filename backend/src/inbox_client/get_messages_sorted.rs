@@ -1,6 +1,6 @@
 use async_std::sync::{Arc, Mutex};
 
-use crate::database::db_connection;
+use crate::database;
 use crate::my_error::MyError;
 use crate::types::session::Client;
 
@@ -27,7 +27,7 @@ pub async fn get_messages_sorted(
 
     let client = &locked_clients[session_id];
 
-    let messages = match db_connection::get_messages_sorted(
+    let messages = match database::messages::get_sorted(
         database_conn,
         &client.username,
         &client.address,

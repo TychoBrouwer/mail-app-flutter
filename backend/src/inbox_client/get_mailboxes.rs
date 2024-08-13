@@ -5,7 +5,7 @@ use async_imap::error::Error as ImapError;
 use async_imap::types::Name;
 use async_std::task;
 
-use crate::database::db_connection;
+use crate::database;
 use crate::inbox_client;
 use crate::my_error::MyError;
 use crate::types::session::{Client, Session};
@@ -61,7 +61,7 @@ pub async fn get_mailboxes(
         let client = client.clone();
 
         task::spawn(async move {
-            match db_connection::insert_mailbox(
+            match database::mailbox::insert(
                 database_conn,
                 &client.username,
                 &client.address,
@@ -88,19 +88,14 @@ async fn get_mailboxes_db(
     database_conn: Arc<Mutex<rusqlite::Connection>>,
     client: &Client,
 ) -> Result<Vec<String>, MyError> {
-    let mailboxes = match db_connection::get_mailboxes(
-        database_conn,
-        &client.username,
-        &client.address,
-    )
-    .await
-    {
-        Ok(m) => m,
-        Err(e) => {
-            eprintln!("Error getting mailboxes: {:?}", e);
-            return Err(e);
-        }
-    };
+    let mailboxes =
+        match database::mailbox::get(database_conn, &client.username, &client.address).await {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("Error getting mailboxes: {:?}", e);
+                return Err(e);
+            }
+        };
 
     return Ok(mailboxes);
 }

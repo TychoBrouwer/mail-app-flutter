@@ -26,6 +26,7 @@ pub async fn create_server(
         })
         .await;
 }
+
 async fn handle_connection(
     mut stream: TcpStream,
     sessions: Arc<Mutex<Vec<Session>>>,

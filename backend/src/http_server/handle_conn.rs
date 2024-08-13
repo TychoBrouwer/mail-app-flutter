@@ -332,8 +332,11 @@ pub async fn update_mailbox(
     )
     .await
     {
-        Ok(_) => {
-            return String::from("{\"success\": true, \"message\": \"Mailbox updated\"}");
+        Ok(message) => {
+            return format!(
+                "{{\"success\": true, \"message\": \"Mailbox updated\", \"data\": {}}}",
+                message
+            );
         }
         Err(e) => {
             eprintln!("Error updating mailbox: {:?}", e);

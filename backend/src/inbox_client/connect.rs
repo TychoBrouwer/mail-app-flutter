@@ -3,7 +3,7 @@ use async_native_tls::TlsConnector;
 use async_std::net::TcpStream;
 use async_std::sync::{Arc, Mutex};
 
-use crate::database::db_connection;
+use crate::database;
 use crate::my_error::MyError;
 use crate::types::session::{Client, Session};
 
@@ -34,7 +34,7 @@ pub async fn connect(
 
     drop(locked_sessions);
 
-    match db_connection::insert_connection(database_conn, client.clone()).await {
+    match database::connections::insert(database_conn, client.clone()).await {
         Ok(_) => {}
         Err(e) => eprintln!("Error inserting connection into database: {:?}", e),
     }

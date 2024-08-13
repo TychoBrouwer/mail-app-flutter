@@ -2,3 +2,4 @@ Cargo.lock
 target/
 mail.db
 mysecrets.py
+__pycache__/

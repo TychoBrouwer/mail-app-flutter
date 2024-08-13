@@ -4,7 +4,7 @@ use async_std::stream::StreamExt;
 use async_std::sync::{Arc, Mutex};
 use std::{collections::HashMap, u32, vec};
 
-use crate::database::db_connection;
+use crate::database;
 use crate::inbox_client;
 use crate::inbox_client::parse_message::parse_message;
 use crate::my_error::MyError;
@@ -276,7 +276,7 @@ async fn get_highest_seq_db(
 
     let client = &locked_clients[session_id];
 
-    let messages = match db_connection::get_messages_with_uids(
+    let messages = match database::messages::get_with_uids(
         database_conn,
         &client.username,
         &client.address,
@@ -384,7 +384,7 @@ async fn get_changed_message_uids(
 
     let client = &locked_clients[session_id];
 
-    let messages = match db_connection::get_messages_with_uids(
+    let messages = match database::messages::get_with_uids(
         database_conn,
         &client.username,
         &client.address,
@@ -515,7 +515,7 @@ async fn get_new_messages(
 
         let client = &locked_clients[session_id];
 
-        match db_connection::insert_message(
+        match database::message::insert(
             database_conn_2,
             &client.username,
             &client.address,
@@ -551,7 +551,7 @@ async fn update_moved_messeages(
     for (sequence_id, message_uid) in moved_message_seq_to_uids {
         let database_conn = Arc::clone(&database_conn);
 
-        match db_connection::update_message_sequence_id(
+        match database::message::update_sequence_id(
             database_conn,
             &client.username,
             &client.address,
@@ -649,7 +649,7 @@ async fn update_flags(
 
         let client = &locked_clients[session_id];
 
-        match db_connection::update_message_flags(
+        match database::message::update_flags(
             database_conn_2,
             &client.username,
             &client.address,

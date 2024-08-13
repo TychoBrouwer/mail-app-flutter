@@ -3,7 +3,7 @@ use async_imap::types::{Fetch, Flag};
 use async_std::stream::StreamExt;
 use async_std::sync::{Arc, Mutex};
 
-use crate::database::db_connection;
+use crate::database;
 use crate::inbox_client;
 use crate::my_error::MyError;
 use crate::types::session::{Client, Session};
@@ -134,7 +134,7 @@ async fn modify_flags_db<'a>(
     dbg!("locked clients");
     let client = &locked_clients[session_id];
 
-    match db_connection::update_message_flags(
+    match database::message::update_flags(
         database_conn,
         &client.username,
         &client.address,
