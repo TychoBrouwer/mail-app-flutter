@@ -3,6 +3,7 @@ pub enum FetchMode {
     ENVELOPE,
     BODY,
     UID,
+    FLAGS,
 }
 
 pub fn string(fetch_mode: FetchMode) -> String {
@@ -11,5 +12,6 @@ pub fn string(fetch_mode: FetchMode) -> String {
         FetchMode::ENVELOPE => String::from("ENVELOPE"),
         FetchMode::BODY => String::from("BODY"),
         FetchMode::UID => String::from("UID"),
+        FetchMode::FLAGS => String::from("FLAGS"),
     }
 }

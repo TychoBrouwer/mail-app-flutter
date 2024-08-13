@@ -1,15 +1,18 @@
-use async_imap::error::Error as ImapError;
-use async_imap::types::Fetch;
-use async_std::stream::StreamExt;
 use async_std::sync::{Arc, Mutex};
 use std::{collections::HashMap, u32, vec};
 
 use crate::database;
 use crate::inbox_client;
-use crate::mime_parser::parser;
 use crate::my_error::MyError;
+use crate::types::fetch_mode::FetchMode;
 use crate::types::sequence_set::{SequenceSet, StartEnd};
 use crate::types::session::{Client, Session};
+
+struct MessageMoveData {
+    sequence_id: u32,
+    message_uid: u32,
+    sequence_id_new: u32,
+}
 
 pub async fn update_mailbox(
     sessions: Arc<Mutex<Vec<Session>>>,
@@ -79,7 +82,7 @@ pub async fn update_mailbox(
         let sessions_2 = Arc::clone(&sessions);
         let database_conn_2 = Arc::clone(&database_conn);
 
-        let (moved_message_seq_to_uids, new_message_uids) = match get_changed_message_uids(
+        let (moved_messages, new_message_uids) = match get_changed_message_uids(
             sessions_2,
             session_id,
             database_conn_2,
@@ -94,9 +97,9 @@ pub async fn update_mailbox(
         };
 
         changed_uids.extend(
-            &moved_message_seq_to_uids
+            &moved_messages
                 .iter()
-                .map(|(seq, _)| *seq)
+                .map(|m| m.message_uid)
                 .collect::<Vec<u32>>(),
         );
         changed_uids.extend(&new_message_uids);
@@ -124,16 +127,11 @@ pub async fn update_mailbox(
             };
         }
 
-        if !moved_message_seq_to_uids.is_empty() {
+        if !moved_messages.is_empty() {
             let database_conn_2 = Arc::clone(&database_conn);
 
-            match update_moved_messeages(
-                database_conn_2,
-                client,
-                mailbox_path,
-                &moved_message_seq_to_uids,
-            )
-            .await
+            match update_moved_messeages(database_conn_2, client, mailbox_path, &moved_messages)
+                .await
             {
                 Ok(_) => {}
                 Err(e) => return Err(e),
@@ -168,79 +166,45 @@ async fn get_highest_seq_imap(
     client: &Client,
     mailbox_path: &str,
 ) -> Result<(u32, u32), MyError> {
-    let mut locked_sessions = sessions.lock().await;
-
-    let session = &mut locked_sessions[session_id];
-
-    let sessions_2 = Arc::clone(&sessions);
-
-    let mailbox = match session.select(mailbox_path).await {
-        Ok(m) => m,
-        Err(e) => {
-            drop(locked_sessions);
-
-            match inbox_client::connect::handle_disconnect(sessions, client, e).await {
-                Ok(_) => {
-                    return Box::pin(get_highest_seq_imap(
-                        sessions_2,
-                        session_id,
-                        client,
-                        mailbox_path,
-                    ))
-                    .await;
-                }
-                Err(e) => return Err(e),
-            }
-        }
+    let sequence_set = SequenceSet {
+        nr_messages: None,
+        start_end: Some(StartEnd {
+            start: u32::MAX - 1,
+            end: u32::MAX,
+        }),
+        idx: None,
     };
 
-    let highest_seq = mailbox.exists;
+    let messages = match inbox_client::messages::get_imap_with_seq(
+        sessions,
+        session_id,
+        client,
+        mailbox_path,
+        &sequence_set,
+        FetchMode::UID,
+    )
+    .await
+    {
+        Ok(m) => m,
+        Err(e) => return Err(e),
+    };
 
-    let fetches: Vec<Result<Fetch, ImapError>> =
-        match session.fetch(highest_seq.to_string(), "UID").await {
-            Ok(e) => e.collect().await,
-            Err(e) => {
-                let err = MyError::Imap(e, String::from("Error fetching messages"));
-                err.log_error();
+    let highest_seq: u32;
+    let highest_seq_uid: u32;
 
-                return Err(err);
-            }
-        };
-
-    let fetch = if let Some(m) = fetches.first() {
-        m
+    let message = messages.first();
+    if message.is_some() {
+        highest_seq = message.unwrap().sequence_id;
+        highest_seq_uid = message.unwrap().message_uid;
     } else {
         let err = MyError::String(
-            String::from("Array out of bounds access"),
-            String::from("Error fetching messages"),
+            String::from("Message not found in db"),
+            String::from("Failed to get message from db"),
         );
         err.log_error();
 
         return Err(err);
-    };
-
-    let fetch = match fetch {
-        Ok(f) => f,
-        Err(e) => {
-            let err = MyError::String(e.to_string(), String::from("Error fetching messages"));
-            err.log_error();
-
-            return Err(err);
-        }
-    };
-
-    let highest_seq_uid = match fetch.uid {
-        Some(e) => e,
-        None => {
-            let err = MyError::String(
-                String::from("UID not found in fetch"),
-                String::from("Error fetching messages"),
-            );
-            err.log_error();
-
-            return Err(err);
-        }
-    };
+    }
 
     return Ok((highest_seq, highest_seq_uid));
 }
@@ -285,72 +249,28 @@ async fn get_changed_message_uids(
     client: &Client,
     mailbox_path: &str,
     sequence_set: &SequenceSet,
-) -> Result<(Vec<(u32, u32)>, Vec<u32>), MyError> {
-    let sessions_2 = Arc::clone(&sessions);
-
-    let mut locked_sessions = sessions.lock().await;
-
-    let session = &mut locked_sessions[session_id];
-
-    let mailbox = match session.select(mailbox_path).await {
+) -> Result<(Vec<MessageMoveData>, Vec<u32>), MyError> {
+    let messages_imap = match inbox_client::messages::get_imap_with_seq(
+        sessions,
+        session_id,
+        client,
+        mailbox_path,
+        sequence_set,
+        FetchMode::UID,
+    )
+    .await
+    {
         Ok(m) => m,
-        Err(e) => {
-            drop(locked_sessions);
-
-            match inbox_client::connect::handle_disconnect(sessions, client, e).await {
-                Ok(_) => {
-                    return Box::pin(get_changed_message_uids(
-                        sessions_2,
-                        session_id,
-                        database_conn,
-                        client,
-                        mailbox_path,
-                        sequence_set,
-                    ))
-                    .await;
-                }
-                Err(e) => {
-                    return Err(e);
-                }
-            }
-        }
-    };
-
-    let sequence_set_string = match sequence_set.to_string(mailbox.exists, true) {
-        Ok(e) => e,
         Err(e) => return Err(e),
     };
 
-    let fetches: Vec<Result<Fetch, ImapError>> =
-        match session.fetch(sequence_set_string, "UID").await {
-            Ok(e) => e.collect().await,
-            Err(e) => {
-                let err = MyError::Imap(e, String::from("Error fetching messages"));
-                err.log_error();
-
-                return Err(err);
-            }
-        };
-
-    drop(locked_sessions);
-
-    let messages_uids_imap: Vec<u32> = fetches
+    let messages_uids_imap: Vec<u32> = messages_imap.iter().map(|m| m.message_uid).collect();
+    let seq_to_uids_imap: HashMap<u32, u32> = messages_imap
         .iter()
-        .filter_map(|fetch| match fetch {
-            Ok(f) => f.uid,
-            Err(_) => None,
-        })
+        .map(|message| (message.sequence_id, message.message_uid))
         .collect();
 
-    let seq_to_uids_imap: HashMap<u32, u32> = fetches
-        .iter()
-        .filter_map(|fetch| match fetch {
-            Ok(f) => f.uid.map(|uid| (f.message, uid)),
-            Err(_) => None,
-        })
-        .collect();
-
-    let messages = match database::messages::get_with_uids(
+    let messages_db = match database::messages::get_with_uids(
         database_conn,
         &client.username,
         &client.address,
@@ -363,30 +283,28 @@ async fn get_changed_message_uids(
         Err(e) => return Err(e),
     };
 
-    let seq_to_uids_db: HashMap<u32, u32> = messages
+    let moved_messages: Vec<MessageMoveData> = messages_db
         .iter()
-        .map(|message| (message.sequence_id, message.message_uid))
-        .collect();
+        .filter(|m| seq_to_uids_imap.get(&m.sequence_id) != Some(&m.message_uid))
+        .map(|m| MessageMoveData {
+            sequence_id: m.sequence_id,
+            message_uid: m.message_uid,
+            sequence_id_new: *seq_to_uids_imap.get(&m.sequence_id).unwrap(),
+        })
+        .collect::<Vec<MessageMoveData>>();
 
-    let changed_message_uids: Vec<u32> = seq_to_uids_imap
+    let new_messages_uids: Vec<u32> = messages_uids_imap
         .iter()
-        .filter(|(seq, uid)| seq_to_uids_db.get(seq) != Some(uid))
-        .map(|(_, uid)| *uid)
-        .collect();
-
-    let new_messages_uids: Vec<u32> = changed_message_uids
-        .iter()
-        .filter(|uid| seq_to_uids_db.values().find(|v| **v == **uid).is_none())
+        .filter(|uid| {
+            messages_db
+                .iter()
+                .find(|m| m.message_uid == **uid)
+                .is_none()
+        })
         .map(|uid| *uid)
         .collect();
 
-    let moved_message_seq_to_uids: Vec<(u32, u32)> = seq_to_uids_imap
-        .iter()
-        .filter(|(seq, uid)| seq_to_uids_db.get(seq) == Some(uid))
-        .map(|(seq, uid)| (*seq, *uid))
-        .collect();
-
-    return Ok((moved_message_seq_to_uids, new_messages_uids));
+    return Ok((moved_messages, new_messages_uids));
 }
 
 async fn get_new_messages(
@@ -397,72 +315,19 @@ async fn get_new_messages(
     mailbox_path: &str,
     new_message_uids: &Vec<u32>,
 ) -> Result<(), MyError> {
-    let sessions_2 = Arc::clone(&sessions);
-
-    let mut locked_sessions = sessions.lock().await;
-
-    let session = &mut locked_sessions[session_id];
-
-    match session.select(mailbox_path).await {
-        Ok(m) => m,
-        Err(e) => {
-            drop(locked_sessions);
-
-            match inbox_client::connect::handle_disconnect(sessions, client, e).await {
-                Ok(_) => {
-                    return Box::pin(get_new_messages(
-                        sessions_2,
-                        session_id,
-                        database_conn,
-                        client,
-                        mailbox_path,
-                        new_message_uids,
-                    ))
-                    .await;
-                }
-                Err(e) => {
-                    return Err(e);
-                }
-            }
-        }
-    };
-
-    let uid_set = new_message_uids
-        .iter()
-        .map(|uid| uid.to_string())
-        .collect::<Vec<String>>()
-        .join(",");
-
-    let fetches: Vec<Result<Fetch, ImapError>> = match session
-        .uid_fetch(&uid_set, "(UID ENVELOPE FLAGS BODY.PEEK[])")
-        .await
+    let messages = match inbox_client::messages::get_imap_with_uids(
+        sessions,
+        session_id,
+        client,
+        mailbox_path,
+        new_message_uids,
+        FetchMode::ALL,
+    )
+    .await
     {
-        Ok(e) => e.collect().await,
-        Err(e) => {
-            let err = MyError::Imap(e, String::from("Error fetching messages"));
-            err.log_error();
-
-            return Err(err);
-        }
+        Ok(m) => m,
+        Err(e) => return Err(e),
     };
-
-    drop(locked_sessions);
-
-    let fetches = fetches
-        .iter()
-        .filter_map(|fetch| match fetch {
-            Ok(f) => Some(f),
-            Err(_) => None,
-        })
-        .collect::<Vec<&Fetch>>();
-
-    let messages = fetches
-        .iter()
-        .filter_map(|fetch| match parser::parse_fetch(fetch) {
-            Ok(m) => Some(m),
-            Err(_) => None,
-        })
-        .collect::<Vec<_>>();
 
     match database::messages::insert(
         database_conn,
@@ -484,9 +349,9 @@ async fn update_moved_messeages(
     database_conn: Arc<Mutex<rusqlite::Connection>>,
     client: &Client,
     mailbox_path: &str,
-    moved_message_seq_to_uids: &Vec<(u32, u32)>,
+    moved_messages: &Vec<MessageMoveData>,
 ) -> Result<(), MyError> {
-    for (sequence_id, message_uid) in moved_message_seq_to_uids {
+    for moved_message in moved_messages {
         let database_conn = Arc::clone(&database_conn);
 
         match database::message::update_sequence_id(
@@ -494,8 +359,9 @@ async fn update_moved_messeages(
             &client.username,
             &client.address,
             mailbox_path,
-            *message_uid,
-            *sequence_id,
+            moved_message.message_uid,
+            moved_message.sequence_id,
+            moved_message.sequence_id_new,
         )
         .await
         {
@@ -514,68 +380,31 @@ async fn update_flags(
     client: &Client,
     mailbox_path: &str,
 ) -> Result<Vec<u32>, MyError> {
-    let sessions_2 = Arc::clone(&sessions);
-
-    let mut locked_sessions = sessions.lock().await;
-
-    let session = &mut locked_sessions[session_id];
-
-    match session.select(mailbox_path).await {
+    let messages = match inbox_client::messages::get_imap_with_seq(
+        sessions,
+        session_id,
+        client,
+        mailbox_path,
+        &SequenceSet {
+            nr_messages: None,
+            start_end: Some(StartEnd {
+                start: 1,
+                end: u32::MAX,
+            }),
+            idx: None,
+        },
+        FetchMode::FLAGS,
+    )
+    .await
+    {
         Ok(m) => m,
-        Err(e) => {
-            drop(locked_sessions);
-
-            match inbox_client::connect::handle_disconnect(sessions, client, e).await {
-                Ok(_) => {
-                    return Box::pin(update_flags(
-                        sessions_2,
-                        session_id,
-                        database_conn,
-                        client,
-                        mailbox_path,
-                    ))
-                    .await;
-                }
-                Err(e) => return Err(e),
-            }
-        }
+        Err(e) => return Err(e),
     };
 
-    let fetches: Vec<Result<Fetch, ImapError>> = match session.fetch("1:*", "FLAGS").await {
-        Ok(e) => e.collect().await,
-        Err(e) => {
-            let err = MyError::Imap(e, String::from("Error fetching messages"));
-            err.log_error();
+    let updated_uids = messages.iter().map(|m| m.message_uid).collect::<Vec<u32>>();
 
-            return Err(err);
-        }
-    };
-
-    drop(locked_sessions);
-
-    let mut updated_uids: Vec<u32> = Vec::new();
-
-    for fetch in fetches {
-        let fetch = match fetch {
-            Ok(fetch) => fetch,
-            Err(e) => {
-                let err = MyError::Imap(e, String::from("Error updating message flag"));
-                err.log_error();
-
-                return Err(err);
-            }
-        };
-
-        let message_uid = match fetch.uid {
-            Some(e) => e,
-            None => continue,
-        };
-
-        updated_uids.push(message_uid);
-
-        let flags: Vec<_> = fetch.flags().collect();
-
-        let flags_str = parser::parse_flag_vec(&flags);
+    for message in messages {
+        let flags_str = message.flags;
 
         let database_conn_2 = Arc::clone(&database_conn);
 
@@ -584,7 +413,7 @@ async fn update_flags(
             &client.username,
             &client.address,
             mailbox_path,
-            message_uid,
+            message.message_uid,
             &flags_str,
         )
         .await

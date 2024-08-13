@@ -171,14 +171,21 @@ pub async fn update_sequence_id(
     mailbox_path: &str,
     message_uid: u32,
     sequence_id: u32,
+    sequence_id_new: u32,
 ) -> Result<(), MyError> {
     let conn_locked = conn.lock().await;
 
     match conn_locked.execute(
         "UPDATE messages
-SET sequence_id = NULL
-WHERE sequence_id = ?1 AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
-        params![sequence_id, username, address, mailbox_path],
+SET sequence_id = ?1
+WHERE sequence_id = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
+        params![
+            sequence_id_new,
+            sequence_id,
+            username,
+            address,
+            mailbox_path
+        ],
     ) {
         Ok(_) => {}
         Err(e) => {

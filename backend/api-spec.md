@@ -194,7 +194,7 @@ Algorithm:
 
 1. select command to get exists (total number of messages)
 2. fetch message with sequence id `exists` to get the uid
-3. check if message in local database with sequence id `exists` has the same uid
+3. check if message in local database with uid has the same sequence id
 4. if not, message is moved/deleted/added in the mailbox
 
     - fetch 'UID' for 10 at the time until sequence id and uid match
