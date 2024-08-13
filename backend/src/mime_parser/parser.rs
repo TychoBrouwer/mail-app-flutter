@@ -246,18 +246,7 @@ pub fn parse_string_vec(strings: Vec<String>) -> String {
 }
 
 pub fn parse_fetch(fetch: &Fetch) -> Result<Message, MyError> {
-    let envelope = match fetch.envelope() {
-        Some(e) => e,
-        None => {
-            let err = MyError::String(
-                String::from("Message envelope not found in fetch"),
-                String::from("Error parsing message"),
-            );
-            err.log_error();
-
-            return Err(err);
-        }
-    };
+    let envelope = fetch.envelope();
 
     let message_uid = match fetch.uid {
         Some(u) => u,
@@ -282,15 +271,7 @@ pub fn parse_fetch(fetch: &Fetch) -> Result<Message, MyError> {
                 return Err(err);
             }
         },
-        None => {
-            let err = MyError::String(
-                String::from("Message body not found in fetch"),
-                String::from("Error parsing message"),
-            );
-            err.log_error();
-
-            return Err(err);
-        }
+        None => "",
     };
 
     let flags = fetch.flags().collect::<Vec<Flag>>();
@@ -298,23 +279,47 @@ pub fn parse_fetch(fetch: &Fetch) -> Result<Message, MyError> {
 
     let body_data = parse_message_body(body_str);
 
-    return Ok(Message {
-        message_uid,
-        sequence_id: fetch.message,
-        message_id: decode::u8(envelope.message_id.as_deref()),
-        subject: decode::u8(envelope.subject.as_deref()),
-        from: parse_address::to_string(&envelope.from),
-        sender: parse_address::to_string(&envelope.sender),
-        to: parse_address::to_string(&envelope.to),
-        cc: parse_address::to_string(&envelope.cc),
-        bcc: parse_address::to_string(&envelope.bcc),
-        reply_to: parse_address::to_string(&envelope.reply_to),
-        in_reply_to: decode::u8(envelope.in_reply_to.as_deref()),
-        delivered_to: body_data.delivered_to,
-        date: body_data.date,
-        received: body_data.received,
-        flags: flags_str,
-        text: body_data.text,
-        html: body_data.html,
-    });
+    if envelope.is_some() {
+        let envelope = envelope.unwrap();
+
+        return Ok(Message {
+            message_uid,
+            sequence_id: fetch.message,
+            message_id: decode::to_u8(envelope.message_id.as_deref()),
+            subject: decode::to_u8(envelope.subject.as_deref()),
+            from: parse_address::to_string(&envelope.from),
+            sender: parse_address::to_string(&envelope.sender),
+            to: parse_address::to_string(&envelope.to),
+            cc: parse_address::to_string(&envelope.cc),
+            bcc: parse_address::to_string(&envelope.bcc),
+            reply_to: parse_address::to_string(&envelope.reply_to),
+            in_reply_to: decode::to_u8(envelope.in_reply_to.as_deref()),
+            delivered_to: body_data.delivered_to,
+            date: body_data.date,
+            received: body_data.received,
+            flags: flags_str,
+            text: body_data.text,
+            html: body_data.html,
+        });
+    } else {
+        return Ok(Message {
+            message_uid,
+            sequence_id: fetch.message,
+            message_id: String::from(""),
+            subject: String::from(""),
+            from: String::from(""),
+            sender: String::from(""),
+            to: String::from(""),
+            cc: String::from(""),
+            bcc: String::from(""),
+            reply_to: String::from(""),
+            in_reply_to: String::from(""),
+            delivered_to: body_data.delivered_to,
+            date: body_data.date,
+            received: body_data.received,
+            flags: flags_str,
+            text: body_data.text,
+            html: body_data.html,
+        });
+    }
 }

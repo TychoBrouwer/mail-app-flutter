@@ -5,6 +5,7 @@ use crate::database;
 use crate::inbox_client;
 use crate::my_error::MyError;
 use crate::types::fetch_mode::FetchMode;
+use crate::types::sequence_set::{SequenceSet, StartEnd};
 use crate::types::session::{Client, Session};
 
 pub async fn mv(
@@ -32,13 +33,22 @@ pub async fn mv(
         Err(e) => return Err(e),
     };
 
-    let messages = match inbox_client::messages::get_imap_with_uids(
+    let sequence_set = SequenceSet {
+        nr_messages: None,
+        start_end: Some(StartEnd {
+            start: u32::MAX - 1,
+            end: u32::MAX,
+        }),
+        idx: None,
+    };
+
+    let messages = match inbox_client::messages::get_imap_with_seq(
         sessions_2,
         session_id,
         client,
         mailbox_path_dest,
-        &vec![message_uid],
-        FetchMode::UID,
+        &sequence_set,
+        FetchMode::ALL,
     )
     .await
     {
@@ -61,6 +71,9 @@ pub async fn mv(
 
     let message_uid_new = message.message_uid;
     let sequence_id_new = message.sequence_id;
+
+    dbg!(message_uid_new);
+    dbg!(sequence_id_new);
 
     match mv_database(
         database_conn,

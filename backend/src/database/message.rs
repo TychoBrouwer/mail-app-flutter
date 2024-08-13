@@ -43,7 +43,7 @@ pub async fn insert(
     };
 
     let conn_locked = conn.lock().await;
-    
+
     match conn_locked.execute(
         "INSERT OR IGNORE INTO messages (
 message_uid,
@@ -111,7 +111,7 @@ pub async fn update_flags(
     flags_str: &str,
 ) -> Result<(), MyError> {
     let conn_locked = conn.lock().await;
-    
+
     match conn_locked.execute(
         "UPDATE messages
 SET flags = ?1
@@ -139,7 +139,7 @@ pub async fn change_mailbox(
     sequence_id_new: u32,
 ) -> Result<(), MyError> {
     let conn_locked = conn.lock().await;
-    
+
     match conn_locked.execute(
         "UPDATE messages
 SET m_path = ?1, message_uid = ?2, sequence_id = ?3
@@ -173,11 +173,11 @@ pub async fn update_sequence_id(
     sequence_id: u32,
 ) -> Result<(), MyError> {
     let conn_locked = conn.lock().await;
-    
+
     match conn_locked.execute(
         "UPDATE messages
 SET sequence_id = NULL
-WHERE sequence_id = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
+WHERE sequence_id = ?1 AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
         params![sequence_id, username, address, mailbox_path],
     ) {
         Ok(_) => {}
@@ -218,7 +218,7 @@ pub async fn remove(
     message_uid: u32,
 ) -> Result<(), MyError> {
     let conn_locked = conn.lock().await;
-    
+
     match conn_locked.execute(
         "DELETE FROM messages
 WHERE message_uid = ?1 AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",

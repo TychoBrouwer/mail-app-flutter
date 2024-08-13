@@ -76,3 +76,39 @@ impl Message {
         return result;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn get_message() -> Message {
+        Message {
+            message_uid: 1,
+            sequence_id: 2,
+            message_id: String::from("message_id"),
+            subject: String::from("subject"),
+            from: String::from("from"),
+            sender: String::from("sender"),
+            to: String::from("to"),
+            cc: String::from("cc"),
+            bcc: String::from("bcc"),
+            reply_to: String::from("reply_to"),
+            in_reply_to: String::from("in_reply_to"),
+            delivered_to: String::from("delivered_to"),
+            date: 3,
+            received: 4,
+            flags: String::from("flags"),
+            text: String::from("text"),
+            html: String::from("html"),
+        }
+    }
+
+    #[test]
+    fn to_string() {
+        let message = get_message();
+
+        let expected = r#"{"uid": 1,"sequence_id": 2,"message_id": "message_id","subject": "subject","from": from,"sender": sender,"to": to,"cc": cc,"bcc": bcc,"reply_to": reply_to,"in_reply_to": "in_reply_to","delivered_to": "delivered_to","date": 3,"received": 4,"flags": flags,"html": "html","text": "text"}"#;
+
+        assert_eq!(message.to_string(), expected);
+    }
+}

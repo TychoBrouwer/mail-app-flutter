@@ -290,6 +290,25 @@ Algorithm:
 }
 ```
 
+### UPDATE_MAILBOXES
+
+Update and get all the mailbox paths of a session from the IMAP server.
+
+/update_mailboxes
+
+- `session_id` (int): The session id of the user
+
+```jsonc
+{
+    "success": true|false,
+    "message": "message",
+    "data": [                         // list of mailbox paths
+      "INBOX",
+      "mailbox_path"
+    ]
+}
+```
+
 ### MODIFY_FLAGS
 
 Modify the flags of a message in a mailbox using the message uid.

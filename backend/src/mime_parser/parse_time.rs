@@ -25,3 +25,26 @@ pub fn rfc2822(time_str: Option<&String>) -> DateTime<FixedOffset> {
 
     return date;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rfc2822_valid() {
+        let date = rfc2822(Some(&String::from("Thu, 1 Jan 1970 00:00:10 +0000")));
+        assert_eq!(date.timestamp_millis(), 10000);
+    }
+
+    #[test]
+    fn rfc2822_empty() {
+        let date = rfc2822(None);
+        assert_eq!(date.timestamp_millis(), 0);
+    }
+
+    #[test]
+    fn rfc2822_invalid() {
+        let date = rfc2822(Some(&String::from("invalid")));
+        assert_eq!(date.timestamp_millis(), 0);
+    }
+}

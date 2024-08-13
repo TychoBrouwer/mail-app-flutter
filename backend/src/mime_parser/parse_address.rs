@@ -11,15 +11,15 @@ pub fn to_string(address: &Option<Vec<Address>>) -> String {
                 result.push_str("{");
                 result.push_str(&format!(
                     "\"name\": \"{}\",",
-                    decode::u8(address.name.as_deref())
+                    decode::to_u8(address.name.as_deref())
                 ));
                 result.push_str(&format!(
                     "\"mailbox\": \"{}\",",
-                    decode::u8(address.mailbox.as_deref())
+                    decode::to_u8(address.mailbox.as_deref())
                 ));
                 result.push_str(&format!(
                     "\"host\": \"{}\"",
-                    decode::u8(address.host.as_deref())
+                    decode::to_u8(address.host.as_deref())
                 ));
                 result.push_str("}");
 

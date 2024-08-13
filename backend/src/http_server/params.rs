@@ -79,3 +79,136 @@ pub fn parse_params(uri: String) -> HashMap<String, String> {
 
     return result;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_params_test() {
+        let uri = String::from("key1=value1&key2=value2");
+
+        let mut expected: HashMap<String, String> = HashMap::new();
+        expected.insert(String::from("key1"), String::from("value1"));
+        expected.insert(String::from("key2"), String::from("value2"));
+
+        assert_eq!(parse_params(uri), expected);
+    }
+
+    #[test]
+    fn parse_params_test_empty() {
+        let uri = String::from("");
+
+        let expected: HashMap<String, String> = HashMap::new();
+
+        assert_eq!(parse_params(uri), expected);
+    }
+
+    #[test]
+    fn parse_params_test_invalid() {
+        let uri = String::from("key1=value1&key2");
+
+        let mut expected: HashMap<String, String> = HashMap::new();
+        expected.insert(String::from("key1"), String::from("value1"));
+
+        assert_eq!(parse_params(uri), expected);
+    }
+
+    #[test]
+    fn get_usize_test() {
+        let param = String::from("1");
+
+        assert_eq!(get_usize(Some(&param)).unwrap(), Some(1));
+    }
+
+    #[test]
+    fn get_usize_test_empty() {
+        let param = None;
+
+        assert_eq!(get_usize(param).unwrap(), None);
+    }
+
+    #[test]
+    fn get_usize_test_invalid() {
+        let param = String::from("invalid");
+
+        assert!(get_usize(Some(&param)).is_err());
+    }
+
+    #[test]
+    fn get_u16_test() {
+        let param = String::from("1");
+
+        assert_eq!(get_u16(Some(&param)).unwrap(), Some(1));
+    }
+
+    #[test]
+    fn get_u16_test_empty() {
+        let param = None;
+
+        assert_eq!(get_u16(param).unwrap(), None);
+    }
+
+    #[test]
+    fn get_u16_test_invalid() {
+        let param = String::from("invalid");
+
+        assert!(get_u16(Some(&param)).is_err());
+    }
+
+    #[test]
+    fn get_u32_test() {
+        let param = String::from("1");
+
+        assert_eq!(get_u32(Some(&param)).unwrap(), Some(1));
+    }
+
+    #[test]
+    fn get_u32_test_empty() {
+        let param = None;
+
+        assert_eq!(get_u32(param).unwrap(), None);
+    }
+
+    #[test]
+    fn get_u32_test_invalid() {
+        let param = String::from("invalid");
+
+        assert!(get_u32(Some(&param)).is_err());
+    }
+
+    #[test]
+    fn get_bool_test() {
+        let param = String::from("true");
+
+        assert_eq!(get_bool(Some(&param)).unwrap(), Some(true));
+    }
+
+    #[test]
+    fn get_bool_test_2() {
+        let param = String::from("True");
+
+        assert!(get_bool(Some(&param)).is_err());
+    }
+
+    #[test]
+    fn get_bool_test_3() {
+        let param = String::from("0");
+
+        assert!(get_bool(Some(&param)).is_err());
+    }
+
+    #[test]
+    fn get_bool_test_empty() {
+        let param = None;
+
+        assert_eq!(get_bool(param).unwrap(), None);
+    }
+
+    #[test]
+    fn get_bool_test_invalid() {
+        let param = String::from("invalid");
+
+        assert!(get_bool(Some(&param)).is_err());
+    }
+}

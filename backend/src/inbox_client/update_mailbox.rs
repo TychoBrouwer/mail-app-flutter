@@ -19,7 +19,7 @@ pub async fn update_mailbox(
     mailbox_path: &str,
 ) -> Result<String, MyError> {
     let locked_clients = clients.lock().await;
-    
+
     if session_id + 1 > locked_clients.len() {
         let err = MyError::String(
             String::from("Out of bounds array access"),
@@ -169,7 +169,7 @@ async fn get_highest_seq_imap(
     mailbox_path: &str,
 ) -> Result<(u32, u32), MyError> {
     let mut locked_sessions = sessions.lock().await;
-    
+
     let session = &mut locked_sessions[session_id];
 
     let sessions_2 = Arc::clone(&sessions);
@@ -289,7 +289,7 @@ async fn get_changed_message_uids(
     let sessions_2 = Arc::clone(&sessions);
 
     let mut locked_sessions = sessions.lock().await;
-    
+
     let session = &mut locked_sessions[session_id];
 
     let mailbox = match session.select(mailbox_path).await {
@@ -400,7 +400,7 @@ async fn get_new_messages(
     let sessions_2 = Arc::clone(&sessions);
 
     let mut locked_sessions = sessions.lock().await;
-    
+
     let session = &mut locked_sessions[session_id];
 
     match session.select(mailbox_path).await {
@@ -517,7 +517,7 @@ async fn update_flags(
     let sessions_2 = Arc::clone(&sessions);
 
     let mut locked_sessions = sessions.lock().await;
-    
+
     let session = &mut locked_sessions[session_id];
 
     match session.select(mailbox_path).await {
