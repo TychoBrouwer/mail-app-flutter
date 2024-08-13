@@ -278,7 +278,7 @@ Algorithm:
 - `session_id` (int): The session id of the user
 - `mailbox_path` (string): The mailbox path
 
-```json
+```jsonc
 {
   "success": true|false,
   "message": "message",
