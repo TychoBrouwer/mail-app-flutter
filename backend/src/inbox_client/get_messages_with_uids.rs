@@ -24,7 +24,8 @@ pub async fn get_messages_with_uids(
         return Err(err);
     }
 
-    let client = &locked_clients[session_id];
+    let client = &locked_clients[session_id].clone();
+    drop(locked_clients);
 
     let messages = match database::messages::get_with_uids(
         database_conn,
@@ -40,8 +41,6 @@ pub async fn get_messages_with_uids(
             return Err(e);
         }
     };
-
-    drop(locked_clients);
 
     let mut response = String::from("[");
 

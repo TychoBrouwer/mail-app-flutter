@@ -18,14 +18,14 @@ pub mod update_mailbox;
 
 pub async fn handle_disconnect(
     sessions: Arc<Mutex<Vec<Session>>>,
-    clients: Arc<Mutex<Vec<Client>>>,
+    client: &Client,
     e: ImapError,
 ) -> Result<(), MyError> {
     match e {
         ImapError::ConnectionLost => {
             eprintln!("Reconnecting to IMAP server");
 
-            match inbox_client::connect::connect_imap(sessions, clients).await {
+            match inbox_client::connect::connect_imap(sessions, client).await {
                 Ok(_) => {}
                 Err(e) => return Err(e),
             }
@@ -35,7 +35,7 @@ pub async fn handle_disconnect(
         ImapError::Io(_) => {
             eprintln!("Reconnecting to IMAP server");
 
-            match inbox_client::connect::connect_imap(sessions, clients).await {
+            match inbox_client::connect::connect_imap(sessions, client).await {
                 Ok(_) => {}
                 Err(e) => return Err(e),
             }

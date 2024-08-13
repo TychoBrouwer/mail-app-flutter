@@ -25,7 +25,8 @@ pub async fn get_messages_sorted(
         return Err(err);
     }
 
-    let client = &locked_clients[session_id];
+    let client = &locked_clients[session_id].clone();
+    drop(locked_clients);
 
     let messages = match database::messages::get_sorted(
         database_conn,
@@ -40,8 +41,6 @@ pub async fn get_messages_sorted(
         Ok(m) => m,
         Err(e) => return Err(e),
     };
-
-    drop(locked_clients);
 
     let mut result = String::from("[");
     for (i, message) in messages.iter().enumerate() {

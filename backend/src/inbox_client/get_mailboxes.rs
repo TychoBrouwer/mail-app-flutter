@@ -22,18 +22,17 @@ pub async fn get_mailboxes(
     dbg!("locked clients");
 
     let client = locked_clients[session_id].clone();
+    drop(locked_clients);
 
     let mailboxes_db = get_mailboxes_db(database_conn_2, &client);
 
     let mailboxes: Vec<String> = match mailboxes_db.await {
         Ok(mailboxes) => {
-            drop(locked_clients);
-
             if !mailboxes.is_empty() {
                 mailboxes
             } else {
                 let mailboxes_imap: Result<Vec<String>, MyError> =
-                    get_mailboxes_imap(sessions, session_id, clients).await;
+                    get_mailboxes_imap(sessions, session_id, &client).await;
 
                 match mailboxes_imap {
                     Ok(mailboxes_imap) => mailboxes_imap,
@@ -103,10 +102,9 @@ async fn get_mailboxes_db(
 async fn get_mailboxes_imap(
     sessions: Arc<Mutex<Vec<Session>>>,
     session_id: usize,
-    clients: Arc<Mutex<Vec<Client>>>,
+    client: &Client,
 ) -> Result<Vec<String>, MyError> {
     let sessions_2 = Arc::clone(&sessions);
-    let clients_2 = Arc::clone(&clients);
 
     let mut sessions_lock = sessions.lock().await;
     dbg!("locked sessions");
@@ -128,9 +126,9 @@ async fn get_mailboxes_imap(
         Err(e) => {
             drop(sessions_lock);
 
-            match inbox_client::handle_disconnect(sessions, clients, e).await {
+            match inbox_client::handle_disconnect(sessions, client, e).await {
                 Ok(_) => {
-                    return Box::pin(get_mailboxes_imap(sessions_2, session_id, clients_2)).await;
+                    return Box::pin(get_mailboxes_imap(sessions_2, session_id, client)).await;
                 }
                 Err(e) => return Err(e),
             }

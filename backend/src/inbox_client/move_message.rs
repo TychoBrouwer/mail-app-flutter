@@ -14,7 +14,6 @@ pub async fn move_message(
     message_uid: u32,
     mailbox_path_dest: &str,
 ) -> Result<String, MyError> {
-    let clients_2 = Arc::clone(&clients);
     let sessions_2 = Arc::clone(&sessions);
 
     let locked_clients = clients.lock().await;
@@ -30,6 +29,7 @@ pub async fn move_message(
         return Err(err);
     }
 
+    let client = &locked_clients[session_id].clone();
     drop(locked_clients);
 
     let mut locked_sessions = sessions.lock().await;
@@ -42,13 +42,13 @@ pub async fn move_message(
         Err(e) => {
             drop(locked_sessions);
 
-            match inbox_client::handle_disconnect(sessions, clients, e).await {
+            match inbox_client::handle_disconnect(sessions, client, e).await {
                 Ok(_) => {
                     return Box::pin(move_message(
                         sessions_2,
                         database_conn,
                         session_id,
-                        clients_2,
+                        clients,
                         mailbox_path,
                         message_uid,
                         mailbox_path_dest,
@@ -78,8 +78,7 @@ pub async fn move_message(
 
     return move_message_db(
         database_conn,
-        session_id,
-        clients_2,
+        client,
         mailbox_path,
         message_uid,
         mailbox_path_dest,
@@ -89,16 +88,11 @@ pub async fn move_message(
 
 async fn move_message_db(
     database_conn: Arc<Mutex<rusqlite::Connection>>,
-    session_id: usize,
-    clients: Arc<Mutex<Vec<Client>>>,
+    client: &Client,
     mailbox_path: &str,
     message_uid: u32,
     mailbox_path_dest: &str,
 ) -> Result<String, MyError> {
-    let locked_clients = clients.lock().await;
-    dbg!("locked clients");
-    let client = &locked_clients[session_id];
-
     match database::message::change_mailbox(
         database_conn,
         &client.username,

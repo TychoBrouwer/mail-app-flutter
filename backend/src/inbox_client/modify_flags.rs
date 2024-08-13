@@ -18,7 +18,6 @@ pub async fn modify_flags(
     flags: &str,
     add: bool,
 ) -> Result<String, MyError> {
-    let clients_2 = Arc::clone(&clients);
     let sessions_2 = Arc::clone(&sessions);
 
     let locked_clients = clients.lock().await;
@@ -34,6 +33,7 @@ pub async fn modify_flags(
         return Err(err);
     }
 
+    let client = &locked_clients[session_id].clone();
     drop(locked_clients);
 
     let mut locked_sessions = sessions.lock().await;
@@ -46,13 +46,13 @@ pub async fn modify_flags(
         Err(e) => {
             drop(locked_sessions);
 
-            match inbox_client::handle_disconnect(sessions, clients, e).await {
+            match inbox_client::handle_disconnect(sessions, client, e).await {
                 Ok(_) => {
                     return Box::pin(modify_flags(
                         sessions_2,
                         database_conn,
                         session_id,
-                        clients_2,
+                        clients,
                         mailbox_path,
                         message_uid,
                         flags,
@@ -111,8 +111,7 @@ pub async fn modify_flags(
 
     return modify_flags_db(
         database_conn,
-        session_id,
-        clients_2,
+        client,
         mailbox_path,
         message_uid,
         updated_flags,
@@ -122,17 +121,12 @@ pub async fn modify_flags(
 
 async fn modify_flags_db<'a>(
     database_conn: Arc<Mutex<rusqlite::Connection>>,
-    session_id: usize,
-    clients: Arc<Mutex<Vec<Client>>>,
+    client: &Client,
     mailbox_path: &str,
     message_uid: u32,
     flags: Vec<Flag<'a>>,
 ) -> Result<String, MyError> {
     let flags_str = inbox_client::parse_message::flags_to_string(&flags);
-
-    let locked_clients = clients.lock().await;
-    dbg!("locked clients");
-    let client = &locked_clients[session_id];
 
     match database::message::update_flags(
         database_conn,

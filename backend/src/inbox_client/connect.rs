@@ -39,9 +39,7 @@ pub async fn connect(
         Err(e) => eprintln!("Error inserting connection into database: {:?}", e),
     }
 
-    drop(locked_clients);
-
-    match connect_imap(sessions_2, clients).await {
+    match connect_imap(sessions_2, &client).await {
         Ok(_) => {
             return Ok(idx);
         }
@@ -53,13 +51,8 @@ pub async fn connect(
 
 pub async fn connect_imap(
     sessions: Arc<Mutex<Vec<Session>>>,
-    clients: Arc<Mutex<Vec<Client>>>,
+    client: &Client,
 ) -> Result<(), MyError> {
-    let locked_clients = clients.lock().await;
-    dbg!("locked clients");
-
-    let client = &locked_clients[locked_clients.len() - 1];
-
     let address = &client.address;
     let port = client.port;
     let username = &client.username;

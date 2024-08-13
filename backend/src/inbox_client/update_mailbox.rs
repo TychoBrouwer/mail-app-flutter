@@ -31,30 +31,20 @@ pub async fn update_mailbox(
 
         return Err(err);
     }
-
+    let client = &locked_clients[session_id].clone();
     drop(locked_clients);
 
     let sessions_2 = Arc::clone(&sessions);
-    let clients_2 = Arc::clone(&clients);
 
     let (highest_seq, highest_seq_uid) =
-        match get_highest_seq_imap(sessions_2, session_id, clients_2, mailbox_path).await {
+        match get_highest_seq_imap(sessions_2, session_id, client, mailbox_path).await {
             Ok(e) => e,
             Err(e) => return Err(e),
         };
 
     let database_conn_2 = Arc::clone(&database_conn);
-    let clients_2 = Arc::clone(&clients);
 
-    match get_highest_seq_db(
-        database_conn_2,
-        session_id,
-        clients_2,
-        mailbox_path,
-        highest_seq_uid,
-    )
-    .await
-    {
+    match get_highest_seq_db(database_conn_2, client, mailbox_path, highest_seq_uid).await {
         Ok(highest_seq_local) => {
             if highest_seq_local == highest_seq {
                 return Ok("[]".to_string());
@@ -87,7 +77,6 @@ pub async fn update_mailbox(
             idx: None,
         };
 
-        let clients_2 = Arc::clone(&clients);
         let sessions_2 = Arc::clone(&sessions);
         let database_conn_2 = Arc::clone(&database_conn);
 
@@ -95,7 +84,7 @@ pub async fn update_mailbox(
             sessions_2,
             session_id,
             database_conn_2,
-            clients_2,
+            client,
             mailbox_path,
             &sequence_set,
         )
@@ -120,13 +109,12 @@ pub async fn update_mailbox(
         if !new_message_uids.is_empty() {
             let sessions_2 = Arc::clone(&sessions);
             let database_conn_2 = Arc::clone(&database_conn);
-            let clients_2 = Arc::clone(&clients);
 
             match get_new_messages(
                 sessions_2,
                 session_id,
                 database_conn_2,
-                clients_2,
+                client,
                 mailbox_path,
                 &new_message_uids,
             )
@@ -139,12 +127,10 @@ pub async fn update_mailbox(
 
         if !moved_message_seq_to_uids.is_empty() {
             let database_conn_2 = Arc::clone(&database_conn);
-            let clients_2 = Arc::clone(&clients);
 
             match update_moved_messeages(
                 database_conn_2,
-                clients_2,
-                session_id,
+                client,
                 mailbox_path,
                 &moved_message_seq_to_uids,
             )
@@ -157,7 +143,7 @@ pub async fn update_mailbox(
     }
 
     let changed_flags_uids =
-        match update_flags(sessions, session_id, database_conn, clients, mailbox_path).await {
+        match update_flags(sessions, session_id, database_conn, client, mailbox_path).await {
             Ok(f) => f,
             Err(e) => return Err(e),
         };
@@ -180,7 +166,7 @@ pub async fn update_mailbox(
 async fn get_highest_seq_imap(
     sessions: Arc<Mutex<Vec<Session>>>,
     session_id: usize,
-    clients: Arc<Mutex<Vec<Client>>>,
+    client: &Client,
     mailbox_path: &str,
 ) -> Result<(u32, u32), MyError> {
     let mut locked_sessions = sessions.lock().await;
@@ -189,19 +175,18 @@ async fn get_highest_seq_imap(
     let session = &mut locked_sessions[session_id];
 
     let sessions_2 = Arc::clone(&sessions);
-    let clients_2 = Arc::clone(&clients);
 
     let mailbox = match session.select(mailbox_path).await {
         Ok(m) => m,
         Err(e) => {
             drop(locked_sessions);
 
-            match inbox_client::handle_disconnect(sessions, clients, e).await {
+            match inbox_client::handle_disconnect(sessions, client, e).await {
                 Ok(_) => {
                     return Box::pin(get_highest_seq_imap(
                         sessions_2,
                         session_id,
-                        clients_2,
+                        client,
                         mailbox_path,
                     ))
                     .await;
@@ -266,16 +251,10 @@ async fn get_highest_seq_imap(
 
 async fn get_highest_seq_db(
     database_conn: Arc<Mutex<rusqlite::Connection>>,
-    session_id: usize,
-    clients: Arc<Mutex<Vec<Client>>>,
+    client: &Client,
     mailbox_path: &str,
     highest_seq_uid: u32,
 ) -> Result<u32, MyError> {
-    let locked_clients = clients.lock().await;
-    dbg!("locked clients");
-
-    let client = &locked_clients[session_id];
-
     let messages = match database::messages::get_with_uids(
         database_conn,
         &client.username,
@@ -307,12 +286,11 @@ async fn get_changed_message_uids(
     sessions: Arc<Mutex<Vec<Session>>>,
     session_id: usize,
     database_conn: Arc<Mutex<rusqlite::Connection>>,
-    clients: Arc<Mutex<Vec<Client>>>,
+    client: &Client,
     mailbox_path: &str,
     sequence_set: &SequenceSet,
 ) -> Result<(Vec<(u32, u32)>, Vec<u32>), MyError> {
     let sessions_2 = Arc::clone(&sessions);
-    let clients_2 = Arc::clone(&clients);
 
     let mut locked_sessions = sessions.lock().await;
     dbg!("locked sessions");
@@ -324,13 +302,13 @@ async fn get_changed_message_uids(
         Err(e) => {
             drop(locked_sessions);
 
-            match inbox_client::handle_disconnect(sessions, clients, e).await {
+            match inbox_client::handle_disconnect(sessions, client, e).await {
                 Ok(_) => {
                     return Box::pin(get_changed_message_uids(
                         sessions_2,
                         session_id,
                         database_conn,
-                        clients_2,
+                        client,
                         mailbox_path,
                         sequence_set,
                     ))
@@ -379,11 +357,6 @@ async fn get_changed_message_uids(
         })
         .collect();
 
-    let locked_clients = clients.lock().await;
-    dbg!("locked clients");
-
-    let client = &locked_clients[session_id];
-
     let messages = match database::messages::get_with_uids(
         database_conn,
         &client.username,
@@ -396,8 +369,6 @@ async fn get_changed_message_uids(
         Ok(m) => m,
         Err(e) => return Err(e),
     };
-
-    drop(locked_clients);
 
     let seq_to_uids_db: HashMap<u32, u32> = messages
         .iter()
@@ -429,12 +400,11 @@ async fn get_new_messages(
     sessions: Arc<Mutex<Vec<Session>>>,
     session_id: usize,
     database_conn: Arc<Mutex<rusqlite::Connection>>,
-    clients: Arc<Mutex<Vec<Client>>>,
+    client: &Client,
     mailbox_path: &str,
     new_message_uids: &Vec<u32>,
 ) -> Result<(), MyError> {
     let sessions_2 = Arc::clone(&sessions);
-    let clients_2 = Arc::clone(&clients);
 
     let mut locked_sessions = sessions.lock().await;
     dbg!("locked sessions");
@@ -446,13 +416,13 @@ async fn get_new_messages(
         Err(e) => {
             drop(locked_sessions);
 
-            match inbox_client::handle_disconnect(sessions, clients, e).await {
+            match inbox_client::handle_disconnect(sessions, client, e).await {
                 Ok(_) => {
                     return Box::pin(get_new_messages(
                         sessions_2,
                         session_id,
                         database_conn,
-                        clients_2,
+                        client,
                         mailbox_path,
                         new_message_uids,
                     ))
@@ -510,11 +480,6 @@ async fn get_new_messages(
 
         let database_conn_2 = Arc::clone(&database_conn);
 
-        let locked_clients = clients.lock().await;
-        dbg!("locked clients");
-
-        let client = &locked_clients[session_id];
-
         match database::message::insert(
             database_conn_2,
             &client.username,
@@ -530,8 +495,6 @@ async fn get_new_messages(
                 return Err(e);
             }
         };
-
-        drop(locked_clients);
     }
 
     return Ok({});
@@ -539,15 +502,10 @@ async fn get_new_messages(
 
 async fn update_moved_messeages(
     database_conn: Arc<Mutex<rusqlite::Connection>>,
-    clients: Arc<Mutex<Vec<Client>>>,
-    session_id: usize,
+    client: &Client,
     mailbox_path: &str,
     moved_message_seq_to_uids: &Vec<(u32, u32)>,
 ) -> Result<(), MyError> {
-    let locked_clients = clients.lock().await;
-
-    let client = &locked_clients[session_id];
-
     for (sequence_id, message_uid) in moved_message_seq_to_uids {
         let database_conn = Arc::clone(&database_conn);
 
@@ -573,11 +531,10 @@ async fn update_flags(
     sessions: Arc<Mutex<Vec<Session>>>,
     session_id: usize,
     database_conn: Arc<Mutex<rusqlite::Connection>>,
-    clients: Arc<Mutex<Vec<Client>>>,
+    client: &Client,
     mailbox_path: &str,
 ) -> Result<Vec<u32>, MyError> {
     let sessions_2 = Arc::clone(&sessions);
-    let clients_2 = Arc::clone(&clients);
 
     let mut locked_sessions = sessions.lock().await;
     dbg!("locked sessions");
@@ -589,13 +546,13 @@ async fn update_flags(
         Err(e) => {
             drop(locked_sessions);
 
-            match inbox_client::handle_disconnect(sessions, clients, e).await {
+            match inbox_client::handle_disconnect(sessions, client, e).await {
                 Ok(_) => {
                     return Box::pin(update_flags(
                         sessions_2,
                         session_id,
                         database_conn,
-                        clients_2,
+                        client,
                         mailbox_path,
                     ))
                     .await;
@@ -643,11 +600,6 @@ async fn update_flags(
         let flags_str = inbox_client::parse_message::flags_to_string(&flags);
 
         let database_conn_2 = Arc::clone(&database_conn);
-
-        let locked_clients = clients.lock().await;
-        dbg!("locked clients");
-
-        let client = &locked_clients[session_id];
 
         match database::message::update_flags(
             database_conn_2,
