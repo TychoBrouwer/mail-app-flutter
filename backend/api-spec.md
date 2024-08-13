@@ -193,32 +193,10 @@ Algorithm:
 {
   "success": true|false,
   "message": "message",
-  "data": [                           // list of changed messages
-    {
-      "uid": 1,
-      "sequence_id": 1,
-      "message_id": "server message id",
-      "subject": "subject",
-      "from": [
-        {
-          "name": "Google",
-          "mailbox": "no-reply",
-          "host": "accounts.google.com"
-        }
-      ],
-      "sender": [],                   // same object as from
-      "to": [],                       // same object as from
-      "cc": [],                       // same object as from
-      "bcc": [],                      // same object as from
-      "reply_to": [],                 // same object as from
-      "in_reply_to": "email string",
-      "delivered_to": "email string",
-      "date": 1722093349000,
-      "received": 1722093350000,
-      "flags": ["Seen", "Flagged"],
-      "html": "base64 encoded html",
-      "text": "base64 encoded text"
-    }
+  "data": [                           // uid list of changed messages
+    1,
+    2,
+    3
   ]
 }
 ```
