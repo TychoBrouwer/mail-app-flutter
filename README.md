@@ -12,11 +12,34 @@ The backend is written in Rust and uses a websocket to communicate with the fron
 
 Run rust backend with ```cd backend && cargo run```
 
+### Working Backend
+
+- [x] Login to IMAP server
+- [x] Logout from IMAP server
+- [x] Get logged in sessions
+- [x] Get messages sorted by time from local database
+- [x] Get messages with uids from local database
+- [x] Update local database from IMAP server
+- [x] Modify flags of messages
+- [x] Move messages between mailboxes
+- [x] Get mailboxes of session
+
 ## Frontend
 
 The frontend is written in Flutter and uses the web_socket_client package to communicate with the backend. The html emails are rendered with the flutter_widget_from_html package which converts html to flutter widgets.
 
 Run flutter frontend with ```flutter run -d windows```
+
+### Working Frontend
+
+- [x] Add IMAP account with username, password
+- [x] Switch mailboxes
+- [x] List emails in mailbox
+- [x] Scroll to load more emails
+- [x] View email html (some might not be 100% correct)
+- [x] View email text if no html
+- [x] Move to trash/all mail
+- [x] Mark as read/unread
 
 ## Screenshots
 
