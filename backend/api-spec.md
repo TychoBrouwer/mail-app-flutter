@@ -70,6 +70,26 @@ Get all the mailbox paths of a session from the local database only.
     "success": true|false,
     "message": "message",
     "data": [                         // list of mailbox paths
+      "INBOX",
+      "mailbox_path"
+    ]
+}
+```
+
+## UPDATE_MAILBOXES
+
+Update and get all the mailbox paths of a session from the IMAP server.
+
+/update_mailboxes
+
+- `session_id` (int): The session id of the user
+
+```jsonc
+{
+    "success": true|false,
+    "message": "message",
+    "data": [                         // list of mailbox paths
+      "INBOX",
       "mailbox_path"
     ]
 }

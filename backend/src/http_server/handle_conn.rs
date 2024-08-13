@@ -1,6 +1,5 @@
 use async_std::sync::{Arc, Mutex};
 
-use crate::database::mailbox;
 use crate::http_server::params;
 use crate::inbox_client;
 use crate::mime_parser::parser;
