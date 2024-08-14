@@ -8,6 +8,7 @@ enum HttpRequestPath {
   get_messages_sorted,
   get_mailboxes,
   update_mailbox,
+  update_mailboxes,
   modify_flags,
   move_message,
 }

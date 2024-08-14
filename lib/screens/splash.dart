@@ -50,7 +50,6 @@ class SplashPageState extends State<SplashPage> {
     final sessions = await inboxService.getSessions();
 
     if (sessions == null) {
-      await Future.delayed(const Duration(milliseconds: 500));
       final inboxService = await _loadInboxService();
 
       return inboxService;
@@ -58,6 +57,7 @@ class SplashPageState extends State<SplashPage> {
 
     if (sessions.isNotEmpty) {
       inboxService.setActiveSessionId(sessions[0].sessionId);
+      inboxService.updateMailboxes();
     }
 
     return inboxService;

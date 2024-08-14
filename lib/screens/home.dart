@@ -135,10 +135,12 @@ class HomePageState extends State<HomePage> {
   }
 
   void _addMailAccount() {
-    _overlayBuilder.insertOverlay(AddAccount(
-      overlayBuilder: _overlayBuilder,
-      inboxService: _inboxService,
-    ));
+    _overlayBuilder.insertOverlay(
+        AddAccount(
+          overlayBuilder: _overlayBuilder,
+          inboxService: _inboxService,
+        ),
+        0);
   }
 
   Future<void> _composeMessage() async {

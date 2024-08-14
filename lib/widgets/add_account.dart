@@ -45,7 +45,7 @@ class AddAccountState extends State<AddAccount> {
   }
 
   void _cancel() {
-    _overlayBuilder.removeOverlay();
+    _overlayBuilder.removeOverlay(0);
   }
 
   Future<void> _confirm() async {
@@ -71,7 +71,7 @@ class AddAccountState extends State<AddAccount> {
       if (connection != -1) {
         print('success');
 
-        _overlayBuilder.removeOverlay();
+        _overlayBuilder.removeOverlay(0);
       } else {
         print('failed to add');
       }

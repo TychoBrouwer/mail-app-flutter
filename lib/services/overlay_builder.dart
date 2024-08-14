@@ -2,22 +2,22 @@ import 'package:flutter/material.dart';
 
 class OverlayBuilder {
   late BuildContext _context;
-  OverlayEntry? _overlayEntry;
+  final Map<int, OverlayEntry?> _overlayEntries = {};
 
   OverlayBuilder(BuildContext context) {
     _context = context;
   }
 
-  void removeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
+  void removeOverlay(idx) {
+    _overlayEntries[idx]?.remove();
+    _overlayEntries[idx] = null;
   }
 
-  void insertOverlay(Widget overlay) {
-    _overlayEntry = OverlayEntry(
+  void insertOverlay(Widget overlay, int idx) {
+    _overlayEntries[idx] = OverlayEntry(
       builder: (context) => overlay,
     );
 
-    Overlay.of(_context).insert(_overlayEntry!);
+    Overlay.of(_context).insert(_overlayEntries[idx]!);
   }
 }

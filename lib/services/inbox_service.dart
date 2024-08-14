@@ -141,6 +141,37 @@ class InboxService {
     return _mailboxes;
   }
 
+  Future<List<MailboxInfo>> updateMailboxes({int? session}) async {
+    if (session == null) {
+      session = _activeSession;
+
+      if (_activeSession == null) return [];
+    }
+
+    final body = {
+      'session_id': session.toString(),
+    };
+
+    final messageData =
+        await HttpService().sendRequest(HttpRequestPath.update_mailboxes, body);
+
+    if (!messageData.success) return [];
+
+    _mailboxes.clear();
+
+    final mailboxes = (messageData.data as List).cast<String>();
+    _sessions[session!].setSpecialMailboxes(mailboxes);
+
+    for (var mailbox in mailboxes) {
+      if (mailbox.endsWith(']')) continue;
+
+      _mailboxes
+          .add(MailboxInfo.fromJson(mailbox, getActiveSessionDisplay() ?? ''));
+    }
+
+    return _mailboxes;
+  }
+
   Future<List<Message>> getMessages({
     int? session,
     String? mailbox,
@@ -167,8 +198,6 @@ class InboxService {
 
     final messageData = await HttpService()
         .sendRequest(HttpRequestPath.get_messages_sorted, body);
-
-    print(messageData.success);
 
     if (!messageData.success) return [];
 
@@ -240,8 +269,6 @@ class InboxService {
       'message_uid': messageUid.toString(),
       'mailbox_path_dest': mailboxDest,
     };
-
-    print(body);
 
     final messageData =
         await HttpService().sendRequest(HttpRequestPath.move_message, body);
