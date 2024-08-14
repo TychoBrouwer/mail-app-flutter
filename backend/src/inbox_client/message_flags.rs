@@ -1,5 +1,5 @@
 use async_imap::error::Error as ImapError;
-use async_imap::types::{Fetch, Flag};
+use async_imap::types::Fetch;
 use async_std::stream::StreamExt;
 use async_std::sync::{Arc, Mutex};
 

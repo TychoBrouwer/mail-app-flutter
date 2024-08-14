@@ -147,15 +147,13 @@ pub async fn update_mailbox(
 
     changed_uids.extend(&changed_flags_uids);
 
-    let mut changed_uids_string = String::from("[");
-    changed_uids_string.push_str(
-        &changed_uids
+    let changed_uids_string = String::from("[")
+        + &changed_uids
             .iter()
             .map(|uid| uid.to_string())
             .collect::<Vec<String>>()
-            .join(","),
-    );
-    changed_uids_string.push_str("]");
+            .join(",")
+        + "]";
 
     return Ok(changed_uids_string);
 }

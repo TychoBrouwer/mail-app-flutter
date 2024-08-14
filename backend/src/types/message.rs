@@ -51,27 +51,25 @@ impl Message {
     }
 
     pub fn to_string(&self) -> String {
-        let mut result = String::from("{");
-
-        result.push_str(&format!("\"uid\": {},", self.message_uid));
-        result.push_str(&format!("\"sequence_id\": {},", self.sequence_id));
-        result.push_str(&format!("\"message_id\": \"{}\",", self.message_id));
-        result.push_str(&format!("\"subject\": \"{}\",", self.subject));
-        result.push_str(&format!("\"from\": {},", self.from));
-        result.push_str(&format!("\"sender\": {},", self.sender));
-        result.push_str(&format!("\"to\": {},", self.to));
-        result.push_str(&format!("\"cc\": {},", self.cc));
-        result.push_str(&format!("\"bcc\": {},", self.bcc));
-        result.push_str(&format!("\"reply_to\": {},", self.reply_to));
-        result.push_str(&format!("\"in_reply_to\": \"{}\",", self.in_reply_to));
-        result.push_str(&format!("\"delivered_to\": \"{}\",", self.delivered_to));
-        result.push_str(&format!("\"date\": {},", self.date));
-        result.push_str(&format!("\"received\": {},", self.received));
-        result.push_str(&format!("\"flags\": {},", self.flags));
-        result.push_str(&format!("\"html\": \"{}\",", self.html));
-        result.push_str(&format!("\"text\": \"{}\"", self.text));
-
-        result.push_str("}");
+        let result = String::from("{")
+            + &format!("\"uid\":{},", self.message_uid)
+            + &format!("\"sequence_id\":{},", self.sequence_id)
+            + &format!("\"message_id\":\"{}\",", self.message_id)
+            + &format!("\"subject\":\"{}\",", self.subject)
+            + &format!("\"from\":{},", self.from)
+            + &format!("\"sender\":{},", self.sender)
+            + &format!("\"to\":{},", self.to)
+            + &format!("\"cc\":{},", self.cc)
+            + &format!("\"bcc\":{},", self.bcc)
+            + &format!("\"reply_to\":{},", self.reply_to)
+            + &format!("\"in_reply_to\":\"{}\",", self.in_reply_to)
+            + &format!("\"delivered_to\":\"{}\",", self.delivered_to)
+            + &format!("\"date\":{},", self.date)
+            + &format!("\"received\":{},", self.received)
+            + &format!("\"flags\":{},", self.flags)
+            + &format!("\"html\":\"{}\",", self.html)
+            + &format!("\"text\":\"{}\"", self.text)
+            + "}";
 
         return result;
     }
@@ -107,7 +105,7 @@ mod tests {
     fn to_string() {
         let message = get_message();
 
-        let expected = r#"{"uid": 1,"sequence_id": 2,"message_id": "message_id","subject": "subject","from": from,"sender": sender,"to": to,"cc": cc,"bcc": bcc,"reply_to": reply_to,"in_reply_to": "in_reply_to","delivered_to": "delivered_to","date": 3,"received": 4,"flags": flags,"html": "html","text": "text"}"#;
+        let expected = r#"{"uid":1,"sequence_id":2,"message_id":"message_id","subject":"subject","from":from,"sender":sender,"to":to,"cc":cc,"bcc":bcc,"reply_to":reply_to,"in_reply_to":"in_reply_to","delivered_to":"delivered_to","date":3,"received":4,"flags":flags,"html":"html","text":"text"}"#;
 
         assert_eq!(message.to_string(), expected);
     }
