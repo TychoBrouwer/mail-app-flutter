@@ -214,22 +214,20 @@ pub fn parse_flag_vec(flags: &[Flag]) -> String {
     }
     flags_str.push_str("]");
 
-    if flags.len() == 0 {
-        dbg!(&flags_str);
-    }
-
     return flags_str;
 }
 
 pub fn parse_message_vec(messages: Vec<Message>) -> String {
     let mut result = String::from("[");
 
-    for message in messages {
+    for (i, message) in messages.iter().enumerate() {
         result.push_str(&message.to_string());
-        result.push_str(",");
+
+        if i < messages.len() - 1 {
+            result.push_str(",");
+        }
     }
 
-    result.pop();
     result.push_str("]");
 
     return result;

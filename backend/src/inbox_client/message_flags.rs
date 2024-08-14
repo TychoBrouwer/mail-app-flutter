@@ -127,10 +127,7 @@ async fn modify_imap(
         }
     };
 
-    let updated_flags: Vec<String> = fetch
-        .flags()
-        .map(|flag| format!("\"{:?}\"", flag))
-        .collect();
+    let updated_flags: Vec<String> = fetch.flags().map(|flag| format!("{:?}", flag)).collect();
 
     return Ok(updated_flags);
 }
@@ -142,7 +139,16 @@ async fn modify_database(
     message_uid: u32,
     flags: &Vec<String>,
 ) -> Result<(), MyError> {
-    let flags_str = String::from("[") + &flags.join(",") + "]";
+    let mut flags_str = String::from("[");
+
+    for (i, flag) in flags.iter().enumerate() {
+        flags_str.push_str(&format!("\"{}\"", flag));
+
+        if i < flags.len() - 1 {
+            flags_str.push_str(",");
+        }
+    }
+    flags_str.push_str("]");
 
     match database::message::update_flags(
         database_conn,
