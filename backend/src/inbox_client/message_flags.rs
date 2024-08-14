@@ -61,7 +61,7 @@ async fn modify_imap(
     let sessions_2 = Arc::clone(&sessions);
 
     let mut locked_sessions = sessions.lock().await;
-    
+
     let session = &mut locked_sessions[session_id];
 
     match session.select(mailbox_path).await {
@@ -69,7 +69,7 @@ async fn modify_imap(
         Err(e) => {
             drop(locked_sessions);
 
-            match inbox_client::connect::handle_disconnect(sessions, client, e).await {
+            match inbox_client::connect::handle_disconnect(sessions, session_id, client, e).await {
                 Ok(_) => {
                     return Box::pin(modify_imap(
                         sessions_2,

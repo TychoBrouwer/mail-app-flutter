@@ -78,7 +78,7 @@ class MessagePreviewState extends State<MessagePreview> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                margin: const EdgeInsets.only(top: 13, right: 10),
+                margin: const EdgeInsets.only(top: 15, left: 5, right: 5),
                 width: 10,
                 height: 10,
                 decoration: BoxDecoration(

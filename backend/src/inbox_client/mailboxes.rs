@@ -66,7 +66,9 @@ async fn get_imap(
 
     let mailboxes: Vec<_> = match session.list(Some(""), Some("*")).await {
         Ok(m) => m.collect().await,
-        Err(e) => match inbox_client::connect::handle_disconnect(sessions_3, client, e).await {
+        Err(e) => match inbox_client::connect::handle_disconnect(sessions_3, session_id, client, e)
+            .await
+        {
             Ok(_) => {
                 return Box::pin(get_imap(sessions_2, session_id, client)).await;
             }

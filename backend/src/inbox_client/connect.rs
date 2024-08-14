@@ -61,9 +61,23 @@ async fn database(
 
 pub async fn handle_disconnect(
     sessions: Arc<Mutex<Vec<Session>>>,
+    session_id: usize,
     client: &Client,
     e: ImapError,
 ) -> Result<(), MyError> {
+    let mut locked_sessions = sessions.lock().await;
+
+    match locked_sessions[session_id].close().await {
+        Ok(_) => {}
+        Err(e) => {
+            let err = MyError::Imap(e, String::from("Error closing session"));
+            err.log_error();
+
+            return Err(err);
+        }
+    }
+    drop(locked_sessions);
+
     match e {
         ImapError::ConnectionLost => {
             match imap(sessions, client).await {

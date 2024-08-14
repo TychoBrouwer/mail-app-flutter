@@ -109,7 +109,7 @@ async fn mv_imap(
         Err(e) => {
             drop(locked_sessions);
 
-            match inbox_client::connect::handle_disconnect(sessions, client, e).await {
+            match inbox_client::connect::handle_disconnect(sessions, session_id, client, e).await {
                 Ok(_) => {
                     return Box::pin(mv_imap(
                         sessions_2,
