@@ -4,8 +4,10 @@ import 'package:mail_app/services/inbox_service.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/message_flag.dart';
+import 'package:mail_app/types/notification_info.dart';
 import 'package:mail_app/types/special_mailbox.dart';
 import 'package:mail_app/widgets/add_account.dart';
+import 'package:mail_app/widgets/custom_notification.dart';
 import 'package:mail_app/widgets/inbox/message_list.dart';
 import 'package:mail_app/widgets/inbox/message_list_header.dart';
 import 'package:mail_app/widgets/mailbox/mailbox_list_header.dart';
@@ -41,6 +43,8 @@ class HomePageState extends State<HomePage> {
 
   int _messageListKeyIndex = 0;
 
+  final Map<int, NotificationInfo> _notifications = {};
+
   @override
   void initState() {
     super.initState();
@@ -64,6 +68,26 @@ class HomePageState extends State<HomePage> {
     setState(() {
       _mailboxTree = _mailboxTree;
     });
+
+    _showNotification("test test etststestestte", false, null);
+  }
+
+  void _showNotification(String message, bool showLoader, Future? callback) {
+    final idx = _notifications.keys.length + 1;
+    final notification = NotificationInfo(
+      idx: idx,
+      message: message,
+      showLoader: showLoader,
+    );
+    _notifications[idx] = notification;
+    _overlayBuilder.insertOverlay(
+      CustomNotification(
+        notification: notification,
+        overlayBuilder: _overlayBuilder,
+        callback: callback,
+      ),
+      idx,
+    );
   }
 
   Future<void> _changeMailbox(int sessionId, String mailboxPath) async {

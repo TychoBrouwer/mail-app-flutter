@@ -10,6 +10,7 @@ class OverlayBuilder {
 
   void removeOverlay(idx) {
     _overlayEntries[idx]?.remove();
+    _overlayEntries[idx]?.dispose();
     _overlayEntries[idx] = null;
   }
 
