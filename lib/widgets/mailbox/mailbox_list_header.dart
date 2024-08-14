@@ -34,7 +34,10 @@ class MailboxHeaderState extends State<MailboxHeader> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 15),
+      decoration: BoxDecoration(
+        color: ProjectColors.header(true),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -44,8 +47,8 @@ class MailboxHeaderState extends State<MailboxHeader> {
               padding: const EdgeInsets.all(5),
               child: SvgPicture.asset(
                 'assets/icons/square-plus.svg',
-                colorFilter: ColorFilter.mode(
-                    ProjectColors.main(false), BlendMode.srcIn),
+                colorFilter:
+                    ColorFilter.mode(ProjectColors.text(true), BlendMode.srcIn),
                 height: ProjectSizes.iconSize,
                 width: ProjectSizes.iconSize,
               ),
@@ -57,8 +60,8 @@ class MailboxHeaderState extends State<MailboxHeader> {
               padding: const EdgeInsets.all(5),
               child: SvgPicture.asset(
                 'assets/icons/paper-plane.svg',
-                colorFilter: ColorFilter.mode(
-                    ProjectColors.main(false), BlendMode.srcIn),
+                colorFilter:
+                    ColorFilter.mode(ProjectColors.text(true), BlendMode.srcIn),
                 height: ProjectSizes.iconSize,
                 width: ProjectSizes.iconSize,
               ),

@@ -17,8 +17,10 @@ class MailApp extends StatelessWidget {
       title: 'Mail App',
       theme: ThemeData(
         scrollbarTheme: ScrollbarThemeData(
-          thumbColor: WidgetStateProperty.all(ProjectColors.main(false)),
-          thickness: WidgetStateProperty.all(6),
+          thumbColor: WidgetStateProperty.all(ProjectColors.background(false)),
+          thumbVisibility: WidgetStateProperty.all(true),
+          thickness: WidgetStateProperty.all(5),
+          crossAxisMargin: 0,
         ),
       ),
       home: const SplashPage(),

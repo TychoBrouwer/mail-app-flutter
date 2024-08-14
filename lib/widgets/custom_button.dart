@@ -21,9 +21,9 @@ class CustomButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: borderRadius,
-        hoverColor: ProjectColors.secondary(true),
-        highlightColor: ProjectColors.secondary(true),
-        splashColor: ProjectColors.secondary(true),
+        hoverColor: ProjectColors.background(false),
+        highlightColor: ProjectColors.background(false),
+        splashColor: ProjectColors.background(false),
         onTap: onTap,
         child: child,
       ),

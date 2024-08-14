@@ -7,7 +7,8 @@ import 'package:mail_app/types/message_flag.dart';
 import 'package:mail_app/types/special_mailbox.dart';
 import 'package:mail_app/widgets/add_account.dart';
 import 'package:mail_app/widgets/inbox/message_list.dart';
-import 'package:mail_app/widgets/mailbox/mailbox_header.dart';
+import 'package:mail_app/widgets/inbox/message_list_header.dart';
+import 'package:mail_app/widgets/mailbox/mailbox_list_header.dart';
 import 'package:mail_app/widgets/mailbox/mailbox_list.dart';
 import 'package:mail_app/widgets/message/message_content.dart';
 import 'package:mail_app/widgets/control_bar.dart';
@@ -208,69 +209,64 @@ class HomePageState extends State<HomePage> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          color: ProjectColors.main(true),
+          color: ProjectColors.background(true),
         ),
         child: Center(
           child: VerticalSplitView(
-            left: Container(
-              decoration: BoxDecoration(
-                border:
-                    Border(right: BorderSide(color: ProjectColors.main(false))),
-              ),
-              height: double.infinity,
-              child: MailboxList(
-                mailboxTree: _mailboxTree,
-                updateMessageList: _changeMailbox,
-                activeMailbox: _activeMailbox ?? '',
-                activeSession: _activeSession ?? 0,
-                header: MailboxHeader(
+            left: Column(
+              children: [
+                MailboxHeader(
                   addMailAccount: _addMailAccount,
                   composeMessage: _composeMessage,
                 ),
-                key: UniqueKey(),
-              ),
-            ),
-            middle: SizedBox(
-              height: double.infinity,
-              child: MessageList(
-                key: UniqueKey(),
-                messages: _messages,
-                mailboxTitle: _inboxService.getActiveMailboxDisplay() ?? '',
-                activeID: _activeID ?? 0,
-                updateActiveID: _updateActiveID,
-                refreshAll: _refreshAll,
-                loadMoreMessages: _loadMoreMessages,
-                messageListKey: PageStorageKey<int>(_messageListKeyIndex),
-              ),
-            ),
-            right: Container(
-              decoration: BoxDecoration(
-                border:
-                    Border(left: BorderSide(color: ProjectColors.main(false))),
-              ),
-              height: double.infinity,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ControlBar(
-                    flagMessage: _flagMessage,
-                    moveMessage: _moveMessage,
-                    reply: _reply,
-                    replyAll: _replyAll,
-                    share: _share,
-                    settings: _settings,
+                Expanded(
+                  child: MailboxList(
+                    mailboxTree: _mailboxTree,
+                    updateMessageList: _changeMailbox,
+                    activeMailbox: _activeMailbox ?? '',
+                    activeSession: _activeSession ?? 0,
+                    key: UniqueKey(),
                   ),
-                  Expanded(
-                    child: MessageContent(
-                      key: UniqueKey(),
-                      message: _activeID != null && _messages.isNotEmpty
-                          ? _messages[_activeID!]
-                          : null,
-                    ),
+                ),
+              ],
+            ),
+            middle: Column(
+              children: [
+                MessageListHeader(
+                  mailboxTitle: _inboxService.getActiveMailboxDisplay() ?? '',
+                  refreshAll: _refreshAll,
+                ),
+                Expanded(
+                  child: MessageList(
+                    key: UniqueKey(),
+                    messages: _messages,
+                    activeID: _activeID ?? 0,
+                    updateActiveID: _updateActiveID,
+                    loadMoreMessages: _loadMoreMessages,
+                    messageListKey: PageStorageKey<int>(_messageListKeyIndex),
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
+            right: Column(
+              children: [
+                ControlBar(
+                  flagMessage: _flagMessage,
+                  moveMessage: _moveMessage,
+                  reply: _reply,
+                  replyAll: _replyAll,
+                  share: _share,
+                  settings: _settings,
+                ),
+                Expanded(
+                  child: MessageContent(
+                    key: UniqueKey(),
+                    message: _activeID != null && _messages.isNotEmpty
+                        ? _messages[_activeID!]
+                        : null,
+                  ),
+                ),
+              ],
             ),
             ratio2: 0.25,
             minRatio2: 0.1,

@@ -50,20 +50,17 @@ class ControlBarState extends State<ControlBar> {
   }
 
   Widget controlWidget(Control control) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 5),
-      child: CustomButton(
-        onTap: () => control.function(),
-        child: Padding(
-          padding: const EdgeInsets.all(5),
-          child: SvgPicture.asset(
-            'assets/icons/${control.icon}.svg',
-            colorFilter:
-                ColorFilter.mode(ProjectColors.main(false), BlendMode.srcIn),
-            alignment: Alignment.centerRight,
-            height: ProjectSizes.iconSize,
-            width: ProjectSizes.iconSize,
-          ),
+    return CustomButton(
+      onTap: () => control.function(),
+      child: Padding(
+        padding: const EdgeInsets.all(5),
+        child: SvgPicture.asset(
+          'assets/icons/${control.icon}.svg',
+          colorFilter:
+              ColorFilter.mode(ProjectColors.text(true), BlendMode.srcIn),
+          alignment: Alignment.centerRight,
+          height: ProjectSizes.iconSize,
+          width: ProjectSizes.iconSize,
         ),
       ),
     );
@@ -72,8 +69,10 @@ class ControlBarState extends State<ControlBar> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(top: 10, bottom: 15, left: 50, right: 50),
-      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: ProjectColors.header(true),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       child: Row(
         children: [
           controlWidget(

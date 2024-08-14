@@ -92,8 +92,8 @@ class AddAccountState extends State<AddAccount> {
             height: 420,
             width: 550,
             decoration: BoxDecoration(
-              border: Border.all(color: ProjectColors.main(false)),
-              color: ProjectColors.main(true),
+              border: Border.all(color: ProjectColors.border(true)),
+              color: ProjectColors.background(true),
               borderRadius: ProjectSizes.borderRadiusExtraSmall,
               boxShadow: const [
                 BoxShadow(
@@ -180,10 +180,10 @@ class AddAccountState extends State<AddAccount> {
                               child: Text(
                                 'CANCEL',
                                 style: TextStyle(
-                                  color: ProjectColors.main(false),
+                                  color: ProjectColors.text(true),
                                   decoration: TextDecoration.none,
                                   fontSize: ProjectSizes.fontSizeLarge,
-                                  fontWeight: FontWeight.normal,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
@@ -197,10 +197,10 @@ class AddAccountState extends State<AddAccount> {
                                 'CONFIRM',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: ProjectColors.main(false),
+                                  color: ProjectColors.text(true),
                                   decoration: TextDecoration.none,
                                   fontSize: ProjectSizes.fontSizeLarge,
-                                  fontWeight: FontWeight.normal,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),

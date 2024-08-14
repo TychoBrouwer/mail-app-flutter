@@ -98,7 +98,7 @@ class MessageContentState extends State<MessageContent> {
       html,
       key: UniqueKey(),
       textStyle: TextStyle(
-        color: ProjectColors.main(false),
+        color: ProjectColors.text(true),
         fontSize: ProjectSizes.fontSize,
       ),
       renderMode: const html_widget.ListViewMode(shrinkWrap: true),
@@ -109,12 +109,12 @@ class MessageContentState extends State<MessageContent> {
         Map<String, String>? style = {};
 
         if (!checkParrentForHref(element)) {
-          style['background'] = ProjectColors.main(true).toHex();
-          style['background-color'] = ProjectColors.main(true).toHex();
+          style['background'] = ProjectColors.background(true).toHex();
+          style['background-color'] = ProjectColors.background(true).toHex();
         }
 
         if (type != 'a' && type != 'link') {
-          style['color'] = ProjectColors.main(false).toHex();
+          style['color'] = ProjectColors.text(true).toHex();
         } else if ((type == 'a' || type == 'link') &&
             attributes.keys.contains('href')) {
           style['color'] = ProjectColors.accent(true).toHex();

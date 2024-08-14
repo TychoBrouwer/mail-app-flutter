@@ -78,7 +78,7 @@ class SplashPageState extends State<SplashPage> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          color: ProjectColors.main(true),
+          color: ProjectColors.background(true),
         ),
         child: Center(
           child: Column(
@@ -91,7 +91,7 @@ class SplashPageState extends State<SplashPage> {
                   _status,
                   style: TextStyle(
                     fontSize: ProjectSizes.fontSizeExtraLarge,
-                    color: ProjectColors.main(false),
+                    color: ProjectColors.text(true),
                   ),
                 ),
               ),
@@ -101,7 +101,7 @@ class SplashPageState extends State<SplashPage> {
                 duration: const Duration(seconds: 1),
                 child: SvgPicture.asset(
                   'assets/icons/arrows-rotate.svg',
-                  color: ProjectColors.main(false),
+                  color: ProjectColors.text(true),
                   width: 60,
                   height: 60,
                 ),

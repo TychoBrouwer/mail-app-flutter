@@ -56,7 +56,7 @@ class MessageHeaderState extends State<MessageHeader> {
           height: 70,
           margin: const EdgeInsets.only(right: 15),
           decoration: BoxDecoration(
-            color: ProjectColors.main(true),
+            color: ProjectColors.background(true),
             borderRadius: ProjectSizes.borderRadiusLarge,
           ),
         ),
@@ -77,7 +77,7 @@ class MessageHeaderState extends State<MessageHeader> {
                         style: TextStyle(
                           fontSize: ProjectSizes.fontSize,
                           fontWeight: FontWeight.bold,
-                          color: ProjectColors.main(false),
+                          color: ProjectColors.text(true),
                         ),
                       ),
                     ),
@@ -85,7 +85,7 @@ class MessageHeaderState extends State<MessageHeader> {
                       _dateText,
                       style: TextStyle(
                         fontSize: ProjectSizes.fontSize,
-                        color: ProjectColors.secondary(false),
+                        color: ProjectColors.text(false),
                       ),
                     ),
                   ],
@@ -96,14 +96,14 @@ class MessageHeaderState extends State<MessageHeader> {
                   text: TextSpan(
                     style: TextStyle(
                       fontSize: ProjectSizes.fontSize,
-                      color: ProjectColors.secondary(false),
+                      color: ProjectColors.text(false),
                     ),
                     children: [
                       const TextSpan(text: 'To: '),
                       TextSpan(
                         text: _to,
                         style: TextStyle(
-                          color: ProjectColors.secondary(false),
+                          color: ProjectColors.text(false),
                         ),
                       ),
                     ],
@@ -115,14 +115,14 @@ class MessageHeaderState extends State<MessageHeader> {
                   text: TextSpan(
                     style: TextStyle(
                       fontSize: ProjectSizes.fontSize,
-                      color: ProjectColors.secondary(false),
+                      color: ProjectColors.text(false),
                     ),
                     children: [
                       const TextSpan(text: 'Subject: '),
                       TextSpan(
                         text: _subject,
                         style: TextStyle(
-                          color: ProjectColors.secondary(false),
+                          color: ProjectColors.text(false),
                         ),
                       ),
                     ],

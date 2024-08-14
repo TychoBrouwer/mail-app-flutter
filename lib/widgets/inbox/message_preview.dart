@@ -62,116 +62,118 @@ class MessagePreviewState extends State<MessagePreview> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 3, right: 13),
-      child: CustomButton(
-        onTap: () => _updateMessageID(_idx),
-        borderRadius: ProjectSizes.borderRadius,
+    return CustomButton(
+      onTap: () => _updateMessageID(_idx),
+      borderRadius: ProjectSizes.borderRadius,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: ProjectSizes.borderRadius,
+          color: _getActive(_idx)
+              ? ProjectColors.accent(true)
+              : Colors.transparent,
+        ),
         child: Container(
-          decoration: BoxDecoration(
-            borderRadius: ProjectSizes.borderRadius,
-            color: _getActive(_idx)
-                ? ProjectColors.accent(true)
-                : Colors.transparent,
-          ),
-          child: Container(
-            margin: const EdgeInsets.only(left: 10, right: 30),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 13, right: 10),
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    borderRadius: ProjectSizes.borderRadiusSmall,
-                    color: _message.flags.contains(MessageFlag.Seen)
-                        ? Colors.transparent
-                        : !_getActive(_idx)
-                            ? ProjectColors.accent(true)
-                            : ProjectColors.main(true),
-                  ),
+          margin: const EdgeInsets.only(left: 10, right: 30),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 13, right: 10),
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  borderRadius: ProjectSizes.borderRadiusSmall,
+                  color: _message.flags.contains(MessageFlag.Seen)
+                      ? Colors.transparent
+                      : !_getActive(_idx)
+                          ? ProjectColors.accent(true)
+                          : ProjectColors.background(true),
                 ),
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: !_getActive(_idx)
-                              ? ProjectColors.secondary(_getActive(_idx))
-                              : Colors.transparent,
-                        ),
+              ),
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: !_getActive(_idx)
+                            ? ProjectColors.border(false)
+                            : Colors.transparent,
                       ),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 10, top: 8),
-                      child: Column(
-                        children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(right: 10),
-                                    child: Text(
-                                      _from,
-                                      overflow: TextOverflow.fade,
-                                      softWrap: false,
-                                      style: TextStyle(
-                                        fontSize: ProjectSizes.fontSize,
-                                        fontWeight: FontWeight.bold,
-                                        color: ProjectColors.main(
-                                            _getActive(_idx)),
-                                      ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 10, top: 8),
+                    child: Column(
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 10),
+                                  child: Text(
+                                    _from,
+                                    overflow: TextOverflow.fade,
+                                    softWrap: false,
+                                    style: TextStyle(
+                                      fontSize: ProjectSizes.fontSize,
+                                      fontWeight: FontWeight.bold,
+                                      color: !_getActive(_idx)
+                                          ? ProjectColors.text(true)
+                                          : ProjectColors.background(true),
                                     ),
                                   ),
                                 ),
-                                Text(
-                                  _dateText,
-                                  style: TextStyle(
-                                    color: ProjectColors.secondary(
-                                        _getActive(_idx)),
-                                    fontSize: ProjectSizes.fontSize,
-                                  ),
+                              ),
+                              Text(
+                                _dateText,
+                                style: TextStyle(
+                                  color: !_getActive(_idx)
+                                      ? ProjectColors.text(false)
+                                      : ProjectColors.background(true),
+                                  fontSize: ProjectSizes.fontSize,
                                 ),
-                              ],
-                            ),
-                          ),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              _message.subject,
-                              overflow: TextOverflow.fade,
-                              softWrap: false,
-                              style: TextStyle(
-                                fontSize: ProjectSizes.fontSize,
-                                color: ProjectColors.main(_getActive(_idx)),
-                                fontWeight: FontWeight.normal,
                               ),
+                            ],
+                          ),
+                        ),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            _message.subject,
+                            overflow: TextOverflow.fade,
+                            softWrap: false,
+                            style: TextStyle(
+                              fontSize: ProjectSizes.fontSize,
+                              color: !_getActive(_idx)
+                                  ? ProjectColors.text(false)
+                                  : ProjectColors.background(true),
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              _textPreview(),
-                              overflow: TextOverflow.fade,
-                              softWrap: false,
-                              style: TextStyle(
-                                fontSize: ProjectSizes.fontSize,
-                                color:
-                                    ProjectColors.secondary(_getActive(_idx)),
-                                fontWeight: FontWeight.normal,
-                              ),
+                        ),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            _textPreview(),
+                            overflow: TextOverflow.fade,
+                            softWrap: false,
+                            style: TextStyle(
+                              fontSize: ProjectSizes.fontSize,
+                              color: !_getActive(_idx)
+                                  ? ProjectColors.text(false)
+                                  : ProjectColors.background(true),
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
