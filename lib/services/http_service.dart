@@ -21,6 +21,8 @@ class HttpService {
 
       return MessageResponse.fromJson(convert.jsonDecode(response.body));
     } catch (e) {
+      print(e);
+
       return MessageResponse(false, null, "Failed to connect to server");
     }
   }

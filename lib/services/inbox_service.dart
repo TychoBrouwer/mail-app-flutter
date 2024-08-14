@@ -163,11 +163,12 @@ class InboxService {
       'mailbox_path': mailbox!,
       'start': start.toString(),
       'end': end.toString(),
-      'reversed': 'true',
     };
 
     final messageData = await HttpService()
         .sendRequest(HttpRequestPath.get_messages_sorted, body);
+
+    print(messageData.success);
 
     if (!messageData.success) return [];
 

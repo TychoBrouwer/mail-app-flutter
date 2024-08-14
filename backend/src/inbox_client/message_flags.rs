@@ -1,5 +1,5 @@
 use async_imap::error::Error as ImapError;
-use async_imap::types::Fetch;
+use async_imap::types::{Fetch, Flag};
 use async_std::stream::StreamExt;
 use async_std::sync::{Arc, Mutex};
 
@@ -142,7 +142,7 @@ async fn modify_database(
     message_uid: u32,
     flags: &Vec<String>,
 ) -> Result<(), MyError> {
-    let flags_str = flags.join(",");
+    let flags_str = String::from("[") + &flags.join(",") + "]";
 
     match database::message::update_flags(
         database_conn,

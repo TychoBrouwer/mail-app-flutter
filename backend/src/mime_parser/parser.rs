@@ -214,6 +214,10 @@ pub fn parse_flag_vec(flags: &[Flag]) -> String {
     }
     flags_str.push_str("]");
 
+    if flags.len() == 0 {
+        dbg!(&flags_str);
+    }
+
     return flags_str;
 }
 
