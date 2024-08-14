@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart' show SvgPicture;
 
 import 'package:mail_app/types/project_colors.dart';
+import 'package:mail_app/types/project_sizes.dart';
 import 'package:mail_app/widgets/custom_button.dart';
 
 class MailboxHeader extends StatefulWidget {
@@ -45,8 +46,8 @@ class MailboxHeaderState extends State<MailboxHeader> {
                 'assets/icons/square-plus.svg',
                 colorFilter: ColorFilter.mode(
                     ProjectColors.main(false), BlendMode.srcIn),
-                height: 20,
-                width: 20,
+                height: ProjectSizes.iconSize,
+                width: ProjectSizes.iconSize,
               ),
             ),
           ),
@@ -58,8 +59,8 @@ class MailboxHeaderState extends State<MailboxHeader> {
                 'assets/icons/paper-plane.svg',
                 colorFilter: ColorFilter.mode(
                     ProjectColors.main(false), BlendMode.srcIn),
-                height: 20,
-                width: 20,
+                height: ProjectSizes.iconSize,
+                width: ProjectSizes.iconSize,
               ),
             ),
           ),

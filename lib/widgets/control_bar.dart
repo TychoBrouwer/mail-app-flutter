@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart' show SvgPicture;
 
 import 'package:mail_app/types/message_flag.dart';
 import 'package:mail_app/types/project_colors.dart';
+import 'package:mail_app/types/project_sizes.dart';
 import 'package:mail_app/types/special_mailbox.dart';
 import 'package:mail_app/widgets/custom_button.dart';
 
@@ -60,8 +61,8 @@ class ControlBarState extends State<ControlBar> {
             colorFilter:
                 ColorFilter.mode(ProjectColors.main(false), BlendMode.srcIn),
             alignment: Alignment.centerRight,
-            height: 20,
-            width: 20,
+            height: ProjectSizes.iconSize,
+            width: ProjectSizes.iconSize,
           ),
         ),
       ),

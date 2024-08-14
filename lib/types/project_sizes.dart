@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart' show Radius, BorderRadius;
 
 class ProjectSizes {
-  static const double fontSize = 13;
-  static const double fontSizeSmall = 11;
-  static const double fontSizeLarge = 18;
-  static const double fontSizeExtraLarge = 24;
+  static const double fontSize = 12;
+  static const double fontSizeSmall = 10;
+  static const double fontSizeLarge = 15;
+  static const double fontSizeExtraLarge = 22;
+
+  static const double iconSize = 16;
 
   static const Radius radius = Radius.circular(10);
   static const Radius radiusSmall = Radius.circular(5);

@@ -140,8 +140,8 @@ class MessageListState extends State<MessageList> {
                       'assets/icons/arrows-rotate.svg',
                       colorFilter: ColorFilter.mode(
                           ProjectColors.main(false), BlendMode.srcIn),
-                      width: 20,
-                      height: 20,
+                      width: ProjectSizes.iconSize,
+                      height: ProjectSizes.iconSize,
                     ),
                   ),
                 ),

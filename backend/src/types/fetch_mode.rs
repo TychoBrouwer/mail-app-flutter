@@ -9,9 +9,9 @@ pub enum FetchMode {
 pub fn string(fetch_mode: FetchMode) -> String {
     match fetch_mode {
         FetchMode::ALL => String::from("(UID FLAGS ENVELOPE BODY.PEEK[])"),
-        FetchMode::ENVELOPE => String::from("ENVELOPE"),
-        FetchMode::BODY => String::from("BODY"),
+        FetchMode::ENVELOPE => String::from("(UID ENVELOPE)"),
+        FetchMode::BODY => String::from("(UID BODY)"),
         FetchMode::UID => String::from("UID"),
-        FetchMode::FLAGS => String::from("FLAGS"),
+        FetchMode::FLAGS => String::from("(UID FLAGS)"),
     }
 }

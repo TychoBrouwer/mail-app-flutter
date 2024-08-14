@@ -9,10 +9,7 @@ pub fn rfc2822(time_str: Option<&String>) -> DateTime<FixedOffset> {
 
     let date = match time_re.captures(time_str.unwrap_or(&binding)) {
         Some(c) => c.get(1).unwrap().as_str(),
-        None => {
-            eprintln!("Error: Could not parse date");
-            "Thu, 1 Jan 1970 00:00:00 +0000"
-        }
+        None => "Thu, 1 Jan 1970 00:00:00 +0000",
     };
 
     let date = match DateTime::parse_from_rfc2822(&date) {

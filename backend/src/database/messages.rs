@@ -26,9 +26,7 @@ pub async fn insert(
         }
     };
 
-    for message in messages {
-        dbg!(&message.message_uid);
-    
+    for message in messages {    
         let html = match String::from_utf8(BASE64_STANDARD.decode(message.html.as_str()).unwrap()) {
             Ok(html) => html,
             Err(e) => {

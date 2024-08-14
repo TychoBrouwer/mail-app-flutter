@@ -72,9 +72,6 @@ pub async fn mv(
     let message_uid_new = message.message_uid;
     let sequence_id_new = message.sequence_id;
 
-    dbg!(message_uid_new);
-    dbg!(sequence_id_new);
-
     match mv_database(
         database_conn,
         client,
