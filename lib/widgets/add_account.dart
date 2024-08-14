@@ -85,135 +85,131 @@ class AddAccountState extends State<AddAccount> {
     return SizedBox(
       width: MediaQuery.of(context).size.width,
       height: MediaQuery.of(context).size.height,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            height: 420,
-            width: 550,
-            decoration: BoxDecoration(
-              border: Border.all(color: ProjectColors.border(true)),
-              color: ProjectColors.background(true),
-              borderRadius: ProjectSizes.borderRadiusExtraSmall,
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black,
-                  blurRadius: 10,
-                  spreadRadius: 0,
-                ),
-              ],
-            ),
-            child: Form(
-              key: _formKey,
-              child: Padding(
-                padding:
-                    EdgeInsets.all(MediaQuery.of(context).size.width * 0.05),
-                child: ListView(
-                  children: <Widget>[
-                    CustomFormField(
-                      onSaved: (val) => _username = val,
-                      labelText: 'Email address',
-                      validator: (String? value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        } else if (!EmailValidator.validate(value)) {
-                          return 'Please enter a valid email';
-                        }
-                        return null;
-                      },
-                    ),
-                    CustomFormField(
-                      onSaved: (val) => _password = val,
-                      labelText: 'Password',
-                      obscureText: true,
-                      validator: (String? value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your password';
-                        }
-                        return null;
-                      },
-                    ),
-                    Row(
+      child: Center(
+        child: Container(
+          height: 360,
+          width: 550,
+          decoration: BoxDecoration(
+            border: Border.all(color: ProjectColors.border(true)),
+            color: ProjectColors.background(true),
+            borderRadius: ProjectSizes.borderRadiusExtraSmall,
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black,
+                blurRadius: 10,
+                spreadRadius: 0,
+              ),
+            ],
+          ),
+          child: Form(
+            key: _formKey,
+            child: Padding(
+              padding: const EdgeInsets.all(50),
+              child: ListView(
+                children: <Widget>[
+                  CustomFormField(
+                    onSaved: (val) => _username = val,
+                    labelText: 'Email address',
+                    validator: (String? value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your email';
+                      } else if (!EmailValidator.validate(value)) {
+                        return 'Please enter a valid email';
+                      }
+                      return null;
+                    },
+                  ),
+                  CustomFormField(
+                    onSaved: (val) => _password = val,
+                    labelText: 'Password',
+                    obscureText: true,
+                    validator: (String? value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your password';
+                      }
+                      return null;
+                    },
+                  ),
+                  Row(
+                    children: [
+                      Flexible(
+                        flex: 2,
+                        child: CustomFormField(
+                          onSaved: (val) => _address = val,
+                          labelText: 'IMAP address',
+                          validator: (String? value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter an IMAP address';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      Flexible(
+                        child: CustomFormField(
+                          onSaved: (val) =>
+                              _port = (val != null) ? int.parse(val) : 0,
+                          labelText: 'IMAP port',
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly
+                          ],
+                          validator: (String? value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Enter IMAP Port';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 20, left: 5),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Flexible(
-                          flex: 2,
-                          child: CustomFormField(
-                            onSaved: (val) => _address = val,
-                            labelText: 'IMAP address',
-                            validator: (String? value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter an IMAP address';
-                              }
-                              return null;
-                            },
+                        CustomButton(
+                          onTap: _cancel,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 15, vertical: 5),
+                            child: Text(
+                              'CANCEL',
+                              style: TextStyle(
+                                color: ProjectColors.text(true),
+                                decoration: TextDecoration.none,
+                                fontSize: ProjectSizes.fontSizeLarge,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
                         ),
-                        Flexible(
-                          child: CustomFormField(
-                            onSaved: (val) =>
-                                _port = (val != null) ? int.parse(val) : 0,
-                            labelText: 'IMAP port',
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly
-                            ],
-                            validator: (String? value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Enter IMAP Port';
-                              }
-                              return null;
-                            },
+                        CustomButton(
+                          onTap: _confirm,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 15, vertical: 5),
+                            child: Text(
+                              'CONFIRM',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: ProjectColors.text(true),
+                                decoration: TextDecoration.none,
+                                fontSize: ProjectSizes.fontSizeLarge,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 20, left: 5),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          CustomButton(
-                            onTap: _cancel,
-                            child: Container(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 15),
-                              child: Text(
-                                'CANCEL',
-                                style: TextStyle(
-                                  color: ProjectColors.text(true),
-                                  decoration: TextDecoration.none,
-                                  fontSize: ProjectSizes.fontSizeLarge,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                          CustomButton(
-                            onTap: _confirm,
-                            child: Container(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 15),
-                              child: Text(
-                                'CONFIRM',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: ProjectColors.text(true),
-                                  decoration: TextDecoration.none,
-                                  fontSize: ProjectSizes.fontSizeLarge,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

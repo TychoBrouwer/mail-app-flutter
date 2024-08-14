@@ -62,7 +62,7 @@ class MessageHeaderState extends State<MessageHeader> {
         ),
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.only(bottom: 7),
+            padding: const EdgeInsets.only(bottom: 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,

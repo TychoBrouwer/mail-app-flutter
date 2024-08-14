@@ -55,15 +55,15 @@ class MailboxListState extends State<MailboxList> {
                 padding: inboxInfo.indent
                     ? const EdgeInsets.only(
                         left: 30,
-                        right: 5,
+                        right: 20,
                         top: 3,
-                        bottom: 4,
+                        bottom: 5,
                       )
                     : const EdgeInsets.only(
-                        left: 8,
-                        right: 8,
+                        left: 20,
+                        right: 20,
                         top: 3,
-                        bottom: 4,
+                        bottom: 5,
                       ),
                 decoration: BoxDecoration(
                   borderRadius: ProjectSizes.borderRadiusSmall,

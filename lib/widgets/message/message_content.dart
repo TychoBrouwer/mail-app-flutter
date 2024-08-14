@@ -155,7 +155,7 @@ class MessageContentState extends State<MessageContent> {
     return (_message == null)
         ? const SizedBox()
         : Padding(
-            padding: const EdgeInsets.only(bottom: 20, left: 15, right: 6),
+            padding: const EdgeInsets.only(bottom: 20, left: 10, right: 5),
             child: LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
                 return SizedBox(
@@ -163,7 +163,7 @@ class MessageContentState extends State<MessageContent> {
                   child: SingleChildScrollView(
                     scrollDirection: Axis.vertical,
                     child: Padding(
-                      padding: const EdgeInsets.only(right: 14),
+                      padding: const EdgeInsets.only(right: 10),
                       child: Column(
                         key: _widgetKey,
                         children: [

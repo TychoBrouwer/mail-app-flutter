@@ -73,7 +73,7 @@ class MessagePreviewState extends State<MessagePreview> {
               : Colors.transparent,
         ),
         child: Container(
-          margin: const EdgeInsets.only(left: 10, right: 30),
+          margin: const EdgeInsets.only(right: 20),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -102,7 +102,7 @@ class MessagePreviewState extends State<MessagePreview> {
                     ),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.only(bottom: 10, top: 8),
+                    padding: const EdgeInsets.only(bottom: 13, top: 10),
                     child: Column(
                       children: [
                         Align(

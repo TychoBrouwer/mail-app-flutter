@@ -50,17 +50,20 @@ class ControlBarState extends State<ControlBar> {
   }
 
   Widget controlWidget(Control control) {
-    return CustomButton(
-      onTap: () => control.function(),
-      child: Padding(
-        padding: const EdgeInsets.all(5),
-        child: SvgPicture.asset(
-          'assets/icons/${control.icon}.svg',
-          colorFilter:
-              ColorFilter.mode(ProjectColors.text(true), BlendMode.srcIn),
-          alignment: Alignment.centerRight,
-          height: ProjectSizes.iconSize,
-          width: ProjectSizes.iconSize,
+    return Container(
+      margin: const EdgeInsets.only(right: 10),
+      child: CustomButton(
+        onTap: () => control.function(),
+        child: Padding(
+          padding: const EdgeInsets.all(5),
+          child: SvgPicture.asset(
+            'assets/icons/${control.icon}.svg',
+            colorFilter:
+                ColorFilter.mode(ProjectColors.text(true), BlendMode.srcIn),
+            alignment: Alignment.centerRight,
+            height: ProjectSizes.iconSize,
+            width: ProjectSizes.iconSize,
+          ),
         ),
       ),
     );
