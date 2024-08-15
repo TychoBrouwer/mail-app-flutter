@@ -236,12 +236,30 @@ pub fn parse_message_vec(messages: Vec<Message>) -> String {
 pub fn parse_string_vec(strings: Vec<String>) -> String {
     let mut result = String::from("[");
 
-    for string in strings {
+    for (i, string) in strings.iter().enumerate() {
         result.push_str(&format!("\"{}\"", string));
-        result.push_str(",");
+
+        if i < strings.len() - 1 {
+            result.push_str(",");
+        }
     }
 
-    result.pop();
+    result.push_str("]");
+
+    return result;
+}
+
+pub fn parse_u32_vec(u32s: Vec<u32>) -> String {
+    let mut result = String::from("[");
+
+    for (i, u32) in u32s.iter().enumerate() {
+        result.push_str(&u32.to_string());
+
+        if i < u32s.len() - 1 {
+            result.push_str(",");
+        }
+    }
+
     result.push_str("]");
 
     return result;

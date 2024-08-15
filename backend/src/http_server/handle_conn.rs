@@ -403,10 +403,14 @@ pub async fn update_mailbox(
     )
     .await
     {
-        Ok(message) => {
+        Ok(updated) => {
+            let removed_uids_str = parser::parse_u32_vec(updated.removed);
+            let new_uids_str = parser::parse_u32_vec(updated.new);
+            let changed_uids_str = parser::parse_u32_vec(updated.changed);
+
             return format!(
-                "{{\"success\": true, \"message\": \"Mailbox updated\", \"data\": {}}}",
-                message
+                "{{\"success\": true, \"message\": \"Mailbox updated\", \"data\": {{\"new_uids\": {}, \"removed_uids\": {}, \"changed_uids\": {}}}}}",
+                new_uids_str, removed_uids_str, changed_uids_str
             );
         }
         Err(e) => {

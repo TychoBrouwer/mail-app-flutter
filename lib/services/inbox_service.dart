@@ -315,7 +315,7 @@ class InboxService {
     return messageData.data;
   }
 
-  Future<List<int>> updateInbox({
+  Future<List<List<int>>> updateInbox({
     int? session,
     String? mailbox,
   }) async {
@@ -340,9 +340,11 @@ class InboxService {
 
     if (!messageData.success) return [];
 
-    final updatedUids =
-        (messageData.data as List).map((e) => e as int).toList();
+    final data = (messageData.data as Map<String, List<dynamic>>);
+    final updatedUids = data['changed']!.map((e) => e as int).toList();
+    final updatedFlagsUids =
+        data['changed_flags']!.map((e) => e as int).toList();
 
-    return updatedUids;
+    return [updatedUids, updatedFlagsUids];
   }
 }

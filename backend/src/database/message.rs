@@ -6,6 +6,7 @@ use rusqlite::{params, Connection};
 use crate::database;
 use crate::my_error::MyError;
 use crate::types::message::Message;
+use crate::types::session::Client;
 
 pub async fn insert(
     conn: Arc<Mutex<Connection>>,
@@ -202,37 +203,20 @@ pub async fn update_sequence_id(
     address: &str,
     mailbox_path: &str,
     message_uid: u32,
-    sequence_id: u32,
     sequence_id_new: u32,
 ) -> Result<(), MyError> {
     let locked_conn = conn.lock().await;
-
-    match locked_conn.execute(
-        "UPDATE messages
-SET sequence_id = ?1
-WHERE sequence_id = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
-        params![
-            sequence_id_new,
-            sequence_id,
-            username,
-            address,
-            mailbox_path
-        ],
-    ) {
-        Ok(_) => {}
-        Err(e) => {
-            let err = MyError::Sqlite(e, String::from("Error updating sequence id in database"));
-            err.log_error();
-
-            return Err(err);
-        }
-    };
-
     match locked_conn.execute(
         "UPDATE messages
 SET sequence_id = ?1
 WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
-        params![sequence_id, message_uid, username, address, mailbox_path],
+        params![
+            sequence_id_new,
+            message_uid,
+            username,
+            address,
+            mailbox_path
+        ],
     ) {
         Ok(_) => {}
         Err(e) => {
@@ -259,8 +243,7 @@ WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
 
 pub async fn remove(
     conn: Arc<Mutex<Connection>>,
-    username: &str,
-    address: &str,
+    client: &Client,
     mailbox_path: &str,
     message_uid: u32,
 ) -> Result<(), MyError> {
@@ -269,7 +252,7 @@ pub async fn remove(
     match locked_conn.execute(
         "DELETE FROM messages
 WHERE message_uid = ?1 AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
-        params![message_uid, username, address, mailbox_path],
+        params![message_uid, &client.username, &client.address, mailbox_path],
     ) {
         Ok(_) => {}
         Err(e) => {

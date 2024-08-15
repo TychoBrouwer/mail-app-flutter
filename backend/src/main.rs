@@ -11,6 +11,7 @@ mod http_server {
 pub mod inbox_client;
 mod types {
     pub mod fetch_mode;
+    pub mod mailbox_changes;
     pub mod message;
     pub mod sequence_set;
     pub mod session;

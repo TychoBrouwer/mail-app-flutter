@@ -5,12 +5,12 @@ use crate::database;
 use crate::inbox_client;
 use crate::my_error::MyError;
 use crate::types::fetch_mode::FetchMode;
+use crate::types::mailbox_changes::MailboxChanges;
 use crate::types::sequence_set::{SequenceSet, StartEnd};
 use crate::types::session::{Client, Session};
 
 #[derive(Debug)]
-struct MessageMoveData {
-    sequence_id: u32,
+struct ChangedSeqIdData {
     message_uid: u32,
     sequence_id_new: u32,
 }
@@ -21,7 +21,7 @@ pub async fn update_mailbox(
     session_id: usize,
     clients: Arc<Mutex<Vec<Client>>>,
     mailbox_path: &str,
-) -> Result<String, MyError> {
+) -> Result<MailboxChanges, MyError> {
     let locked_clients = clients.lock().await;
 
     if session_id + 1 > locked_clients.len() {
@@ -57,13 +57,17 @@ pub async fn update_mailbox(
         Err(_) => {}
     };
 
-    let mut changed_uids: Vec<u32> = Vec::new();
+    let mut new_uids: Vec<u32> = Vec::new();
+    let mut removed_uids: Vec<u32> = Vec::new();
+
     let mut end = 0;
+
+    let step_size = 20;
 
     while run_loop {
         let mut start_end = StartEnd {
             start: end + 1,
-            end: end + 50,
+            end: end + step_size,
         };
 
         if start_end.start >= highest_seq {
@@ -73,7 +77,7 @@ pub async fn update_mailbox(
             start_end.end = highest_seq;
         }
 
-        end += 50;
+        end += step_size;
 
         let sequence_set = SequenceSet {
             nr_messages: None,
@@ -84,7 +88,7 @@ pub async fn update_mailbox(
         let sessions_2 = Arc::clone(&sessions);
         let database_conn_2 = Arc::clone(&database_conn);
 
-        let (moved_messages, new_message_uids) = match get_changed_message_uids(
+        let (changed_seq_ids_data, new_message_uids, removed_messages_uids) = match get_changes(
             sessions_2,
             session_id,
             database_conn_2,
@@ -98,16 +102,22 @@ pub async fn update_mailbox(
             Err(e) => return Err(e),
         };
 
-        changed_uids.extend(
-            &moved_messages
-                .iter()
-                .map(|m| m.message_uid)
-                .collect::<Vec<u32>>(),
-        );
-        changed_uids.extend(&new_message_uids);
-
-        if changed_uids.is_empty() {
+        if changed_seq_ids_data.is_empty() && new_message_uids.is_empty() {
             break;
+        }
+
+        new_uids.extend(&new_message_uids);
+        removed_uids.extend(&removed_messages_uids);
+
+        for message_uid in &removed_messages_uids {
+            let database_conn_2 = Arc::clone(&database_conn);
+
+            match database::message::remove(database_conn_2, client, mailbox_path, *message_uid)
+                .await
+            {
+                Ok(_) => {}
+                Err(e) => return Err(e),
+            };
         }
 
         if !new_message_uids.is_empty() {
@@ -129,11 +139,18 @@ pub async fn update_mailbox(
             };
         }
 
-        if !moved_messages.is_empty() {
-            let database_conn_2 = Arc::clone(&database_conn);
+        for changed_seq_id in changed_seq_ids_data {
+            let database_conn = Arc::clone(&database_conn);
 
-            match update_moved_messeages(database_conn_2, client, mailbox_path, &moved_messages)
-                .await
+            match database::message::update_sequence_id(
+                database_conn,
+                &client.username,
+                &client.address,
+                mailbox_path,
+                changed_seq_id.message_uid,
+                changed_seq_id.sequence_id_new,
+            )
+            .await
             {
                 Ok(_) => {}
                 Err(e) => return Err(e),
@@ -141,23 +158,21 @@ pub async fn update_mailbox(
         }
     }
 
-    let changed_flags_uids =
+    let changed_uids =
         match update_flags(sessions, session_id, database_conn, client, mailbox_path).await {
             Ok(f) => f,
             Err(e) => return Err(e),
         };
 
-    changed_uids.extend(&changed_flags_uids);
+    dbg!(&new_uids);
+    dbg!(&changed_uids);
+    dbg!(&removed_uids);
 
-    let changed_uids_string = String::from("[")
-        + &changed_uids
-            .iter()
-            .map(|uid| uid.to_string())
-            .collect::<Vec<String>>()
-            .join(",")
-        + "]";
-
-    return Ok(changed_uids_string);
+    return Ok(MailboxChanges {
+        new: new_uids,
+        changed: changed_uids,
+        removed: removed_uids,
+    });
 }
 
 async fn get_highest_seq_imap(
@@ -242,15 +257,15 @@ async fn get_highest_seq_db(
     }
 }
 
-async fn get_changed_message_uids(
+async fn get_changes(
     sessions: Arc<Mutex<Vec<Session>>>,
     session_id: usize,
     database_conn: Arc<Mutex<rusqlite::Connection>>,
     client: &Client,
     mailbox_path: &str,
     sequence_set: &SequenceSet,
-) -> Result<(Vec<MessageMoveData>, Vec<u32>), MyError> {
-    let messages_imap = match inbox_client::messages::get_imap_with_seq(
+) -> Result<(Vec<ChangedSeqIdData>, Vec<u32>, Vec<u32>), MyError> {
+    let fetches_imap = match inbox_client::messages::get_imap_with_seq(
         sessions,
         session_id,
         client,
@@ -264,18 +279,18 @@ async fn get_changed_message_uids(
         Err(e) => return Err(e),
     };
 
-    let messages_uids_imap: Vec<u32> = messages_imap.iter().map(|m| m.message_uid).collect();
-    let seq_to_uids_imap: HashMap<u32, u32> = messages_imap
+    let uids_imap: Vec<u32> = fetches_imap.iter().map(|m| m.message_uid).collect();
+    let uids_to_seq_imap: HashMap<u32, u32> = fetches_imap
         .iter()
-        .map(|message| (message.sequence_id, message.message_uid))
+        .map(|message| (message.message_uid, message.sequence_id))
         .collect();
 
-    let messages_db = match database::messages::get_with_uids(
+    let messages_database = match database::messages::get_with_uids(
         database_conn,
         &client.username,
         &client.address,
         mailbox_path,
-        &messages_uids_imap,
+        &uids_imap,
     )
     .await
     {
@@ -283,20 +298,19 @@ async fn get_changed_message_uids(
         Err(e) => return Err(e),
     };
 
-    let moved_messages: Vec<MessageMoveData> = messages_db
+    let changed_seq_id_uids: Vec<ChangedSeqIdData> = messages_database
         .iter()
-        .filter(|m| seq_to_uids_imap.get(&m.sequence_id) != Some(&m.message_uid))
-        .map(|m| MessageMoveData {
-            sequence_id: m.sequence_id,
+        .filter(|m| uids_imap.contains(&m.message_uid))
+        .map(|m| ChangedSeqIdData {
             message_uid: m.message_uid,
-            sequence_id_new: *seq_to_uids_imap.get(&m.sequence_id).unwrap(),
+            sequence_id_new: *uids_to_seq_imap.get(&m.message_uid).unwrap(),
         })
-        .collect::<Vec<MessageMoveData>>();
+        .collect();
 
-    let new_messages_uids: Vec<u32> = messages_uids_imap
+    let new_messages_uids: Vec<u32> = uids_imap
         .iter()
         .filter(|uid| {
-            messages_db
+            messages_database
                 .iter()
                 .find(|m| m.message_uid == **uid)
                 .is_none()
@@ -304,7 +318,22 @@ async fn get_changed_message_uids(
         .map(|uid| *uid)
         .collect();
 
-    return Ok((moved_messages, new_messages_uids));
+    let removed_messages_uids: Vec<u32> = messages_database
+        .iter()
+        .filter(|m| {
+            uids_imap
+                .iter()
+                .find(|uid| **uid == m.message_uid)
+                .is_none()
+        })
+        .map(|m| m.message_uid)
+        .collect();
+
+    return Ok((
+        changed_seq_id_uids,
+        new_messages_uids,
+        removed_messages_uids,
+    ));
 }
 
 async fn get_new_messages(
@@ -340,34 +369,6 @@ async fn get_new_messages(
     {
         Ok(_) => {}
         Err(e) => return Err(e),
-    }
-
-    return Ok(());
-}
-
-async fn update_moved_messeages(
-    database_conn: Arc<Mutex<rusqlite::Connection>>,
-    client: &Client,
-    mailbox_path: &str,
-    moved_messages: &Vec<MessageMoveData>,
-) -> Result<(), MyError> {
-    for moved_message in moved_messages {
-        let database_conn = Arc::clone(&database_conn);
-
-        match database::message::update_sequence_id(
-            database_conn,
-            &client.username,
-            &client.address,
-            mailbox_path,
-            moved_message.message_uid,
-            moved_message.sequence_id,
-            moved_message.sequence_id_new,
-        )
-        .await
-        {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        }
     }
 
     return Ok(());

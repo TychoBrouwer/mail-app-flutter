@@ -176,7 +176,7 @@ class HomePageState extends State<HomePage> {
           .toList();
 
       final updatedMessages = await _inboxService.getMessagesWithUids(
-        uids: loadedUpdatedMessageUids,
+        uids: loadedUpdatedMessageUids[0],
       );
 
       for (var message in updatedMessages) {
