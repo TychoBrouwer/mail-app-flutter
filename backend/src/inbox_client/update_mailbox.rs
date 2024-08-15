@@ -8,6 +8,7 @@ use crate::types::fetch_mode::FetchMode;
 use crate::types::sequence_set::{SequenceSet, StartEnd};
 use crate::types::session::{Client, Session};
 
+#[derive(Debug)]
 struct MessageMoveData {
     sequence_id: u32,
     message_uid: u32,
@@ -46,10 +47,11 @@ pub async fn update_mailbox(
 
     let database_conn_2 = Arc::clone(&database_conn);
 
+    let mut run_loop = true;
     match get_highest_seq_db(database_conn_2, client, mailbox_path, highest_seq_uid).await {
         Ok(highest_seq_local) => {
             if highest_seq_local == highest_seq {
-                return Ok("[]".to_string());
+                run_loop = false;
             }
         }
         Err(_) => {}
@@ -58,7 +60,7 @@ pub async fn update_mailbox(
     let mut changed_uids: Vec<u32> = Vec::new();
     let mut end = 0;
 
-    loop {
+    while run_loop {
         let mut start_end = StartEnd {
             start: end + 1,
             end: end + 50,
@@ -399,20 +401,46 @@ async fn update_flags(
         Err(e) => return Err(e),
     };
 
-    let updated_uids = messages.iter().map(|m| m.message_uid).collect::<Vec<u32>>();
+    let flags_data = match database::messages::get_flags(
+        Arc::clone(&database_conn),
+        &client.username,
+        &client.address,
+        mailbox_path,
+    )
+    .await
+    {
+        Ok(f) => f,
+        Err(e) => return Err(e),
+    };
 
-    for message in messages {
-        let flags_str = message.flags;
+    let changed_flags_uids: Vec<u32> = flags_data
+        .iter()
+        .filter_map(|f| {
+            let message = messages.iter().find(|m| m.message_uid == f.0);
+            if message.is_some() {
+                if message.unwrap().flags != f.1 {
+                    return Some(f.0);
+                }
+            }
+            return None;
+        })
+        .collect();
 
+    for changed_flags_uid in &changed_flags_uids {
         let database_conn_2 = Arc::clone(&database_conn);
+
+        let message = messages
+            .iter()
+            .find(|m| m.message_uid == *changed_flags_uid)
+            .unwrap();
 
         match database::message::update_flags(
             database_conn_2,
             &client.username,
             &client.address,
             mailbox_path,
-            message.message_uid,
-            &flags_str,
+            *changed_flags_uid,
+            &message.flags,
         )
         .await
         {
@@ -421,5 +449,5 @@ async fn update_flags(
         }
     }
 
-    return Ok(updated_uids);
+    return Ok(changed_flags_uids);
 }

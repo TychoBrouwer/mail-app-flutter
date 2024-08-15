@@ -19,8 +19,6 @@ pub async fn insert(
     let tx = match locked_conn.transaction() {
         Ok(tx) => tx,
         Err(e) => {
-            
-  
             let err = MyError::Sqlite(e, String::from("Error starting transaction for inserting messages"));
             err.log_error();
   
@@ -159,7 +157,6 @@ pub async fn get_with_uids(
       ) {
           Ok(stmt) => stmt,
           Err(e) => {
-              
           let err = MyError::Sqlite(e, String::from("Error preparing statement at messages with uids"));
           err.log_error();
 
@@ -186,7 +183,6 @@ pub async fn get_with_uids(
           return Ok(messages_list);
       }
       Err(e) => {
-          
           let err = MyError::Sqlite(e, String::from("Error getting message from database"));
           err.log_error();
 
@@ -246,4 +242,58 @@ pub async fn get_sorted(
           return Err(err);
       }
   };
+}
+
+pub async fn get_flags(
+    conn: Arc<Mutex<Connection>>,
+    username: &str,
+    address: &str,
+    mailbox_path: &str,
+) -> Result<Vec<(u32, String)>, MyError> {
+    let locked_conn = conn.lock().await;
+    
+    let mut stmt = match locked_conn.prepare_cached(
+            "SELECT message_uid,flags FROM messages WHERE c_username = ?1 AND c_address = ?2 AND m_path = ?3",
+        ) {
+            Ok(stmt) => stmt,
+            Err(e) => {
+                
+                let err = MyError::Sqlite(e, String::from("Error preparing statement at messages"));
+                err.log_error();
+  
+                return Err(err);
+            }
+        };
+  
+    match stmt.query_map(
+        params![username, address, mailbox_path],
+        |row| {
+            let message_uid: u32 = row.get(0).unwrap();
+            let flags: String = row.get(1).unwrap();
+
+            return Ok((message_uid, flags));
+        },
+    ) {
+        Ok(message_data) => {
+            let message_data: Vec<(u32, String)> = message_data.map(|data| {
+                match data {
+                    Ok(d) => d,
+                    Err(e) => {
+                        let err = MyError::Sqlite(e, String::from("Error getting message from database"));
+                        err.log_error();
+    
+                        return (0, String::from(""));
+                    }
+                }
+            }).collect();
+
+            return Ok(message_data);
+        }
+        Err(e) => {
+            let err = MyError::Sqlite(e, String::from("Error getting message from database"));
+  
+            err.log_error();
+            return Err(err);
+        }
+    };
 }

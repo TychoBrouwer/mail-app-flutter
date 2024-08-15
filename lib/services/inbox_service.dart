@@ -209,6 +209,43 @@ class InboxService {
     return messages;
   }
 
+  Future<List<Message>> getMessagesWithUids({
+    int? session,
+    String? mailbox,
+    required List<int> uids,
+  }) async {
+    if (session == null) {
+      session = _activeSession;
+
+      if (_activeSession == null) return [];
+    }
+    if (mailbox == null) {
+      mailbox = _activeMailbox;
+
+      if (_activeMailbox == null) return [];
+    }
+
+    final body = {
+      'session_id': session.toString(),
+      'mailbox_path': mailbox!,
+      'uids': uids.join(','),
+    };
+
+    final messageData = await HttpService()
+        .sendRequest(HttpRequestPath.get_messages_with_uids, body);
+
+    if (!messageData.success) return [];
+
+    final data = messageData.data as List<dynamic>;
+    final List<Message> messages = data.map((e) {
+      final messageData = e as Map<String, dynamic>;
+
+      return Message.fromJson(messageData);
+    }).toList();
+
+    return messages;
+  }
+
   Future<List<MessageFlag>> modifyFlags({
     int? session,
     String? mailbox,
@@ -278,19 +315,19 @@ class InboxService {
     return messageData.data;
   }
 
-  Future<void> updateInbox({
+  Future<List<int>> updateInbox({
     int? session,
     String? mailbox,
   }) async {
     if (session == null) {
       session = _activeSession;
 
-      if (_activeSession == null) return;
+      if (_activeSession == null) return [];
     }
     if (mailbox == null) {
       mailbox = _activeMailbox;
 
-      if (_activeMailbox == null) return;
+      if (_activeMailbox == null) return [];
     }
 
     final body = {
@@ -301,6 +338,11 @@ class InboxService {
     final messageData =
         await HttpService().sendRequest(HttpRequestPath.update_mailbox, body);
 
-    if (!messageData.success) return;
+    if (!messageData.success) return [];
+
+    final updatedUids =
+        (messageData.data as List).map((e) => e as int).toList();
+
+    return updatedUids;
   }
 }

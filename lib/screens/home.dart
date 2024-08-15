@@ -159,7 +159,37 @@ class HomePageState extends State<HomePage> {
   // }
 
   Future<void> _refreshAll() async {
-    await _inboxService.updateInbox();
+    final updatedMessageUids = await _inboxService.updateInbox();
+
+    if (updatedMessageUids.isEmpty) {
+      return;
+    }
+
+    if (_messages.length < _messageLoadCount) {
+      _messages = await _inboxService.getMessages(
+        start: 1,
+        end: _messageLoadCount,
+      );
+    } else {
+      final loadedUpdatedMessageUids = updatedMessageUids
+          .where((element) => _messages.any((m) => m.uid == element))
+          .toList();
+
+      final updatedMessages = await _inboxService.getMessagesWithUids(
+        uids: loadedUpdatedMessageUids,
+      );
+
+      for (var message in updatedMessages) {
+        final idx = _messages.indexWhere((m) => m.uid == message.uid);
+        if (idx != -1) {
+          _messages[idx] = message;
+        }
+      }
+    }
+
+    setState(() {
+      _messages = _messages;
+    });
   }
 
   void _addMailAccount() {
