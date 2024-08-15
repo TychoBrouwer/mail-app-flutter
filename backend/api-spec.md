@@ -208,6 +208,7 @@ Algorithm:
 
 - `session_id` (int): The session id of the user
 - `mailbox_path` (string): The mailbox path
+- `quick` (bool?): will only fetch (20max) new messages and remove messages
 
 ```jsonc
 {

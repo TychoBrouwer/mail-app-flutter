@@ -382,6 +382,12 @@ pub async fn update_mailbox(
         }
     };
     let mailbox_path = uri_params.get("mailbox_path");
+    let mut quick = match params::get_bool(uri_params.get("quick")) {
+        Ok(quick) => quick,
+        Err(e) => {
+            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
+        }
+    };
 
     if session_id.is_none() || mailbox_path.is_none() {
         eprintln!(
@@ -391,15 +397,29 @@ pub async fn update_mailbox(
         return String::from("{\"success\": false, \"message\": \"Provide session_id and mailbox_path GET parameters\"}");
     }
 
+    if quick.is_none() {
+        quick = Some(false);
+    }
+
     let session_id = session_id.unwrap();
     let mailbox_path = mailbox_path.unwrap();
+
+    let locked_clients = clients.lock().await;
+
+    if session_id + 1 > locked_clients.len() {
+        return String::from("{\"success\": false, \"message\": \"Invalid session_id\"}");
+    }
+
+    let client = &locked_clients[session_id].clone();
+    drop(locked_clients);
 
     match inbox_client::update_mailbox::update_mailbox(
         sessions,
         database_conn,
         session_id,
-        clients,
+        client,
         mailbox_path,
+        quick.unwrap(),
     )
     .await
     {

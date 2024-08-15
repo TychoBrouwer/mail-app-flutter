@@ -1,4 +1,5 @@
 import requests
+import time
 
 from mysecrets import password, username
 
@@ -24,6 +25,11 @@ def main():
     # mailboxes_params = {'session_id': '0'}
     # response = requests.get(f'{base_url}/get_mailboxes', params=mailboxes_params)
     # print(f"received: {response.text}")
+
+    # Update mailbox quick
+    update_mailbox_params = { 'session_id': '0', 'mailbox_path': 'INBOX', 'quick': 'true' }
+    response = requests.get(f'{base_url}/update_mailbox', params=update_mailbox_params)
+    print(f"received: {response.text}")
 
     # Update mailbox
     update_mailbox_params = { 'session_id': '0', 'mailbox_path': 'INBOX' }

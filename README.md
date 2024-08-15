@@ -263,13 +263,13 @@ Algorithm:
 
 1. select command to get exists (total number of messages)
 2. fetch message with sequence id `exists` to get the uid
-3. check if message in local database with sequence id `exists` has the same uid
+3. check if message in local database with uid has the same sequence id
 4. if not, message is moved/deleted/added in the mailbox
 
-    - fetch 'UID' for 10 at the time until sequence id and uid match
-    - if message in local database update the sequence id and remove sequence id\
-        from message in the same mailbox with the same sequence id
-    - if message not in local database add message to local database
+    - fetch 'UID' for 50 at the time until all sequence id and uid match
+        - remove message uids present in the database but not in the fetched list
+        - update sequence id of messages where the sequence id is different in the fetch
+        - add message uids present in the fetched list but not in the database
 
 5. always, fetch with 'FLAGS' of all messages in the mailbox to update flags
 
@@ -277,16 +277,17 @@ Algorithm:
 
 - `session_id` (int): The session id of the user
 - `mailbox_path` (string): The mailbox path
+- `quick` (bool?): will only fetch (20max) new messages and remove messages
 
 ```jsonc
 {
   "success": true|false,
   "message": "message",
-  "data": [                           // uid list of changed messages
-    1,
-    2,
-    3
-  ]
+  "data": {
+    "new_uids": [1, 2, 3],            // list of new uids
+    "removed_uids": [1, 2, 3],        // list of removed uids (not in mailbox anymore)
+    "changed_uids": [1, 2, 3],        // list of changed uids (flags changed)
+  }
 }
 ```
 
