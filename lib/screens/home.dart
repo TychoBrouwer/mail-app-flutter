@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mail_app/screens/settings.dart';
 
 import 'package:mail_app/services/inbox_service.dart';
 import 'package:mail_app/types/mailbox_info.dart';
@@ -13,7 +14,7 @@ import 'package:mail_app/widgets/inbox/message_list_header.dart';
 import 'package:mail_app/widgets/mailbox/mailbox_list_header.dart';
 import 'package:mail_app/widgets/mailbox/mailbox_list.dart';
 import 'package:mail_app/widgets/message/message_content.dart';
-import 'package:mail_app/widgets/control_bar.dart';
+import 'package:mail_app/widgets/message/message_control_bar.dart';
 import 'package:mail_app/services/overlay_builder.dart';
 import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/vertical_split_view.dart';
@@ -21,7 +22,10 @@ import 'package:mail_app/widgets/vertical_split_view.dart';
 class HomePage extends StatefulWidget {
   final InboxService inboxService;
 
-  const HomePage({super.key, required this.inboxService});
+  const HomePage({
+    super.key,
+    required this.inboxService,
+  });
 
   @override
   HomePageState createState() => HomePageState();
@@ -224,8 +228,14 @@ class HomePageState extends State<HomePage> {
     print('share message');
   }
 
-  Future<void> _settings() async {
-    print('settings');
+  Future<void> _openSettings() async {
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SettingsPage(),
+      ),
+    );
   }
 
   @override
@@ -247,11 +257,11 @@ class HomePageState extends State<HomePage> {
                 ),
                 Expanded(
                   child: MailboxList(
+                    key: UniqueKey(),
                     mailboxTree: _mailboxTree,
                     updateMessageList: _changeMailbox,
                     activeMailbox: _activeMailbox ?? '',
                     activeSession: _activeSession ?? 0,
-                    key: UniqueKey(),
                   ),
                 ),
               ],
@@ -276,13 +286,13 @@ class HomePageState extends State<HomePage> {
             ),
             right: Column(
               children: [
-                ControlBar(
+                MessageControlBar(
                   flagMessage: _flagMessage,
                   moveMessage: _moveMessage,
                   reply: _reply,
                   replyAll: _replyAll,
                   share: _share,
-                  settings: _settings,
+                  openSettings: _openSettings,
                 ),
                 Expanded(
                   child: MessageContent(
