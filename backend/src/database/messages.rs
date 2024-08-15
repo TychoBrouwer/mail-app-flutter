@@ -1,7 +1,9 @@
 use async_std::sync::{Arc, Mutex};
 use rusqlite::{params, types::Value, vtab, Connection};
 use base64::{prelude::BASE64_STANDARD, Engine};
+use async_std::task;
 
+use crate::database;
 use crate::my_error::MyError;
 use crate::types::message::Message;
 
@@ -116,7 +118,7 @@ pub async fn insert(
     }
 
     match tx.commit() {
-        Ok(_) => return Ok(()),
+        Ok(_) => {}
         Err(e) => {
             let err = MyError::Sqlite(e, String::from("Error committing transaction for inserting messages"));
             err.log_error();
@@ -124,6 +126,16 @@ pub async fn insert(
             return Err(err);
         }
     }
+
+    drop(locked_conn);
+    task::spawn(async move {
+        match database::backup(conn).await {
+            Ok(_) => {}
+            Err(e) => e.log_error(),
+        }
+    });
+
+    return Ok(());
 }
 
 pub async fn get_with_uids(
@@ -140,9 +152,9 @@ pub async fn get_with_uids(
           .collect::<Vec<Value>>(),
   );
 
-  let conn_locked = conn.lock().await;
+  let locked_conn = conn.lock().await;
   
-  let mut stmt = match conn_locked.prepare(
+  let mut stmt = match locked_conn.prepare_cached(
           "SELECT * FROM messages WHERE message_uid IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
       ) {
           Ok(stmt) => stmt,
@@ -193,9 +205,9 @@ pub async fn get_sorted(
 ) -> Result<Vec<Message>, MyError> {
   let limit = end - start + 1;
 
-  let conn_locked = conn.lock().await;
+  let locked_conn = conn.lock().await;
   
-  let mut stmt = match conn_locked.prepare(
+  let mut stmt = match locked_conn.prepare_cached(
           "SELECT * FROM messages WHERE c_username = ?1 AND c_address = ?2 AND m_path = ?3 ORDER BY received DESC LIMIT ?4 OFFSET ?5",
       ) {
           Ok(stmt) => stmt,

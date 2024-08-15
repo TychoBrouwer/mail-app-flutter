@@ -1,4 +1,5 @@
-use rusqlite::{params, vtab, Connection, OpenFlags};
+use async_std::sync::{Arc, Mutex};
+use rusqlite::{backup, config::DbConfig, params, vtab, Connection, DatabaseName, OpenFlags};
 
 use crate::my_error::MyError;
 
@@ -7,14 +8,14 @@ pub mod mailbox;
 pub mod message;
 pub mod messages;
 
-pub async fn new(database_path: &str) -> Result<Connection, MyError> {
-    let conn = match Connection::open_with_flags(
-        database_path,
+pub async fn new() -> Result<Connection, MyError> {
+    let database_path = "mail.db";
+
+    let mut conn = match Connection::open_in_memory_with_flags(
         OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE,
     ) {
         Ok(conn) => conn,
         Err(e) => {
-            
             let err = MyError::Sqlite(e, String::from("Error opening database"));
             err.log_error();
 
@@ -22,10 +23,31 @@ pub async fn new(database_path: &str) -> Result<Connection, MyError> {
         }
     };
 
+    match conn.restore(
+        DatabaseName::Main,
+        &database_path,
+        None::<fn(backup::Progress)>,
+    ) {
+        Ok(_) => {}
+        Err(e) => {
+            let err = MyError::Sqlite(e, String::from("Error restoring database"));
+            err.log_error();
+        }
+    }
+
+    match conn.set_db_config(DbConfig::SQLITE_DBCONFIG_ENABLE_FTS3_TOKENIZER, true) {
+        Ok(_) => {}
+        Err(e) => {
+            let err = MyError::Sqlite(e, String::from("Error setting database config"));
+            err.log_error();
+
+            return Err(err);
+        }
+    }
+
     match vtab::array::load_module(&conn) {
         Ok(_) => {}
         Err(e) => {
-            
             let err = MyError::Sqlite(e, String::from("Error loading database array module"));
             err.log_error();
 
@@ -34,6 +56,27 @@ pub async fn new(database_path: &str) -> Result<Connection, MyError> {
     }
 
     return Ok(conn);
+}
+
+pub async fn backup(conn: Arc<Mutex<Connection>>) -> Result<(), MyError> {
+    let database_path = "mail.db";
+
+    let conn_locked = conn.lock().await;
+    match conn_locked.backup(
+        DatabaseName::Main,
+        &database_path,
+        None::<fn(backup::Progress)>,
+    ) {
+        Ok(_) => {}
+        Err(e) => {
+            let err = MyError::Sqlite(e, String::from("Error backing up database"));
+            err.log_error();
+
+            return Err(err);
+        }
+    }
+
+    return Ok(());
 }
 
 pub async fn initialise(conn: &Connection) -> Result<(), MyError> {
@@ -50,8 +93,6 @@ pub async fn initialise(conn: &Connection) -> Result<(), MyError> {
     ) {
         Ok(_) => {}
         Err(e) => {
-            
-
             let err = MyError::Sqlite(e, String::from("Error creating connections table"));
             err.log_error();
             return Err(err);
@@ -71,8 +112,6 @@ pub async fn initialise(conn: &Connection) -> Result<(), MyError> {
         ) {
             Ok(_) => {}
             Err(e) => {
-                
-
                 let err = MyError::Sqlite(e, String::from("Error creating mailboxes table"));
                 err.log_error();
 
@@ -111,8 +150,6 @@ pub async fn initialise(conn: &Connection) -> Result<(), MyError> {
         ) {
             Ok(_) => {}
             Err(e) => {
-                
-
                 let err = MyError::Sqlite(e, String::from("Error creating mailboxes table"));
                 err.log_error();
 
@@ -122,4 +159,3 @@ pub async fn initialise(conn: &Connection) -> Result<(), MyError> {
 
     return Ok(());
 }
-

@@ -1,7 +1,9 @@
 use async_std::sync::{Arc, Mutex};
+use async_std::task;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use rusqlite::{params, Connection};
 
+use crate::database;
 use crate::my_error::MyError;
 use crate::types::message::Message;
 
@@ -42,9 +44,9 @@ pub async fn insert(
         }
     };
 
-    let conn_locked = conn.lock().await;
+    let locked_conn = conn.lock().await;
 
-    match conn_locked.execute(
+    match locked_conn.execute(
         "INSERT OR IGNORE INTO messages (
 message_uid,
 c_username,
@@ -90,7 +92,7 @@ text
         text
         ],
     ) {
-        Ok(_) => Ok(()),
+        Ok(_) => {},
         Err(e) => {
 
 
@@ -100,6 +102,16 @@ text
             return Err(err);
         }
     }
+
+    drop(locked_conn);
+    task::spawn(async move {
+        match database::backup(conn).await {
+            Ok(_) => {}
+            Err(e) => e.log_error(),
+        }
+    });
+
+    return Ok(());
 }
 
 pub async fn update_flags(
@@ -110,15 +122,15 @@ pub async fn update_flags(
     message_uid: u32,
     flags_str: &str,
 ) -> Result<(), MyError> {
-    let conn_locked = conn.lock().await;
+    let locked_conn = conn.lock().await;
 
-    match conn_locked.execute(
+    match locked_conn.execute(
         "UPDATE messages
 SET flags = ?1
 WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
         params![flags_str, message_uid, username, address, mailbox_path],
     ) {
-        Ok(_) => Ok(()),
+        Ok(_) => {}
         Err(e) => {
             let err = MyError::Sqlite(e, String::from("Error updating flags in database"));
             err.log_error();
@@ -126,6 +138,16 @@ WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
             return Err(err);
         }
     }
+
+    drop(locked_conn);
+    task::spawn(async move {
+        match database::backup(conn).await {
+            Ok(_) => {}
+            Err(e) => e.log_error(),
+        }
+    });
+
+    return Ok(());
 }
 
 pub async fn change_mailbox(
@@ -138,9 +160,9 @@ pub async fn change_mailbox(
     message_uid_new: u32,
     sequence_id_new: u32,
 ) -> Result<(), MyError> {
-    let conn_locked = conn.lock().await;
+    let locked_conn = conn.lock().await;
 
-    match conn_locked.execute(
+    match locked_conn.execute(
         "UPDATE messages
 SET m_path = ?1, message_uid = ?2, sequence_id = ?3
 WHERE message_uid = ?4 AND c_username = ?5 AND c_address = ?6 AND m_path = ?7",
@@ -154,7 +176,7 @@ WHERE message_uid = ?4 AND c_username = ?5 AND c_address = ?6 AND m_path = ?7",
             mailbox_path
         ],
     ) {
-        Ok(_) => Ok(()),
+        Ok(_) => {}
         Err(e) => {
             let err = MyError::Sqlite(e, String::from("Error moving message in database"));
             err.log_error();
@@ -162,6 +184,16 @@ WHERE message_uid = ?4 AND c_username = ?5 AND c_address = ?6 AND m_path = ?7",
             return Err(err);
         }
     }
+
+    drop(locked_conn);
+    task::spawn(async move {
+        match database::backup(conn).await {
+            Ok(_) => {}
+            Err(e) => e.log_error(),
+        }
+    });
+
+    return Ok(());
 }
 
 pub async fn update_sequence_id(
@@ -173,9 +205,9 @@ pub async fn update_sequence_id(
     sequence_id: u32,
     sequence_id_new: u32,
 ) -> Result<(), MyError> {
-    let conn_locked = conn.lock().await;
+    let locked_conn = conn.lock().await;
 
-    match conn_locked.execute(
+    match locked_conn.execute(
         "UPDATE messages
 SET sequence_id = ?1
 WHERE sequence_id = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
@@ -196,7 +228,7 @@ WHERE sequence_id = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
         }
     };
 
-    match conn_locked.execute(
+    match locked_conn.execute(
         "UPDATE messages
 SET sequence_id = ?1
 WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
@@ -214,6 +246,14 @@ WHERE message_uid = ?2 AND c_username = ?3 AND c_address = ?4 AND m_path = ?5",
         }
     }
 
+    drop(locked_conn);
+    task::spawn(async move {
+        match database::backup(conn).await {
+            Ok(_) => {}
+            Err(e) => e.log_error(),
+        }
+    });
+
     return Ok(());
 }
 
@@ -224,14 +264,14 @@ pub async fn remove(
     mailbox_path: &str,
     message_uid: u32,
 ) -> Result<(), MyError> {
-    let conn_locked = conn.lock().await;
+    let locked_conn = conn.lock().await;
 
-    match conn_locked.execute(
+    match locked_conn.execute(
         "DELETE FROM messages
 WHERE message_uid = ?1 AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
         params![message_uid, username, address, mailbox_path],
     ) {
-        Ok(_) => Ok(()),
+        Ok(_) => {}
         Err(e) => {
             let err = MyError::Sqlite(e, String::from("Error deleting message from database"));
             err.log_error();
@@ -239,4 +279,14 @@ WHERE message_uid = ?1 AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
             return Err(err);
         }
     }
+
+    drop(locked_conn);
+    task::spawn(async move {
+        match database::backup(conn).await {
+            Ok(_) => {}
+            Err(e) => e.log_error(),
+        }
+    });
+
+    return Ok(());
 }

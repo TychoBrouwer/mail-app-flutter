@@ -25,7 +25,7 @@ mod my_error;
 
 #[async_std::main]
 async fn main() {
-    let database_conn = match database::new("mail.db").await {
+    let database_conn = match database::new().await {
         Ok(conn) => conn,
         Err(e) => panic!("Error opening database: {}", e),
     };

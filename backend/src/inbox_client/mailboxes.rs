@@ -1,9 +1,7 @@
 use async_std::stream::StreamExt;
 use async_std::sync::{Arc, Mutex};
-use async_std::task;
-use futures::future::join_all;
 
-use crate::database;
+use crate::database::{self, mailbox};
 use crate::inbox_client;
 use crate::my_error::MyError;
 use crate::types::session::{Client, Session};
@@ -100,30 +98,21 @@ async fn store_database(
     client: &Client,
     mailboxes: &Vec<String>,
 ) -> Result<(), MyError> {
-    let mut tasks = vec![];
+    // let mut tasks = vec![];
 
-    for mailbox_path in mailboxes {
-        let mailbox_path = mailbox_path.to_string();
+    let mailbox_paths: Vec<String> = mailboxes.iter().map(|m| m.to_string()).collect();
 
-        let database_conn = Arc::clone(&database_conn);
-        let client = client.clone();
-
-        tasks.push(task::spawn(async move {
-            match database::mailbox::insert(
-                database_conn,
-                &client.username,
-                &client.address,
-                &mailbox_path,
-            )
-            .await
-            {
-                Ok(_) => return Ok(()),
-                Err(e) => return Err(e),
-            }
-        }));
+    match mailbox::insert(
+        database_conn,
+        &client.username,
+        &client.address,
+        &mailbox_paths,
+    )
+    .await
+    {
+        Ok(_) => {}
+        Err(e) => return Err(e),
     }
-
-    join_all(tasks).await;
 
     return Ok(());
 }
