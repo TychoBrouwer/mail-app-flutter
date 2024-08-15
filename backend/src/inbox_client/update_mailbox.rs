@@ -36,15 +36,17 @@ pub async fn update_mailbox(
         removed: vec![],
     };
 
-    let database_conn_2 = Arc::clone(&database_conn);
-    match get_highest_seq_db(database_conn_2, client, mailbox_path, highest_seq_uid).await {
-        Ok(highest_seq_local) => {
-            if highest_seq_local == highest_seq && quick {
-                return Ok(mailbox_changes);
+    if quick {
+        let database_conn_2 = Arc::clone(&database_conn);
+        match get_highest_seq_db(database_conn_2, client, mailbox_path, highest_seq_uid).await {
+            Ok(highest_seq_local) => {
+                if highest_seq_local == highest_seq {
+                    return Ok(mailbox_changes);
+                }
             }
-        }
-        Err(_) => {}
-    };
+            Err(_) => {}
+        };
+    }
 
     let mut end = 0;
     let step_size = 20;
@@ -301,8 +303,9 @@ async fn get_changes(
         .map(|message| (message.message_uid, message.sequence_id))
         .collect();
 
+    let database_conn_2 = Arc::clone(&database_conn);
     let messages_database = match database::messages::get_with_uids(
-        database_conn,
+        database_conn_2,
         &client.username,
         &client.address,
         mailbox_path,
@@ -316,11 +319,34 @@ async fn get_changes(
 
     let changed_seq_id_uids: Vec<ChangedSeqIdData> = messages_database
         .iter()
-        .filter(|m| uids_imap.contains(&m.message_uid))
+        .filter(|m| uids_to_seq_imap.get(&m.message_uid) != Some(&m.sequence_id))
         .map(|m| ChangedSeqIdData {
             message_uid: m.message_uid,
             sequence_id_new: *uids_to_seq_imap.get(&m.message_uid).unwrap(),
         })
+        .collect();
+
+    let seq_ids_to_remove: Vec<u32> = changed_seq_id_uids
+        .iter()
+        .map(|m| m.sequence_id_new)
+        .collect();
+
+    let messages_to_remove_database = match database::messages::get_with_seq_ids(
+        database_conn,
+        &client.username,
+        &client.address,
+        mailbox_path,
+        &seq_ids_to_remove,
+    )
+    .await
+    {
+        Ok(m) => m,
+        Err(e) => return Err(e),
+    };
+
+    let removed_messages_uids = messages_to_remove_database
+        .iter()
+        .map(|m| m.message_uid)
         .collect();
 
     let new_messages_uids: Vec<u32> = uids_imap
@@ -332,17 +358,6 @@ async fn get_changes(
                 .is_none()
         })
         .map(|uid| *uid)
-        .collect();
-
-    let removed_messages_uids: Vec<u32> = messages_database
-        .iter()
-        .filter(|m| {
-            uids_imap
-                .iter()
-                .find(|uid| **uid == m.message_uid)
-                .is_none()
-        })
-        .map(|m| m.message_uid)
         .collect();
 
     return Ok((

@@ -59,27 +59,27 @@ pub async fn insert(
         
         match tx.execute(
             "INSERT OR IGNORE INTO messages (
-                message_uid,
-                c_username,
-                c_address,
-                m_path,
-                sequence_id,
-                message_id,
-                subject,
-                from_,
-                sender,
-                to_,
-                cc,
-                bcc,
-                reply_to,
-                in_reply_to,
-                delivered_to,
-                date_,
-                received,
-                flags,
-                html,
-                text
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
+message_uid,
+c_username,
+c_address,
+m_path,
+sequence_id,
+message_id,
+subject,
+from_,
+sender,
+to_,
+cc,
+bcc,
+reply_to,
+in_reply_to,
+delivered_to,
+date_,
+received,
+flags,
+html,
+text
+) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
             params![
                 message.message_uid,
                 username,
@@ -137,60 +137,115 @@ pub async fn insert(
 }
 
 pub async fn get_with_uids(
-  conn: Arc<Mutex<Connection>>,
-  username: &str,
-  address: &str,
-  mailbox_path: &str,
-  message_uids: &Vec<u32>,
+    conn: Arc<Mutex<Connection>>,
+    username: &str,
+    address: &str,
+    mailbox_path: &str,
+    message_uids: &Vec<u32>,
 ) -> Result<Vec<Message>, MyError> {
-  let uid_list: vtab::array::Array = std::rc::Rc::new(
-      message_uids
-          .into_iter()
-          .map(|uid| Value::from(*uid))
-          .collect::<Vec<Value>>(),
-  );
+    let uid_list: vtab::array::Array = std::rc::Rc::new(
+        message_uids
+            .into_iter()
+            .map(|uid| Value::from(*uid))
+            .collect::<Vec<Value>>(),
+    );
 
-  let locked_conn = conn.lock().await;
-  
-  let mut stmt = match locked_conn.prepare_cached(
-          "SELECT * FROM messages WHERE message_uid IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
-      ) {
-          Ok(stmt) => stmt,
-          Err(e) => {
-          let err = MyError::Sqlite(e, String::from("Error preparing statement at messages with uids"));
-          err.log_error();
+    let locked_conn = conn.lock().await;
 
-          return Err(err);
-      }
-  };
+    let mut stmt = match locked_conn.prepare_cached(
+            "SELECT * FROM messages WHERE message_uid IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
+        ) {
+            Ok(stmt) => stmt,
+            Err(e) => {
+            let err = MyError::Sqlite(e, String::from("Error preparing statement at messages with uids"));
+            err.log_error();
 
-  match stmt.query_map(params![uid_list, username, address, mailbox_path], |row| {
-      Ok(Message::from_row(row))
-  }) {
-      Ok(messages) => {
-          let mut messages_list: Vec<Message> = Vec::new();
+            return Err(err);
+        }
+    };
 
-          for message in messages {
-              match message {
-                  Ok(message) => messages_list.push(message),
-                  Err(_) => {
-                      
-                      continue;
-                  }
-              }
-          }
+    match stmt.query_map(params![uid_list, username, address, mailbox_path], |row| {
+        Ok(Message::from_row(row))
+    }) {
+        Ok(messages) => {
+            let mut messages_list: Vec<Message> = Vec::new();
 
-          return Ok(messages_list);
-      }
-      Err(e) => {
-          let err = MyError::Sqlite(e, String::from("Error getting message from database"));
-          err.log_error();
+            for message in messages {
+                match message {
+                    Ok(message) => messages_list.push(message),
+                    Err(_) => {
+                        
+                        continue;
+                    }
+                }
+            }
 
-          return Err(err);
-      }
-  };
+            return Ok(messages_list);
+        }
+        Err(e) => {
+            let err = MyError::Sqlite(e, String::from("Error getting message from database"));
+            err.log_error();
+
+            return Err(err);
+        }
+    };
 }
 
+pub async fn get_with_seq_ids(
+    conn: Arc<Mutex<Connection>>,
+    username: &str,
+    address: &str,
+    mailbox_path: &str,
+    sequence_ids: &Vec<u32>,
+) -> Result<Vec<Message>, MyError> {
+    let seq_id_list: vtab::array::Array = std::rc::Rc::new(
+        sequence_ids
+            .into_iter()
+            .map(|uid| Value::from(*uid))
+            .collect::<Vec<Value>>(),
+    );
+  
+    let locked_conn = conn.lock().await;
+    
+    let mut stmt = match locked_conn.prepare_cached(
+            "SELECT * FROM messages WHERE sequence_id IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
+        ) {
+            Ok(stmt) => stmt,
+            Err(e) => {
+            let err = MyError::Sqlite(e, String::from("Error preparing statement at messages with uids"));
+            err.log_error();
+  
+            return Err(err);
+        }
+    };
+  
+    match stmt.query_map(params![seq_id_list, username, address, mailbox_path], |row| {
+        Ok(Message::from_row(row))
+    }) {
+        Ok(messages) => {
+            let mut messages_list: Vec<Message> = Vec::new();
+  
+            for message in messages {
+                match message {
+                    Ok(message) => messages_list.push(message),
+                    Err(_) => {
+                        
+                        continue;
+                    }
+                }
+            }
+  
+            return Ok(messages_list);
+        }
+        Err(e) => {
+            let err = MyError::Sqlite(e, String::from("Error getting message from database"));
+            err.log_error();
+  
+            return Err(err);
+        }
+    };
+}
+  
 pub async fn get_sorted(
   conn: Arc<Mutex<Connection>>,
   username: &str,

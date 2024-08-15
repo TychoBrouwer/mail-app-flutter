@@ -198,7 +198,8 @@ Algorithm:
 4. if not, message is moved/deleted/added in the mailbox
 
     - fetch 'UID' for 50 at the time until all sequence id and uid match
-        - remove message uids present in the database but not in the fetched list
+        - compare the sequence id of the fetched messages with the sequence id in the database
+        - remove from database messages with sequence id of fetch where the sequence id is different
         - update sequence id of messages where the sequence id is different in the fetch
         - add message uids present in the fetched list but not in the database
 
