@@ -76,10 +76,9 @@ in_reply_to,
 delivered_to,
 date_,
 received,
-flags,
 html,
 text
-) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
+) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)",
             params![
                 message.message_uid,
                 username,
@@ -98,7 +97,6 @@ text
                 message.delivered_to,
                 message.date,
                 message.received,
-                message.flags,
                 html,
                 text
             ],
@@ -113,6 +111,27 @@ text
                 return Err(err);
             }
         };
+
+        for flag in &message.flags {
+            match tx.execute(
+                "INSERT OR IGNORE INTO flags (
+message_uid,
+c_username,
+c_address,
+m_path,
+flag
+) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![message.message_uid, username, address, mailbox_path, flag],
+            ) {
+                Ok(_) => {}
+                Err(e) => {
+                    let err = MyError::Sqlite(e, String::from("Error inserting flag into database"));
+                    err.log_error();
+    
+                    return Err(err);
+                }
+            }
+        }
     }
 
     match tx.commit() {
@@ -136,25 +155,38 @@ text
     return Ok(());
 }
 
-pub async fn get_with_uids(
+pub async fn get_with_rarray(
     conn: Arc<Mutex<Connection>>,
     username: &str,
     address: &str,
     mailbox_path: &str,
-    message_uids: &Vec<u32>,
+    id_rarray: &Vec<u32>,
+    message_uids: bool,
 ) -> Result<Vec<Message>, MyError> {
-    let uid_list: vtab::array::Array = std::rc::Rc::new(
-        message_uids
+    let list: vtab::array::Array = std::rc::Rc::new(
+        id_rarray
             .into_iter()
             .map(|uid| Value::from(*uid))
             .collect::<Vec<Value>>(),
     );
 
+    let conn_2 = Arc::clone(&conn);
+    let flags_data = match get_flags_with_rarray(conn_2, username, address, mailbox_path, &list, true).await {
+        Ok(flags) => flags,
+        Err(e) => return Err(e),
+    };
+ 
     let locked_conn = conn.lock().await;
 
-    let mut stmt = match locked_conn.prepare_cached(
-            "SELECT * FROM messages WHERE message_uid IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
-        ) {
+    let query: &str;
+    if message_uids {
+        query = "SELECT * FROM messages WHERE message_uid IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4";
+    } else {
+        query = "SELECT * FROM messages WHERE sequence_id IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4";
+    }
+
+
+    let mut stmt = match locked_conn.prepare_cached(query) {
             Ok(stmt) => stmt,
             Err(e) => {
             let err = MyError::Sqlite(e, String::from("Error preparing statement at messages with uids"));
@@ -164,83 +196,37 @@ pub async fn get_with_uids(
         }
     };
 
-    match stmt.query_map(params![uid_list, username, address, mailbox_path], |row| {
+    match stmt.query_map(params![list, username, address, mailbox_path], |row| {
         Ok(Message::from_row(row))
     }) {
-        Ok(messages) => {
-            let mut messages_list: Vec<Message> = Vec::new();
+        Ok(messages_data) => {
+            let messages_list: Vec<Message> = messages_data.filter_map(|data| {
+                match data {
+                    Ok(mut message) => {
+                        let mut message_flags: Vec<String> = flags_data
+                            .iter()
+                            .filter(|f| f.0 == message.message_uid)
+                            .map(|f| f.1.to_string())
+                            .collect();
 
-            for message in messages {
-                match message {
-                    Ok(message) => messages_list.push(message),
-                    Err(_) => {
-                        
-                        continue;
-                    }
-                }
-            }
-
-            return Ok(messages_list);
-        }
-        Err(e) => {
-            let err = MyError::Sqlite(e, String::from("Error getting message from database"));
-            err.log_error();
-
-            return Err(err);
-        }
-    };
-}
-
-pub async fn get_with_seq_ids(
-    conn: Arc<Mutex<Connection>>,
-    username: &str,
-    address: &str,
-    mailbox_path: &str,
-    sequence_ids: &Vec<u32>,
-) -> Result<Vec<Message>, MyError> {
-    let seq_id_list: vtab::array::Array = std::rc::Rc::new(
-        sequence_ids
-            .into_iter()
-            .map(|uid| Value::from(*uid))
-            .collect::<Vec<Value>>(),
-    );
-  
-    let locked_conn = conn.lock().await;
+                        message.flags.append(&mut message_flags);
+                        return Some(message);
+                    },
+                    Err(e) => {
+                        let err = MyError::Sqlite(e, String::from("Error getting message from database"));
+                        err.log_error();
     
-    let mut stmt = match locked_conn.prepare_cached(
-            "SELECT * FROM messages WHERE sequence_id IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4",
-        ) {
-            Ok(stmt) => stmt,
-            Err(e) => {
-            let err = MyError::Sqlite(e, String::from("Error preparing statement at messages with uids"));
-            err.log_error();
-  
-            return Err(err);
-        }
-    };
-  
-    match stmt.query_map(params![seq_id_list, username, address, mailbox_path], |row| {
-        Ok(Message::from_row(row))
-    }) {
-        Ok(messages) => {
-            let mut messages_list: Vec<Message> = Vec::new();
-  
-            for message in messages {
-                match message {
-                    Ok(message) => messages_list.push(message),
-                    Err(_) => {
-                        
-                        continue;
+                        return None;
                     }
                 }
-            }
-  
+            }).collect();
+
             return Ok(messages_list);
         }
         Err(e) => {
             let err = MyError::Sqlite(e, String::from("Error getting message from database"));
             err.log_error();
-  
+
             return Err(err);
         }
     };
@@ -308,7 +294,7 @@ pub async fn get_flags(
     let locked_conn = conn.lock().await;
     
     let mut stmt = match locked_conn.prepare_cached(
-            "SELECT message_uid,flags FROM messages WHERE c_username = ?1 AND c_address = ?2 AND m_path = ?3",
+            "SELECT message_uid, flags FROM flags WHERE c_username = ?1 AND c_address = ?2 AND m_path = ?3",
         ) {
             Ok(stmt) => stmt,
             Err(e) => {
@@ -324,25 +310,25 @@ pub async fn get_flags(
         params![username, address, mailbox_path],
         |row| {
             let message_uid: u32 = row.get(0).unwrap();
-            let flags: String = row.get(1).unwrap();
+            let flag: String = row.get(1).unwrap();
 
-            return Ok((message_uid, flags));
+            return Ok((message_uid, flag));
         },
     ) {
-        Ok(message_data) => {
-            let message_data: Vec<(u32, String)> = message_data.map(|data| {
+        Ok(flags_data) => {
+            let flags_data: Vec<(u32, String)> = flags_data.filter_map(|data| {
                 match data {
-                    Ok(d) => d,
+                    Ok(d) => Some(d),
                     Err(e) => {
                         let err = MyError::Sqlite(e, String::from("Error getting message from database"));
                         err.log_error();
     
-                        return (0, String::from(""));
+                        return None;
                     }
                 }
             }).collect();
 
-            return Ok(message_data);
+            return Ok(flags_data);
         }
         Err(e) => {
             let err = MyError::Sqlite(e, String::from("Error getting message from database"));
@@ -351,4 +337,64 @@ pub async fn get_flags(
             return Err(err);
         }
     };
+}
+
+pub async fn get_flags_with_rarray(
+    conn: Arc<Mutex<Connection>>,
+    username: &str,
+    address: &str,
+    mailbox_path: &str,
+    list: &vtab::array::Array,
+    message_uid: bool,
+) -> Result<Vec<(u32, String)>, MyError> {
+    let locked_conn = conn.lock().await;
+
+    let query: &str;
+    if message_uid {
+        query = "SELECT * FROM flags WHERE message_uid IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4";
+    } else {
+        query = "SELECT * FROM flags WHERE sequence_id IN rarray(?1) AND c_username = ?2 AND c_address = ?3 AND m_path = ?4";
+    }
+
+    let mut stmt = match locked_conn.prepare_cached(query) {
+            Ok(stmt) => stmt,
+            Err(e) => {
+            let err = MyError::Sqlite(e, String::from("Error preparing statement at messages with uids"));
+            err.log_error();
+
+            return Err(err);
+        }
+    };
+
+    let flags_data: Vec<(u32, String)> = match stmt.query_map(
+        params![list, username, address, mailbox_path],
+        |row| {
+            let message_uid: u32 = row.get(0).unwrap();
+            let flag: String = row.get(1).unwrap();
+
+            return Ok((message_uid, flag));
+        },
+    ) {
+        Ok(flags_data) => {
+            flags_data.filter_map(|data| {
+                match data {
+                    Ok(d) => Some(d),
+                    Err(e) => {
+                        let err = MyError::Sqlite(e, String::from("Error getting message from database"));
+                        err.log_error();
+
+                        return None;
+                    }
+                }
+            }).collect()
+        }
+        Err(e) => {
+            let err = MyError::Sqlite(e, String::from("Error getting message from database"));
+
+            err.log_error();
+            return Err(err);
+        }
+    };
+
+    return Ok(flags_data);
 }

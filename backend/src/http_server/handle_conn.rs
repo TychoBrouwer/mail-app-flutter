@@ -167,7 +167,7 @@ pub async fn get_mailboxes(
 
     match inbox_client::mailboxes::get_database(database_conn, client).await {
         Ok(mailboxes) => {
-            let mailboxes_str = parser::parse_string_vec(mailboxes);
+            let mailboxes_str = parser::parse_string_vec(&mailboxes);
 
             return format!(
                 "{{\"success\": true, \"message\": \"Mailboxes retrieved\", \"data\": {}}}",
@@ -215,7 +215,7 @@ pub async fn update_mailboxes(
 
     match inbox_client::mailboxes::update(sessions, database_conn, session_id, client).await {
         Ok(mailboxes) => {
-            let mailboxes_str = parser::parse_string_vec(mailboxes);
+            let mailboxes_str = parser::parse_string_vec(&mailboxes);
 
             return format!(
                 "{{\"success\": true, \"message\": \"Mailboxes updated\", \"data\": {}}}",
@@ -279,7 +279,7 @@ pub async fn get_messages_with_uids(
     .await
     {
         Ok(messages) => {
-            let messages_str = parser::parse_message_vec(messages);
+            let messages_str = parser::parse_message_vec(&messages);
 
             return format!(
                 "{{\"success\": true, \"message\": \"Messages retrieved\", \"data\": {}}}",
@@ -354,7 +354,7 @@ pub async fn get_messages_sorted(
     .await
     {
         Ok(messages) => {
-            let messages_str = parser::parse_message_vec(messages);
+            let messages_str = parser::parse_message_vec(&messages);
 
             return format!(
                 "{{\"success\": true, \"message\": \"Messages retrieved\", \"data\": {}}}",
@@ -424,9 +424,9 @@ pub async fn update_mailbox(
     .await
     {
         Ok(updated) => {
-            let removed_uids_str = parser::parse_u32_vec(updated.removed);
-            let new_uids_str = parser::parse_u32_vec(updated.new);
-            let changed_uids_str = parser::parse_u32_vec(updated.changed);
+            let removed_uids_str = parser::parse_u32_vec(&updated.removed);
+            let new_uids_str = parser::parse_u32_vec(&updated.new);
+            let changed_uids_str = parser::parse_u32_vec(&updated.changed);
 
             return format!(
                 "{{\"success\": true, \"message\": \"Mailbox updated\", \"data\": {{\"new_uids\": {}, \"removed_uids\": {}, \"changed_uids\": {}}}}}",
@@ -496,6 +496,8 @@ pub async fn modify_flags(
     let client = &locked_clients[session_id].clone();
     drop(locked_clients);
 
+    let flags: Vec<String> = flags.split(",").map(|f| f.to_string()).collect();
+
     match inbox_client::message_flags::modify(
         database_conn,
         sessions,
@@ -503,27 +505,17 @@ pub async fn modify_flags(
         client,
         mailbox_path,
         message_uid,
-        flags,
+        &flags,
         add,
     )
     .await
     {
-        Ok(flags) => {
-            let mut flags_str = String::from("[");
-
-            for (i, flag) in flags.iter().enumerate() {
-                flags_str.push_str(&format!("\"{}\"", flag));
-
-                if i < flags.len() - 1 {
-                    flags_str.push_str(",");
-                }
-            }
-
-            flags_str.push_str("]");
+        Ok(_) => {
+            let flag_str = parser::parse_string_vec(&flags);
 
             return format!(
                 "{{\"success\": true, \"message\": \"Flags successfully updated\", \"data\": {}}}",
-                flags_str
+                flag_str
             );
         }
         Err(e) => {

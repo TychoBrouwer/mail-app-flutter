@@ -43,7 +43,7 @@ pub async fn insert(conn: Arc<Mutex<Connection>>, client: &Client) -> Result<(),
     return Ok(());
 }
 
-pub async fn get_all(conn: Arc<Mutex<Connection>>) -> Result<Vec<Client>, MyError> {
+pub async fn get(conn: Arc<Mutex<Connection>>) -> Result<Vec<Client>, MyError> {
     let locked_conn = conn.lock().await;
 
     let mut stmt = match locked_conn.prepare_cached("SELECT * FROM connections") {

@@ -196,7 +196,7 @@ fn parse_message_body(body: &str) -> Message {
         delivered_to: delivered_to.to_string(),
         date: date.timestamp_millis(),
         received: received.timestamp_millis(),
-        flags: String::from(""),
+        flags: vec![],
         text,
         html,
     };
@@ -217,7 +217,7 @@ pub fn parse_flag_vec(flags: &[Flag]) -> String {
     return flags_str;
 }
 
-pub fn parse_message_vec(messages: Vec<Message>) -> String {
+pub fn parse_message_vec(messages: &Vec<Message>) -> String {
     let mut result = String::from("[");
 
     for (i, message) in messages.iter().enumerate() {
@@ -233,7 +233,7 @@ pub fn parse_message_vec(messages: Vec<Message>) -> String {
     return result;
 }
 
-pub fn parse_string_vec(strings: Vec<String>) -> String {
+pub fn parse_string_vec(strings: &Vec<String>) -> String {
     let mut result = String::from("[");
 
     for (i, string) in strings.iter().enumerate() {
@@ -249,7 +249,7 @@ pub fn parse_string_vec(strings: Vec<String>) -> String {
     return result;
 }
 
-pub fn parse_u32_vec(u32s: Vec<u32>) -> String {
+pub fn parse_u32_vec(u32s: &Vec<u32>) -> String {
     let mut result = String::from("[");
 
     for (i, u32) in u32s.iter().enumerate() {
@@ -294,8 +294,7 @@ pub fn parse_fetch(fetch: &Fetch) -> Result<Message, MyError> {
         None => "",
     };
 
-    let flags = fetch.flags().collect::<Vec<Flag>>();
-    let flags_str = parse_flag_vec(&flags);
+    let flags: Vec<String> = fetch.flags().map(|f| format!("{:?}", f)).collect();
 
     let body_data = parse_message_body(body_str);
 
@@ -317,7 +316,7 @@ pub fn parse_fetch(fetch: &Fetch) -> Result<Message, MyError> {
             delivered_to: body_data.delivered_to,
             date: body_data.date,
             received: body_data.received,
-            flags: flags_str,
+            flags,
             text: body_data.text,
             html: body_data.html,
         });
@@ -337,7 +336,7 @@ pub fn parse_fetch(fetch: &Fetch) -> Result<Message, MyError> {
             delivered_to: body_data.delivered_to,
             date: body_data.date,
             received: body_data.received,
-            flags: flags_str,
+            flags,
             text: body_data.text,
             html: body_data.html,
         });

@@ -5,15 +5,9 @@ use crate::database;
 use crate::inbox_client;
 use crate::my_error::MyError;
 use crate::types::fetch_mode::FetchMode;
-use crate::types::mailbox_changes::MailboxChanges;
+use crate::types::mailbox_changes::{ChangedSeqIdData, MailboxChanges};
 use crate::types::sequence_set::{SequenceSet, StartEnd};
 use crate::types::session::{Client, Session};
-
-#[derive(Debug)]
-struct ChangedSeqIdData {
-    message_uid: u32,
-    sequence_id_new: u32,
-}
 
 pub async fn update_mailbox(
     sessions: Arc<Mutex<Vec<Session>>>,
@@ -30,11 +24,7 @@ pub async fn update_mailbox(
             Err(e) => return Err(e),
         };
 
-    let mut mailbox_changes = MailboxChanges {
-        new: vec![],
-        changed: vec![],
-        removed: vec![],
-    };
+    let mut mailbox_changes = MailboxChanges::new();
 
     if quick {
         let database_conn_2 = Arc::clone(&database_conn);
@@ -72,7 +62,7 @@ pub async fn update_mailbox(
             idx: None,
         };
 
-        let loop_mailbox_changes = match update_batch(
+        let loop_changes = match update_batch(
             Arc::clone(&sessions),
             session_id,
             Arc::clone(&database_conn),
@@ -86,8 +76,9 @@ pub async fn update_mailbox(
             Err(e) => return Err(e),
         };
 
-        mailbox_changes.new.extend(loop_mailbox_changes.new);
-        mailbox_changes.removed.extend(loop_mailbox_changes.removed);
+        mailbox_changes.new.extend(loop_changes.new);
+        mailbox_changes.removed.extend(loop_changes.removed);
+        mailbox_changes.changed_seq.extend(loop_changes.changed_seq);
 
         if quick {
             break;
@@ -162,12 +153,13 @@ async fn get_highest_seq_db(
     mailbox_path: &str,
     highest_seq_uid: u32,
 ) -> Result<u32, MyError> {
-    let messages = match database::messages::get_with_uids(
+    let messages = match database::messages::get_with_rarray(
         database_conn,
         &client.username,
         &client.address,
         mailbox_path,
         &vec![highest_seq_uid],
+        true,
     )
     .await
     {
@@ -200,7 +192,7 @@ async fn update_batch(
     let sessions_2 = Arc::clone(&sessions);
     let database_conn_2 = Arc::clone(&database_conn);
 
-    let (changed_seq_ids_data, new_message_uids, removed_messages_uids) = match get_changes(
+    let changes = match get_changes(
         sessions_2,
         session_id,
         database_conn_2,
@@ -214,15 +206,11 @@ async fn update_batch(
         Err(e) => return Err(e),
     };
 
-    if changed_seq_ids_data.is_empty() && new_message_uids.is_empty() {
-        return Ok(MailboxChanges {
-            new: vec![],
-            changed: vec![],
-            removed: vec![],
-        });
+    if changes.changed_seq.is_empty() && changes.new.is_empty() {
+        return Ok(MailboxChanges::new());
     }
 
-    for message_uid in &removed_messages_uids {
+    for message_uid in &changes.removed {
         let database_conn_2 = Arc::clone(&database_conn);
 
         match database::message::remove(database_conn_2, client, mailbox_path, *message_uid).await {
@@ -231,7 +219,7 @@ async fn update_batch(
         };
     }
 
-    if !new_message_uids.is_empty() {
+    if !changes.new.is_empty() {
         let sessions_2 = Arc::clone(&sessions);
         let database_conn_2 = Arc::clone(&database_conn);
 
@@ -241,7 +229,7 @@ async fn update_batch(
             database_conn_2,
             client,
             mailbox_path,
-            &new_message_uids,
+            &changes.new,
         )
         .await
         {
@@ -250,7 +238,7 @@ async fn update_batch(
         };
     }
 
-    for changed_seq_id in changed_seq_ids_data {
+    for changed_seq_id in &changes.changed_seq {
         let database_conn = Arc::clone(&database_conn);
 
         match database::message::update_sequence_id(
@@ -268,11 +256,7 @@ async fn update_batch(
         };
     }
 
-    return Ok(MailboxChanges {
-        new: new_message_uids,
-        changed: vec![],
-        removed: removed_messages_uids,
-    });
+    return Ok(changes);
 }
 
 async fn get_changes(
@@ -282,7 +266,7 @@ async fn get_changes(
     client: &Client,
     mailbox_path: &str,
     sequence_set: &SequenceSet,
-) -> Result<(Vec<ChangedSeqIdData>, Vec<u32>, Vec<u32>), MyError> {
+) -> Result<MailboxChanges, MyError> {
     let fetches_imap = match inbox_client::messages::get_imap_with_seq(
         sessions,
         session_id,
@@ -304,12 +288,13 @@ async fn get_changes(
         .collect();
 
     let database_conn_2 = Arc::clone(&database_conn);
-    let messages_database = match database::messages::get_with_uids(
+    let messages_database = match database::messages::get_with_rarray(
         database_conn_2,
         &client.username,
         &client.address,
         mailbox_path,
         &uids_imap,
+        true,
     )
     .await
     {
@@ -331,12 +316,13 @@ async fn get_changes(
         .map(|m| m.sequence_id_new)
         .collect();
 
-    let messages_to_remove_database = match database::messages::get_with_seq_ids(
+    let messages_to_remove_database = match database::messages::get_with_rarray(
         database_conn,
         &client.username,
         &client.address,
         mailbox_path,
         &seq_ids_to_remove,
+        false,
     )
     .await
     {
@@ -360,11 +346,12 @@ async fn get_changes(
         .map(|uid| *uid)
         .collect();
 
-    return Ok((
-        changed_seq_id_uids,
-        new_messages_uids,
-        removed_messages_uids,
-    ));
+    return Ok(MailboxChanges {
+        new: new_messages_uids,
+        changed: vec![],
+        changed_seq: changed_seq_id_uids,
+        removed: removed_messages_uids,
+    });
 }
 
 async fn get_new_messages(
@@ -445,41 +432,68 @@ async fn update_flags(
         Err(e) => return Err(e),
     };
 
-    let changed_flags_uids: Vec<u32> = flags_data
-        .iter()
-        .filter_map(|f| {
-            let message = messages.iter().find(|m| m.message_uid == f.0);
-            if message.is_some() {
-                if message.unwrap().flags != f.1 {
-                    return Some(f.0);
-                }
-            }
-            return None;
-        })
-        .collect();
+    let mut flags_changed_uids: Vec<u32> = Vec::new();
 
-    for changed_flags_uid in &changed_flags_uids {
-        let database_conn_2 = Arc::clone(&database_conn);
-
-        let message = messages
+    for message in messages {
+        let flags_database: Vec<String> = flags_data
             .iter()
-            .find(|m| m.message_uid == *changed_flags_uid)
-            .unwrap();
+            .filter(|data| data.0 == message.message_uid)
+            .map(|data| data.1.to_string())
+            .collect();
 
-        match database::message::update_flags(
-            database_conn_2,
-            &client.username,
-            &client.address,
-            mailbox_path,
-            *changed_flags_uid,
-            &message.flags,
-        )
-        .await
-        {
-            Ok(_) => {}
-            Err(e) => return Err(e),
+        let added_flags: Vec<String> = message
+            .flags
+            .iter()
+            .filter(|flag| !flags_database.contains(flag))
+            .map(|flag| flag.to_string())
+            .collect();
+
+        if !added_flags.is_empty() {
+            let database_conn = Arc::clone(&database_conn);
+            match database::message::update_flags(
+                database_conn,
+                &client.username,
+                &client.address,
+                mailbox_path,
+                message.message_uid,
+                &added_flags,
+                true,
+            )
+            .await
+            {
+                Ok(_) => (),
+                Err(e) => return Err(e),
+            };
+        }
+
+        let removed_flags: Vec<String> = flags_database
+            .iter()
+            .filter(|flag| !message.flags.contains(flag))
+            .map(|flag| flag.to_string())
+            .collect();
+
+        if !removed_flags.is_empty() {
+            let database_conn = Arc::clone(&database_conn);
+            match database::message::update_flags(
+                database_conn,
+                &client.username,
+                &client.address,
+                mailbox_path,
+                message.message_uid,
+                &removed_flags,
+                false,
+            )
+            .await
+            {
+                Ok(_) => (),
+                Err(e) => return Err(e),
+            };
+        }
+
+        if !added_flags.is_empty() && !removed_flags.is_empty() {
+            flags_changed_uids.push(message.message_uid);
         }
     }
 
-    return Ok(changed_flags_uids);
+    return Ok(flags_changed_uids);
 }

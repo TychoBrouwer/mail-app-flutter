@@ -1,7 +1,7 @@
-use std::u32;
-
 use base64::{prelude::BASE64_STANDARD, Engine};
 use rusqlite::Row;
+
+use crate::mime_parser::parser;
 
 #[derive(Debug)]
 pub struct Message {
@@ -19,7 +19,7 @@ pub struct Message {
     pub delivered_to: String,
     pub date: i64,
     pub received: i64,
-    pub flags: String,
+    pub flags: Vec<String>,
     pub text: String,
     pub html: String,
 }
@@ -44,7 +44,7 @@ impl Message {
             delivered_to: row.get(14).unwrap(),
             date: row.get(15).unwrap(),
             received: row.get(16).unwrap(),
-            flags: row.get(17).unwrap(),
+            flags: vec![],
             html: BASE64_STANDARD.encode(html.as_bytes()),
             text: BASE64_STANDARD.encode(text.as_bytes()),
         }
@@ -66,7 +66,7 @@ impl Message {
             + &format!("\"delivered_to\":\"{}\",", self.delivered_to)
             + &format!("\"date\":{},", self.date)
             + &format!("\"received\":{},", self.received)
-            + &format!("\"flags\":{},", self.flags)
+            + &format!("\"flags\":{},", parser::parse_string_vec(&self.flags))
             + &format!("\"html\":\"{}\",", self.html)
             + &format!("\"text\":\"{}\"", self.text)
             + "}";
@@ -95,7 +95,7 @@ mod tests {
             delivered_to: String::from("delivered_to"),
             date: 3,
             received: 4,
-            flags: String::from("flags"),
+            flags: vec![String::from("seen"), String::from("flagged")],
             text: String::from("text"),
             html: String::from("html"),
         }
@@ -105,7 +105,7 @@ mod tests {
     fn to_string() {
         let message = get_message();
 
-        let expected = r#"{"uid":1,"sequence_id":2,"message_id":"message_id","subject":"subject","from":from,"sender":sender,"to":to,"cc":cc,"bcc":bcc,"reply_to":reply_to,"in_reply_to":"in_reply_to","delivered_to":"delivered_to","date":3,"received":4,"flags":flags,"html":"html","text":"text"}"#;
+        let expected = r#"{"uid":1,"sequence_id":2,"message_id":"message_id","subject":"subject","from":from,"sender":sender,"to":to,"cc":cc,"bcc":bcc,"reply_to":reply_to,"in_reply_to":"in_reply_to","delivered_to":"delivered_to","date":3,"received":4,"flags":["seen","flagged"],"html":"html","text":"text"}"#;
 
         assert_eq!(message.to_string(), expected);
     }

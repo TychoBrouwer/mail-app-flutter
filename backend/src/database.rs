@@ -138,7 +138,6 @@ pub async fn initialise(conn: &Connection) -> Result<(), MyError> {
                 delivered_to VARCHAR(500) NOT NULL,
                 date_ TIMESTAMP NOT NULL,
                 received TIMESTAMP NOT NULL,
-                flags VARCHAR(500) NOT NULL,
                 html TEXT NOT NULL,
                 text TEXT NOT NULL,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -156,6 +155,30 @@ pub async fn initialise(conn: &Connection) -> Result<(), MyError> {
                 return Err(err);
             }
         }
+
+        match conn.execute(
+            "CREATE TABLE IF NOT EXISTS flags (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                message_uid INTEGER NOT NULL,
+                c_username VARCHAR(500) NOT NULL,
+                c_address VARCHAR(500) NOT NULL,
+                m_path VARCHAR(500) NOT NULL,
+                flag VARCHAR(500) NOT NULL,
+                FOREIGN KEY(c_username, c_address) REFERENCES connections(username, address) ON DELETE CASCADE,
+                FOREIGN KEY(c_username, c_address, m_path) REFERENCES mailboxes(c_username, c_address, path) ON DELETE CASCADE
+                FOREIGN KEY(c_username, c_address, m_path, message_uid) REFERENCES messages(c_username, c_address, m_path, message_uid) ON DELETE CASCADE
+            )",
+            params![],
+        ) {
+            Ok(_) => {}
+            Err(e) => {
+                let err = MyError::Sqlite(e, String::from("Error creating mailboxes table"));
+                err.log_error();
+
+                return Err(err);
+            }
+        }
+
 
     return Ok(());
 }

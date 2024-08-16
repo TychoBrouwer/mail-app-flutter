@@ -39,7 +39,7 @@ async fn main() {
     let database_conn = Arc::new(Mutex::new(database_conn));
 
     let database_conn_2 = Arc::clone(&database_conn);
-    let clients = match database::connections::get_all(database_conn_2).await {
+    let clients = match database::connections::get(database_conn_2).await {
         Ok(clients) => clients,
         Err(e) => panic!("Error getting connections: {}", e),
     };

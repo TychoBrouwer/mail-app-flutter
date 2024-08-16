@@ -15,16 +15,16 @@ pub async fn modify(
     client: &Client,
     mailbox_path: &str,
     message_uid: u32,
-    flags: &str,
+    flags: &Vec<String>,
     add: bool,
-) -> Result<Vec<String>, MyError> {
-    let updated_flags = match modify_imap(
+) -> Result<(), MyError> {
+    match modify_imap(
         Arc::clone(&sessions),
         session_id,
         client,
         mailbox_path,
         message_uid,
-        flags,
+        &flags,
         add,
     )
     .await
@@ -33,20 +33,20 @@ pub async fn modify(
         Err(e) => return Err(e),
     };
 
-    match modify_database(
+    match database::message::update_flags(
         database_conn,
-        client,
+        &client.username,
+        &client.address,
         mailbox_path,
         message_uid,
-        &updated_flags,
+        &flags,
+        add,
     )
     .await
     {
-        Ok(_) => (),
+        Ok(_) => return Ok(()),
         Err(e) => return Err(e),
     };
-
-    return Ok(updated_flags);
 }
 
 async fn modify_imap(
@@ -55,9 +55,9 @@ async fn modify_imap(
     client: &Client,
     mailbox_path: &str,
     message_uid: u32,
-    flags: &str,
+    flags: &Vec<String>,
     add: bool,
-) -> Result<Vec<String>, MyError> {
+) -> Result<(), MyError> {
     let sessions_2 = Arc::clone(&sessions);
 
     let mut locked_sessions = sessions.lock().await;
@@ -87,7 +87,7 @@ async fn modify_imap(
         }
     };
 
-    let query = query(flags, add);
+    let query = flags_query(flags, add);
 
     let fetches: Vec<Result<Fetch, ImapError>> =
         match session.uid_store(message_uid.to_string(), query).await {
@@ -117,8 +117,8 @@ async fn modify_imap(
         return Err(err);
     };
 
-    let fetch = match fetch {
-        Ok(f) => f,
+    match fetch {
+        Ok(_) => return Ok(()),
         Err(e) => {
             let err = MyError::String(e.to_string(), String::from("Error updating message flag"));
             err.log_error();
@@ -126,55 +126,18 @@ async fn modify_imap(
             return Err(err);
         }
     };
-
-    let updated_flags: Vec<String> = fetch.flags().map(|flag| format!("{:?}", flag)).collect();
-
-    return Ok(updated_flags);
 }
 
-async fn modify_database(
-    database_conn: Arc<Mutex<rusqlite::Connection>>,
-    client: &Client,
-    mailbox_path: &str,
-    message_uid: u32,
-    flags: &Vec<String>,
-) -> Result<(), MyError> {
-    let mut flags_str = String::from("[");
-
-    for (i, flag) in flags.iter().enumerate() {
-        flags_str.push_str(&format!("\"{}\"", flag));
-
-        if i < flags.len() - 1 {
-            flags_str.push_str(",");
-        }
-    }
-    flags_str.push_str("]");
-
-    match database::message::update_flags(
-        database_conn,
-        &client.username,
-        &client.address,
-        mailbox_path,
-        message_uid,
-        &flags_str,
-    )
-    .await
-    {
-        Ok(_) => return Ok(()),
-        Err(e) => return Err(e),
-    };
-}
-
-fn query(flags: &str, add: bool) -> String {
+fn flags_query(flags: &Vec<String>, add: bool) -> String {
     let mut query = if add { "+" } else { "-" }.to_string();
 
     query.push_str("FLAGS (");
 
-    for (i, flag) in flags.split(",").enumerate() {
+    for (i, flag) in flags.iter().enumerate() {
         query.push_str("\\");
         query.push_str(&flag);
 
-        if i < flags.split(",").count() - 1 {
+        if i < flags.len() - 1 {
             query.push_str(" ");
         }
     }

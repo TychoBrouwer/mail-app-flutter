@@ -41,12 +41,13 @@ pub async fn get_database_with_uids(
     mailbox_path: &str,
     message_uids: &Vec<u32>,
 ) -> Result<Vec<Message>, MyError> {
-    let messages = match database::messages::get_with_uids(
+    let messages = match database::messages::get_with_rarray(
         database_conn,
         &client.username,
         &client.address,
         mailbox_path,
         message_uids,
+        true,
     )
     .await
     {
