@@ -5,6 +5,7 @@ use async_std::sync::{Arc, Mutex};
 
 use crate::mime_parser::parser;
 use crate::my_error::MyError;
+use crate::types::database_request::{DatabaseRequest, MessageIdType, MessageReturnData};
 use crate::types::fetch_mode;
 use crate::types::message::Message;
 use crate::types::sequence_set::SequenceSet;
@@ -18,21 +19,21 @@ pub async fn get_database_sorted(
     start: u32,
     end: u32,
 ) -> Result<Vec<Message>, MyError> {
-    let messages = match database::messages::get_sorted(
-        database_conn,
-        &client.username,
-        &client.address,
-        mailbox_path,
-        start,
-        end,
-    )
-    .await
-    {
-        Ok(m) => m,
-        Err(e) => return Err(e),
+    let database_request = DatabaseRequest {
+        username: client.username.clone(),
+        address: client.username.clone(),
+        mailbox_path: mailbox_path.to_string(),
+        return_data: MessageReturnData::All,
+        id_type: MessageIdType::MessageUids,
+        sorted: true,
+        start: Some(start),
+        end: Some(end),
+        id_rarray: None,
+        flag: None,
+        not_flag: None,
     };
 
-    return Ok(messages);
+    return database::messages::get(database_conn, database_request).await;
 }
 
 pub async fn get_database_with_uids(
@@ -41,21 +42,80 @@ pub async fn get_database_with_uids(
     mailbox_path: &str,
     message_uids: &Vec<u32>,
 ) -> Result<Vec<Message>, MyError> {
-    let messages = match database::messages::get_with_rarray(
+    let database_request = DatabaseRequest {
+        username: client.username.clone(),
+        address: client.username.clone(),
+        mailbox_path: mailbox_path.to_string(),
+        return_data: MessageReturnData::All,
+        id_type: MessageIdType::MessageUids,
+        sorted: true,
+        start: None,
+        end: None,
+        id_rarray: Some(message_uids.clone()),
+        flag: None,
+        not_flag: None,
+    };
+
+    return database::messages::get(database_conn, database_request).await;
+}
+
+pub async fn get_database_with_flag(
+    database_conn: Arc<Mutex<rusqlite::Connection>>,
+    client: &Client,
+    mailbox_path: &str,
+    flag: &str,
+    not_flag: bool,
+) -> Result<Vec<Message>, MyError> {
+    let database_request = DatabaseRequest {
+        username: client.username.clone(),
+        address: client.address.clone(),
+        mailbox_path: mailbox_path.to_string(),
+        return_data: MessageReturnData::AllWithFlags,
+        id_type: MessageIdType::MessageUids,
+        sorted: true,
+        start: None,
+        end: None,
+        id_rarray: None,
+        flag: Some(flag.to_string()),
+        not_flag: Some(not_flag),
+    };
+
+    let database_conn_2 = Arc::clone(&database_conn);
+    let mut messages = match database::messages::get(database_conn_2, database_request).await {
+        Ok(m) => m,
+        Err(e) => return Err(e),
+    };
+
+    let list: Vec<u32> = messages.iter().map(|message| message.message_uid).collect();
+
+    let flags = match database::messages::get_flags_with_rarray(
         database_conn,
         &client.username,
         &client.address,
         mailbox_path,
-        message_uids,
-        true,
+        &list,
+        MessageIdType::MessageUids,
     )
     .await
     {
-        Ok(m) => m,
-        Err(e) => {
-            return Err(e);
-        }
+        Ok(f) => f,
+        Err(e) => return Err(e),
     };
+
+    let _ = messages.iter_mut().map(|message| {
+        let flags = flags
+            .iter()
+            .filter_map(|flag| {
+                if flag.0 == message.message_uid {
+                    Some(flag.1.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        message.flags.push(flags);
+    });
 
     return Ok(messages);
 }

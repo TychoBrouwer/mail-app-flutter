@@ -367,6 +367,73 @@ pub async fn get_messages_sorted(
     }
 }
 
+pub async fn get_messages_with_flag(
+    uri: &str,
+    database_conn: Arc<Mutex<rusqlite::Connection>>,
+    clients: Arc<Mutex<Vec<Client>>>,
+) -> String {
+    let uri_params = params::parse_params(String::from(uri));
+
+    let session_id = match params::get_usize(uri_params.get("session_id")) {
+        Ok(session_id) => session_id,
+        Err(e) => {
+            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
+        }
+    };
+    let mailbox_path = uri_params.get("mailbox_path");
+    let flag = uri_params.get("flag");
+    let not_flag = match params::get_bool(uri_params.get("not_flag")) {
+        Ok(not_flag) => not_flag,
+        Err(e) => {
+            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
+        }
+    };
+
+    if session_id.is_none() || mailbox_path.is_none() || flag.is_none() || not_flag.is_none() {
+        eprintln!(
+            "Provide session_id, mailbox_path, flag, and not_flag GET parameters: {}",
+            uri
+        );
+        return String::from("{\"success\": false, \"message\": \"Provide session_id, mailbox_path and message_uid GET parameters\"}");
+    }
+
+    let session_id = session_id.unwrap();
+    let mailbox_path = mailbox_path.unwrap();
+    let flag = flag.unwrap();
+    let not_flag = not_flag.unwrap();
+
+    let locked_clients = clients.lock().await;
+
+    if session_id + 1 > locked_clients.len() {
+        return String::from("{\"success\": false, \"message\": \"Invalid session_id\"}");
+    }
+
+    let client = &locked_clients[session_id].clone();
+    drop(locked_clients);
+
+    match inbox_client::messages::get_database_with_flag(
+        database_conn,
+        client,
+        mailbox_path,
+        &flag,
+        not_flag,
+    )
+    .await
+    {
+        Ok(messages) => {
+            let messages_str = parser::parse_message_vec(&messages);
+
+            return format!(
+                "{{\"success\": true, \"message\": \"Messages retrieved\", \"data\": {}}}",
+                messages_str
+            );
+        }
+        Err(e) => {
+            return format!("{{\"success\": false, \"message\": \"{}\"}}", e);
+        }
+    }
+}
+
 pub async fn update_mailbox(
     uri: &str,
     sessions: Arc<Mutex<Vec<Session>>>,

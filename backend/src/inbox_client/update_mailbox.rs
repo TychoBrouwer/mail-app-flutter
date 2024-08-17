@@ -4,6 +4,7 @@ use std::{collections::HashMap, u32, vec};
 use crate::database;
 use crate::inbox_client;
 use crate::my_error::MyError;
+use crate::types::database_request::{DatabaseRequest, MessageIdType, MessageReturnData};
 use crate::types::fetch_mode::FetchMode;
 use crate::types::mailbox_changes::{ChangedSeqIdData, MailboxChanges};
 use crate::types::sequence_set::{SequenceSet, StartEnd};
@@ -136,8 +137,8 @@ async fn get_highest_seq_imap(
         highest_seq_uid = message.unwrap().message_uid;
     } else {
         let err = MyError::String(
-            String::from("Message not found in db"),
-            String::from("Failed to get message from db"),
+            String::from("Sequence id not found in imap"),
+            String::from("Failed to get message from imap"),
         );
         err.log_error();
 
@@ -153,16 +154,21 @@ async fn get_highest_seq_db(
     mailbox_path: &str,
     highest_seq_uid: u32,
 ) -> Result<u32, MyError> {
-    let messages = match database::messages::get_with_rarray(
-        database_conn,
-        &client.username,
-        &client.address,
-        mailbox_path,
-        &vec![highest_seq_uid],
-        true,
-    )
-    .await
-    {
+    let database_request = DatabaseRequest {
+        username: client.username.clone(),
+        address: client.address.clone(),
+        mailbox_path: mailbox_path.to_string(),
+        return_data: MessageReturnData::All,
+        id_type: MessageIdType::MessageUids,
+        sorted: true,
+        start: None,
+        end: None,
+        id_rarray: Some(vec![highest_seq_uid]),
+        flag: None,
+        not_flag: None,
+    };
+
+    let messages = match database::messages::get(database_conn, database_request).await {
         Ok(m) => m,
         Err(e) => return Err(e),
     };
@@ -287,17 +293,22 @@ async fn get_changes(
         .map(|message| (message.message_uid, message.sequence_id))
         .collect();
 
+    let database_request = DatabaseRequest {
+        username: client.username.clone(),
+        address: client.address.clone(),
+        mailbox_path: mailbox_path.to_string(),
+        return_data: MessageReturnData::All,
+        id_type: MessageIdType::MessageUids,
+        sorted: true,
+        start: None,
+        end: None,
+        id_rarray: Some(uids_imap.clone()),
+        flag: None,
+        not_flag: None,
+    };
+
     let database_conn_2 = Arc::clone(&database_conn);
-    let messages_database = match database::messages::get_with_rarray(
-        database_conn_2,
-        &client.username,
-        &client.address,
-        mailbox_path,
-        &uids_imap,
-        true,
-    )
-    .await
-    {
+    let messages_database = match database::messages::get(database_conn_2, database_request).await {
         Ok(m) => m,
         Err(e) => return Err(e),
     };
@@ -316,19 +327,25 @@ async fn get_changes(
         .map(|m| m.sequence_id_new)
         .collect();
 
-    let messages_to_remove_database = match database::messages::get_with_rarray(
-        database_conn,
-        &client.username,
-        &client.address,
-        mailbox_path,
-        &seq_ids_to_remove,
-        false,
-    )
-    .await
-    {
-        Ok(m) => m,
-        Err(e) => return Err(e),
+    let database_request = DatabaseRequest {
+        username: client.username.clone(),
+        address: client.address.clone(),
+        mailbox_path: mailbox_path.to_string(),
+        return_data: MessageReturnData::All,
+        id_type: MessageIdType::SequenceIds,
+        sorted: false,
+        start: None,
+        end: None,
+        id_rarray: Some(seq_ids_to_remove),
+        flag: None,
+        not_flag: None,
     };
+
+    let messages_to_remove_database =
+        match database::messages::get(database_conn, database_request).await {
+            Ok(m) => m,
+            Err(e) => return Err(e),
+        };
 
     let removed_messages_uids = messages_to_remove_database
         .iter()
@@ -399,27 +416,6 @@ async fn update_flags(
     client: &Client,
     mailbox_path: &str,
 ) -> Result<Vec<u32>, MyError> {
-    let messages = match inbox_client::messages::get_imap_with_seq(
-        sessions,
-        session_id,
-        client,
-        mailbox_path,
-        &SequenceSet {
-            nr_messages: None,
-            start_end: Some(StartEnd {
-                start: 1,
-                end: u32::MAX,
-            }),
-            idx: None,
-        },
-        FetchMode::FLAGS,
-    )
-    .await
-    {
-        Ok(m) => m,
-        Err(e) => return Err(e),
-    };
-
     let flags_data = match database::messages::get_flags(
         Arc::clone(&database_conn),
         &client.username,
@@ -432,14 +428,27 @@ async fn update_flags(
         Err(e) => return Err(e),
     };
 
+    let message_uids_database: Vec<u32> = flags_data.iter().map(|data| data.0).collect();
+
+    let messages = match inbox_client::messages::get_imap_with_uids(
+        sessions,
+        session_id,
+        client,
+        mailbox_path,
+        &message_uids_database,
+        FetchMode::FLAGS,
+    )
+    .await
+    {
+        Ok(m) => m,
+        Err(e) => return Err(e),
+    };
+
     let mut flags_changed_uids: Vec<u32> = Vec::new();
 
     for message in messages {
-        let flags_database: Vec<String> = flags_data
-            .iter()
-            .filter(|data| data.0 == message.message_uid)
-            .map(|data| data.1.to_string())
-            .collect();
+        let flags_database: Vec<String> =
+            flags_data.iter().map(|data| data.1.to_string()).collect();
 
         let added_flags: Vec<String> = message
             .flags

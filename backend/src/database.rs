@@ -156,7 +156,7 @@ pub async fn initialise(conn: &Connection) -> Result<(), MyError> {
             }
         }
 
-        match conn.execute(
+    match conn.execute(
             "CREATE TABLE IF NOT EXISTS flags (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 message_uid INTEGER NOT NULL,
@@ -178,7 +178,6 @@ pub async fn initialise(conn: &Connection) -> Result<(), MyError> {
                 return Err(err);
             }
         }
-
 
     return Ok(());
 }

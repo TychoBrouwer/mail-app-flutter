@@ -186,6 +186,51 @@ Messages are retrieved from the local database only.
 }
 ```
 
+## GET_MESSAGES_WITH_FLAG
+
+Get messages from a mailbox with or without a specific flag from the local database only.
+
+/get_messages_with_flag
+
+- `session_id` (int): The session id of the user
+- `mailbox_path` (string): The mailbox path
+- `flag` (string): The flag to filter on
+- `not_flag` (bool): Get messages without the flag
+
+```jsonc
+{
+  "success": true,
+  "message": "message",
+  "data": [                           // list of messages
+    {
+      "uid": 1,
+      "sequence_id": 1,
+      "message_id": "server message id",
+      "subject": "subject",
+      "from": [
+        {
+          "name": "Google",
+          "mailbox": "no-reply",
+          "host": "accounts.google.com"
+        }
+      ],
+      "sender": [],                   // same object as from
+      "to": [],                       // same object as from
+      "cc": [],                       // same object as from
+      "bcc": [],                      // same object as from
+      "reply_to": [],                 // same object as from
+      "in_reply_to": "email string",
+      "delivered_to": "email string",
+      "date": 1722093349000,
+      "received": 1722093350000,
+      "flags": ["Seen", "Flagged"],
+      "html": "base64 encoded html",
+      "text": "base64 encoded text"
+    }
+  ]
+}
+```
+
 ## UPDATE_MAILBOX
 
 Update the mailbox of a session from the IMAP server.\

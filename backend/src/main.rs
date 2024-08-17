@@ -10,6 +10,7 @@ mod http_server {
 }
 pub mod inbox_client;
 mod types {
+    pub mod database_request;
     pub mod fetch_mode;
     pub mod mailbox_changes;
     pub mod message;

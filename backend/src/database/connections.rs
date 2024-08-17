@@ -23,7 +23,7 @@ pub async fn insert(conn: Arc<Mutex<Connection>>, client: &Client) -> Result<(),
             client.port
         ],
     ) {
-        Ok(_) => {}
+        Ok(_) => (),
         Err(e) => {
             let err = MyError::Sqlite(e, String::from("Error inserting connection into database"));
             err.log_error();
@@ -65,14 +65,20 @@ pub async fn get(conn: Arc<Mutex<Connection>>) -> Result<Vec<Client>, MyError> {
         })
     }) {
         Ok(rows) => {
-            let mut connections: Vec<Client> = Vec::new();
+            let connections: Vec<Client> = rows
+                .filter_map(|client| match client {
+                    Ok(client) => Some(client),
+                    Err(e) => {
+                        let err = MyError::Sqlite(
+                            e,
+                            String::from("Error getting connection from database"),
+                        );
+                        err.log_error();
 
-            for row in rows {
-                connections.push(match row {
-                    Ok(session) => session,
-                    Err(_) => continue,
-                });
-            }
+                        return None;
+                    }
+                })
+                .collect();
 
             return Ok(connections);
         }
@@ -90,7 +96,7 @@ pub async fn remove(conn: Arc<Mutex<Connection>>, client: &Client) -> Result<(),
 
     match locked_conn.execute(
         "DELETE FROM connections WHERE username = ?1 AND address = ?2",
-        params![client.username, client.address],
+        params![&client.username, &client.address],
     ) {
         Ok(_) => {}
         Err(e) => {

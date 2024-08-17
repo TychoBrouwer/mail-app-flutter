@@ -31,10 +31,10 @@ def main():
     response = requests.get(f'{base_url}/update_mailbox', params=update_mailbox_params)
     print(f"received: {response.text}")
 
-    # Update mailbox
-    update_mailbox_params = { 'session_id': '0', 'mailbox_path': 'INBOX' }
-    response = requests.get(f'{base_url}/update_mailbox', params=update_mailbox_params)
-    print(f"received: {response.text}")
+    # # Update mailbox
+    # update_mailbox_params = { 'session_id': '0', 'mailbox_path': 'INBOX' }
+    # response = requests.get(f'{base_url}/update_mailbox', params=update_mailbox_params)
+    # print(f"received: {response.text}")
 
     # # Get messages
     # messages_params = { 'session_id': '0', 'mailbox_path': 'INBOX', 'message_uids': '91' }
@@ -42,9 +42,15 @@ def main():
     # print(f"received: {response.text}")
 
     # # Get messages sorted
-    # messages_params_sorted = { 'session_id': '0', 'mailbox_path': 'INBOX', 'start': '0', 'end': '10' }
+    # messages_params_sorted = { 'session_id': '0', 'mailbox_path': 'INBOX', 'start': '0', 'end': '30' }
     # response = requests.get(f'{base_url}/get_messages_sorted', params=messages_params_sorted)
     # print(f"received: {response.text}")
+
+    # Get messages unseen
+    messages_params_unseen = { 'session_id': '0', 'mailbox_path': 'INBOX', 'flag': 'Seen', 'not_flag': 'true' }
+    response = requests.get(f'{base_url}/get_messages_with_flag', params=messages_params_unseen)
+    print(f"received: {response.text}")
+
 
     # # Modify flags
     # modify_flags_params = { 'session_id': '0', 'mailbox_path': 'INBOX', 'message_uid': '1', 'flags': 'Seen,Flagged', 'add': 'true' }

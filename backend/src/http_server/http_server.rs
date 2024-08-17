@@ -57,6 +57,9 @@ async fn handle_connection(
         "/get_messages_sorted" => {
             handle_conn::get_messages_sorted(params, database_conn, clients).await
         }
+        "/get_messages_with_flag" => {
+            handle_conn::get_messages_with_flag(params, database_conn, clients).await
+        }
         "/update_mailbox" => {
             handle_conn::update_mailbox(params, sessions, database_conn, clients).await
         }
