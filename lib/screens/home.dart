@@ -74,9 +74,6 @@ class HomePageState extends State<HomePage> {
     setState(() {
       _mailboxTree = _mailboxTree;
     });
-
-    _showNotification("test test etststestestte", true,
-        Future.delayed(const Duration(seconds: 5)));
   }
 
   void _showNotification(String message, bool showLoader, Future? callback) {
@@ -116,14 +113,17 @@ class HomePageState extends State<HomePage> {
       _activeMailbox = _inboxService.getActiveMailbox();
       _activeSession = _inboxService.getActiveSessionId();
 
-      _activeID = 0;
       _currentPage = 0;
       _messages = _messages;
     });
+
+    _updateActiveID(0);
   }
 
   void _updateActiveID(int idx) {
     if (_activeID == idx) return;
+
+    _readMessage();
 
     setState(() {
       _activeID = idx;
@@ -149,24 +149,9 @@ class HomePageState extends State<HomePage> {
     completer.complete();
   }
 
-  // void _readMessage() async {
-  //   await Future.delayed(const Duration(seconds: 2), () {});
-
-  //   MimeMessage message = _inboxService.getMessages()[_activeID];
-
-  //   if (_inboxService
-  //       .currentClient()
-  //       .getUnseenMessages()
-  //       .toList()
-  //       .contains(MessageSequence.fromMessage(message).toList().first)) {
-  //     await _inboxService.currentClient().flagMessage(
-  //         _inboxService.getMessages()[_activeID], MessageUpdate.seen);
-  //   }
-
-  //   setState(() {
-  //     message = _inboxService.getMessages()[_activeID];
-  //   });
-  // }
+  void _readMessage() async {
+    await Future.delayed(const Duration(seconds: 2), () {});
+  }
 
   Future<void> _refreshAll() async {
     final updatedMessageUids = await _inboxService.updateInbox();

@@ -55,7 +55,6 @@ class CustomNotificationState extends State<CustomNotification>
 
   void _autoRemove() async {
     await Future.delayed(const Duration(seconds: 5), () {
-      _notification.finished = true;
       _overlayBuilder.removeOverlay(_notification.idx);
     });
   }
@@ -63,7 +62,6 @@ class CustomNotificationState extends State<CustomNotification>
   void _awaitRemove() async {
     await _callback;
 
-    _notification.finished = true;
     _overlayBuilder.removeOverlay(_notification.idx);
   }
 
