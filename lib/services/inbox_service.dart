@@ -201,8 +201,6 @@ class InboxService {
 
     if (!messageData.success) return [];
 
-    print(messageData.data);
-
     final List<Message> messages = [];
     for (var message in (messageData.data as List)) {
       messages.add(Message.fromJson(message));

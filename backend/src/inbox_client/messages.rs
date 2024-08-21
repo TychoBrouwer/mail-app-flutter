@@ -23,7 +23,7 @@ pub async fn get_database_sorted(
         username: client.username.clone(),
         address: client.address.clone(),
         mailbox_path: mailbox_path.to_string(),
-        return_data: MessageReturnData::All,
+        return_data: MessageReturnData::AllWithFlags,
         id_type: MessageIdType::MessageUids,
         sorted: true,
         start: Some(start),
@@ -32,8 +32,6 @@ pub async fn get_database_sorted(
         flag: None,
         not_flag: None,
     };
-
-    dbg!(&database_request);
 
     return database::messages::get(database_conn, database_request).await;
 }

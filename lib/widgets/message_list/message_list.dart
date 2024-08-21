@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/project_colors.dart';
-import 'package:mail_app/widgets/inbox/message_preview.dart';
+import 'package:mail_app/widgets/message_list/message_preview.dart';
 
 class MessageList extends StatefulWidget {
   final List<Message> messages;
@@ -31,7 +32,7 @@ class MessageListState extends State<MessageList> {
   late void Function() _loadMoreMessages;
   late PageStorageKey<int> _messageListKey;
 
-  final ScrollController _listController = ScrollController();
+  final ScrollController _scrollController = ScrollController();
 
   double turns = 0;
   bool rotatingFinished = true;
@@ -49,19 +50,22 @@ class MessageListState extends State<MessageList> {
     _loadMoreMessages = widget.loadMoreMessages;
     _messageListKey = widget.messageListKey;
 
-    _listController.addListener(_scrollUpdate);
+    _scrollController.addListener(_scrollUpdate);
   }
 
   @override
   void dispose() {
-    _listController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   void _scrollUpdate() async {
-    final position = _listController.position;
+    final position = _scrollController.position;
 
-    if (position.pixels >= position.maxScrollExtent - 500 && !_scrollUpdated) {
+    if (position.pixels >= position.maxScrollExtent - 500 &&
+        !_scrollUpdated &&
+        _scrollController.position.userScrollDirection ==
+            ScrollDirection.reverse) {
       _loadMoreMessages();
       _scrollUpdated = true;
     }
@@ -110,7 +114,7 @@ class MessageListState extends State<MessageList> {
       ),
       child: ListView(
         key: _messageListKey,
-        controller: _listController,
+        controller: _scrollController,
         padding: const EdgeInsets.only(bottom: 200),
         children: messageListBuilder(),
       ),

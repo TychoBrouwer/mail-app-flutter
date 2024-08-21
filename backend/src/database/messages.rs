@@ -170,8 +170,6 @@ pub async fn get(
 
     let (query, highest_param) = construct_sql_query(&request);
 
-    dbg!(&query);
-
     let mut list: Option<vtab::array::Array> = None;
     if request.id_rarray.is_some() {
         list = Some(std::rc::Rc::new(
@@ -193,8 +191,6 @@ pub async fn get(
     let address = &request.address.as_str();
     let mailbox_path = &request.mailbox_path.as_str();
     let list = &list.as_ref();
-
-    dbg!(&list);
 
     let iter: Vec<&dyn rusqlite::types::ToSql> = vec![
         username,
@@ -343,7 +339,7 @@ fn construct_sql_query(request: &DatabaseRequest) -> (String, usize) {
         if request.not_flag.is_some() && request.not_flag.unwrap() {
             query.push_str("LEFT JOIN flags ON messages.message_uid = flags.message_uid AND messages.c_username = flags.c_username AND messages.c_address = flags.c_address AND messages.m_path = flags.m_path ");
         } else {
-            query.push_str("INNER JOIN flags ON messages.message_uid = flags.message_uid AND messages.c_username = flags.c_username AND messages.c_address = flags.c_address AND messages.m_path = flags.m_path ");
+            query.push_str("LEFT JOIN flags ON messages.message_uid = flags.message_uid AND messages.c_username = flags.c_username AND messages.c_address = flags.c_address AND messages.m_path = flags.m_path ");
         }
     }
 

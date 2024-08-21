@@ -22,10 +22,15 @@ class CustomNotification extends StatefulWidget {
   CustomNotificationState createState() => CustomNotificationState();
 }
 
-class CustomNotificationState extends State<CustomNotification> {
+class CustomNotificationState extends State<CustomNotification>
+    with TickerProviderStateMixin {
   late NotificationInfo _notification;
   late OverlayBuilder _overlayBuilder;
   late Future? _callback;
+
+  late final AnimationController _controller =
+      AnimationController(vsync: this, duration: const Duration(seconds: 1))
+        ..repeat();
 
   @override
   void initState() {
@@ -36,12 +41,16 @@ class CustomNotificationState extends State<CustomNotification> {
     _callback = widget.callback;
 
     if (_notification.showLoader) {
-      _refreshRotate();
-
       _awaitRemove();
     } else {
       _autoRemove();
     }
+  }
+
+  @override
+  dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   void _autoRemove() async {
@@ -56,20 +65,6 @@ class CustomNotificationState extends State<CustomNotification> {
 
     _notification.finished = true;
     _overlayBuilder.removeOverlay(_notification.idx);
-  }
-
-  void _refreshRotate() async {
-    await Future.delayed(const Duration(seconds: 1), () {});
-
-    if (_notification.finished) {
-      return;
-    }
-
-    _refreshRotate();
-
-    setState(() {
-      _notification.turns += 1;
-    });
   }
 
   @override
@@ -90,10 +85,14 @@ class CustomNotificationState extends State<CustomNotification> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (_notification.showLoader)
-                  AnimatedRotation(
-                    alignment: Alignment.center,
-                    turns: _notification.turns,
-                    duration: const Duration(seconds: 1),
+                  AnimatedBuilder(
+                    animation: _controller,
+                    builder: (BuildContext context, Widget? child) {
+                      return Transform.rotate(
+                        angle: _controller.value * 2 * 3.14,
+                        child: child!,
+                      );
+                    },
                     child: SvgPicture.asset(
                       'assets/icons/arrows-rotate.svg',
                       color: ProjectColors.text(true),

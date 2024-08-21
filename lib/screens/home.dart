@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:mail_app/screens/settings.dart';
 
@@ -9,8 +11,8 @@ import 'package:mail_app/types/notification_info.dart';
 import 'package:mail_app/types/special_mailbox.dart';
 import 'package:mail_app/widgets/add_account.dart';
 import 'package:mail_app/widgets/custom_notification.dart';
-import 'package:mail_app/widgets/inbox/message_list.dart';
-import 'package:mail_app/widgets/inbox/message_list_header.dart';
+import 'package:mail_app/widgets/message_list/message_list.dart';
+import 'package:mail_app/widgets/message_list/message_list_header.dart';
 import 'package:mail_app/widgets/mailbox/mailbox_list_header.dart';
 import 'package:mail_app/widgets/mailbox/mailbox_list.dart';
 import 'package:mail_app/widgets/message/message_content.dart';
@@ -73,7 +75,8 @@ class HomePageState extends State<HomePage> {
       _mailboxTree = _mailboxTree;
     });
 
-    _showNotification("test test etststestestte", false, null);
+    _showNotification("test test etststestestte", true,
+        Future.delayed(const Duration(seconds: 5)));
   }
 
   void _showNotification(String message, bool showLoader, Future? callback) {
@@ -83,6 +86,7 @@ class HomePageState extends State<HomePage> {
       message: message,
       showLoader: showLoader,
     );
+
     _notifications[idx] = notification;
     _overlayBuilder.insertOverlay(
       CustomNotification(
@@ -129,6 +133,9 @@ class HomePageState extends State<HomePage> {
   void _loadMoreMessages() async {
     _currentPage++;
 
+    final completer = Completer();
+    _showNotification("Loading more messages", true, completer.future);
+
     final newMessages = await _inboxService.getMessages(
       start: 1 + _currentPage * _messageLoadCount,
       end: _messageLoadCount + _currentPage * _messageLoadCount,
@@ -137,6 +144,9 @@ class HomePageState extends State<HomePage> {
     setState(() {
       _messages.addAll(newMessages);
     });
+
+    await Future.delayed(const Duration(milliseconds: 500), () {});
+    completer.complete();
   }
 
   // void _readMessage() async {
@@ -326,7 +336,8 @@ class HomePageState extends State<HomePage> {
                 ),
                 Expanded(
                   child: MessageContent(
-                    key: UniqueKey(),
+                    key: ValueKey(
+                        "${_activeID != null ? _messages[_activeID!].uid : 0}${_activeID != null ? _messages[_activeID!].messageId : ''}"),
                     message: _activeID != null && _messages.isNotEmpty
                         ? _messages[_activeID!]
                         : null,
