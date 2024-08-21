@@ -171,20 +171,20 @@ class HomePageState extends State<HomePage> {
         end: _messageLoadCount,
       );
     } else {
-      final loadedUpdatedMessageUids = updatedMessageUids
-          .where((element) => _messages.any((m) => m.uid == element))
-          .toList();
+      // final loadedUpdatedMessageUids = updatedMessageUids
+      //     .where((element) => _messages.any((m) => m.uid == element))
+      //     .toList();
 
-      final updatedMessages = await _inboxService.getMessagesWithUids(
-        uids: loadedUpdatedMessageUids[0],
-      );
+      // final updatedMessages = await _inboxService.getMessagesWithUids(
+      //   uids: loadedUpdatedMessageUids[0],
+      // );
 
-      for (var message in updatedMessages) {
-        final idx = _messages.indexWhere((m) => m.uid == message.uid);
-        if (idx != -1) {
-          _messages[idx] = message;
-        }
-      }
+      // for (var message in updatedMessages) {
+      //   final idx = _messages.indexWhere((m) => m.uid == message.uid);
+      //   if (idx != -1) {
+      //     _messages[idx] = message;
+      //   }
+      // }
     }
 
     setState(() {

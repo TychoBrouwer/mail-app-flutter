@@ -12,6 +12,7 @@ pub enum MessageReturnData {
     Uid,
 }
 
+#[derive(Debug, Clone)]
 pub struct DatabaseRequest {
     pub username: String,
     pub address: String,

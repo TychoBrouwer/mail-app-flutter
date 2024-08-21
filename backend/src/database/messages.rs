@@ -170,6 +170,8 @@ pub async fn get(
 
     let (query, highest_param) = construct_sql_query(&request);
 
+    dbg!(&query);
+
     let mut list: Option<vtab::array::Array> = None;
     if request.id_rarray.is_some() {
         list = Some(std::rc::Rc::new(
@@ -191,6 +193,8 @@ pub async fn get(
     let address = &request.address.as_str();
     let mailbox_path = &request.mailbox_path.as_str();
     let list = &list.as_ref();
+
+    dbg!(&list);
 
     let iter: Vec<&dyn rusqlite::types::ToSql> = vec![
         username,

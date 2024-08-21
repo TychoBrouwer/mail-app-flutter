@@ -201,6 +201,8 @@ class InboxService {
 
     if (!messageData.success) return [];
 
+    print(messageData.data);
+
     final List<Message> messages = [];
     for (var message in (messageData.data as List)) {
       messages.add(Message.fromJson(message));
@@ -333,6 +335,7 @@ class InboxService {
     final body = {
       'session_id': session.toString(),
       'mailbox_path': mailbox!,
+      'quick': 'true',
     };
 
     final messageData =
@@ -340,11 +343,14 @@ class InboxService {
 
     if (!messageData.success) return [];
 
-    final data = (messageData.data as Map<String, List<dynamic>>);
-    final updatedUids = data['changed']!.map((e) => e as int).toList();
-    final updatedFlagsUids =
-        data['changed_flags']!.map((e) => e as int).toList();
+    final data = (messageData.data as Map<String, dynamic>);
 
-    return [updatedUids, updatedFlagsUids];
+    final newUids = (data['new_uids'] as List).map((e) => e as int).toList();
+    final changedUids =
+        (data['changed_uids'] as List).map((e) => e as int).toList();
+    final removedUids =
+        (data['removed_uids'] as List).map((e) => e as int).toList();
+
+    return [newUids, changedUids, removedUids];
   }
 }
