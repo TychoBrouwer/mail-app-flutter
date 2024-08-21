@@ -13,10 +13,13 @@ class SplashPage extends StatefulWidget {
   SplashPageState createState() => SplashPageState();
 }
 
-class SplashPageState extends State<SplashPage> {
-  double _turns = 0;
+class SplashPageState extends State<SplashPage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller =
+      AnimationController(vsync: this, duration: const Duration(seconds: 1))
+        ..repeat();
+
   String _status = '';
-  bool _loadingFinished = false;
 
   @override
   void initState() {
@@ -26,12 +29,8 @@ class SplashPageState extends State<SplashPage> {
   }
 
   void _loadHomePage() async {
-    _refreshRotate();
-
     setState(() => _status = 'Loading inboxes');
     final inboxService = await _loadInboxService();
-
-    _loadingFinished = true;
 
     if (!mounted) return;
     Navigator.pushReplacement(
@@ -63,16 +62,6 @@ class SplashPageState extends State<SplashPage> {
     return inboxService;
   }
 
-  void _refreshRotate() async {
-    setState(() {
-      _turns += 1;
-    });
-
-    await Future.delayed(const Duration(seconds: 1), () {});
-
-    if (!_loadingFinished) _refreshRotate();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -95,10 +84,14 @@ class SplashPageState extends State<SplashPage> {
                   ),
                 ),
               ),
-              AnimatedRotation(
-                alignment: Alignment.center,
-                turns: _turns,
-                duration: const Duration(seconds: 1),
+              AnimatedBuilder(
+                animation: _controller,
+                builder: (BuildContext context, Widget? child) {
+                  return Transform.rotate(
+                    angle: _controller.value * 2 * 3.14,
+                    child: child!,
+                  );
+                },
                 child: SvgPicture.asset(
                   'assets/icons/arrows-rotate.svg',
                   color: ProjectColors.text(true),

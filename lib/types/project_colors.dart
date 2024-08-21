@@ -15,9 +15,13 @@ class ProjectColors {
 
   static Color Function(bool) background = (bool main) => main
       ? const Color.fromRGBO(33, 33, 33, 1)
-      : const Color.fromRGBO(62, 62, 62, 1);
+      : const Color.fromRGBO(52, 52, 52, 1);
+
+  static Color Function(bool) button = (bool main) => main
+      ? const Color.fromRGBO(52, 52, 52, 1)
+      : const Color.fromRGBO(100, 100, 100, 1);
 
   static Color Function(bool) header = (bool main) => main
       ? const Color.fromRGBO(20, 20, 20, 1)
-      : const Color.fromRGBO(62, 62, 62, 1);
+      : const Color.fromRGBO(52, 52, 52, 1);
 }

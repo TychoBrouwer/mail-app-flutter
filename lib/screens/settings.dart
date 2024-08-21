@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:mail_app/types/project_colors.dart';
+import 'package:mail_app/types/settings_tab.dart';
 import 'package:mail_app/widgets/settings/settings_header.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -16,6 +17,10 @@ class SettingsPageState extends State<SettingsPage> {
     Navigator.pop(context);
   }
 
+  _showPage(SettingsTab tab) {
+    // Show the page
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -26,7 +31,10 @@ class SettingsPageState extends State<SettingsPage> {
         child: Center(
           child: Column(
             children: [
-              SettingsHeader(closeSettings: _closeSettings),
+              SettingsHeader(
+                closeSettings: _closeSettings,
+                showPage: _showPage,
+              ),
             ],
           ),
         ),

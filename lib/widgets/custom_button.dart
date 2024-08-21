@@ -7,12 +7,16 @@ class CustomButton extends StatelessWidget {
   final void Function() onTap;
   final Widget child;
   final BorderRadius borderRadius;
+  final Color backgroundColor;
+  final bool active;
 
   const CustomButton({
     super.key,
     required this.onTap,
     required this.child,
     this.borderRadius = ProjectSizes.borderRadiusSmall,
+    this.backgroundColor = Colors.transparent,
+    this.active = false,
   });
 
   @override
@@ -21,11 +25,18 @@ class CustomButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: borderRadius,
-        hoverColor: ProjectColors.background(false),
-        highlightColor: ProjectColors.background(false),
-        splashColor: ProjectColors.background(false),
+        hoverColor: active ? Colors.transparent : ProjectColors.button(true),
+        splashColor: Colors.transparent,
+        highlightColor:
+            active ? Colors.transparent : ProjectColors.button(false),
         onTap: onTap,
-        child: child,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: borderRadius,
+            color: active ? ProjectColors.button(true) : Colors.transparent,
+          ),
+          child: child,
+        ),
       ),
     );
   }

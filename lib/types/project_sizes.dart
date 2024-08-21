@@ -8,14 +8,14 @@ class ProjectSizes {
 
   static const double iconSize = 16;
 
-  static const Radius radius = Radius.circular(10);
-  static const Radius radiusSmall = Radius.circular(5);
-  static const Radius radiusExtraSmall = Radius.circular(3);
-  static const Radius radiusLarge = Radius.circular(15);
+  static const Radius _radius = Radius.circular(10);
+  static const Radius _radiusSmall = Radius.circular(5);
+  static const Radius _radiusExtraSmall = Radius.circular(3);
+  static const Radius _radiusLarge = Radius.circular(15);
 
-  static const BorderRadius borderRadius = BorderRadius.all(radius);
-  static const BorderRadius borderRadiusSmall = BorderRadius.all(radiusSmall);
+  static const BorderRadius borderRadius = BorderRadius.all(_radius);
+  static const BorderRadius borderRadiusSmall = BorderRadius.all(_radiusSmall);
   static const BorderRadius borderRadiusExtraSmall =
-      BorderRadius.all(radiusExtraSmall);
-  static const BorderRadius borderRadiusLarge = BorderRadius.all(radiusLarge);
+      BorderRadius.all(_radiusExtraSmall);
+  static const BorderRadius borderRadiusLarge = BorderRadius.all(_radiusLarge);
 }

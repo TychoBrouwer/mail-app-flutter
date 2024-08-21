@@ -223,11 +223,11 @@ class HomePageState extends State<HomePage> {
     final add = !message.flags.contains(flag);
     final messageUid = message.uid;
 
-    final flags = await _inboxService.modifyFlags(
+    await _inboxService.modifyFlags(
         messageUid: messageUid, flags: [flag], add: add);
 
     setState(() {
-      if (flags.contains(flag)) {
+      if (add) {
         message.flags.add(flag);
       } else {
         message.flags.remove(flag);
@@ -337,7 +337,7 @@ class HomePageState extends State<HomePage> {
                 Expanded(
                   child: MessageContent(
                     key: ValueKey(
-                        "${_activeID != null ? _messages[_activeID!].uid : 0}${_activeID != null ? _messages[_activeID!].messageId : ''}"),
+                        "${_activeID != null && _messages.isNotEmpty ? _messages[_activeID!].uid : 0}${_activeID != null && _messages.isNotEmpty ? _messages[_activeID!].messageId : ''}"),
                     message: _activeID != null && _messages.isNotEmpty
                         ? _messages[_activeID!]
                         : null,
