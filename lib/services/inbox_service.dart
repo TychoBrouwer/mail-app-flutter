@@ -4,9 +4,16 @@ import 'package:mail_app/types/mail_account.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/message_flag.dart';
-import 'package:mail_app/types/special_mailbox.dart';
 
 class InboxService {
+  static final InboxService _singleton = InboxService._internal();
+
+  factory InboxService() {
+    return _singleton;
+  }
+
+  InboxService._internal();
+
   int? _activeSession;
   String? _activeMailbox;
 

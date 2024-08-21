@@ -28,22 +28,26 @@ class SplashPageState extends State<SplashPage>
     _loadHomePage();
   }
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   void _loadHomePage() async {
     setState(() => _status = 'Loading inboxes');
-    final inboxService = await _loadInboxService();
+    await _loadInboxService();
 
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => HomePage(
-          inboxService: inboxService,
-        ),
+        builder: (context) => const HomePage(),
       ),
     );
   }
 
-  Future<InboxService> _loadInboxService() async {
+  Future<void> _loadInboxService() async {
     final inboxService = InboxService();
 
     final sessions = await inboxService.getSessions();
@@ -58,8 +62,6 @@ class SplashPageState extends State<SplashPage>
       inboxService.setActiveSessionId(sessions[0].sessionId);
       inboxService.updateMailboxes();
     }
-
-    return inboxService;
   }
 
   @override

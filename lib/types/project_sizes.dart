@@ -1,21 +1,31 @@
 import 'package:flutter/material.dart' show Radius, BorderRadius;
+import 'package:mail_app/services/global_configuration.dart';
 
 class ProjectSizes {
-  static const double fontSize = 12;
-  static const double fontSizeSmall = 10;
-  static const double fontSizeLarge = 15;
-  static const double fontSizeExtraLarge = 22;
+  static final double fontSize =
+      Configuration().getValue<double>('appSizes:fontSize')!;
+  static final double fontSizeSmall =
+      Configuration().getValue<double>('appSizes:fontSizeSmall')!;
+  static final double fontSizeLarge =
+      Configuration().getValue<double>('appSizes:fontSizeLarge')!;
+  static final double fontSizeExtraLarge =
+      Configuration().getValue<double>('appSizes:fontSizeExtraLarge')!;
 
-  static const double iconSize = 16;
+  static final double iconSize =
+      Configuration().getValue<double>('appSizes:iconSize')!;
 
-  static const Radius _radius = Radius.circular(10);
-  static const Radius _radiusSmall = Radius.circular(5);
-  static const Radius _radiusExtraSmall = Radius.circular(3);
-  static const Radius _radiusLarge = Radius.circular(15);
+  static final Radius _radius =
+      Radius.circular(Configuration().getValue<double>('appSizes:radius')!);
+  static final Radius _radiusSmall = Radius.circular(
+      Configuration().getValue<double>('appSizes:radiusSmall')!);
+  static final Radius _radiusExtraSmall = Radius.circular(
+      Configuration().getValue<double>('appSizes:radiusExtraSmall')!);
+  static final Radius _radiusLarge = Radius.circular(
+      Configuration().getValue<double>('appSizes:radiusLarge')!);
 
-  static const BorderRadius borderRadius = BorderRadius.all(_radius);
-  static const BorderRadius borderRadiusSmall = BorderRadius.all(_radiusSmall);
-  static const BorderRadius borderRadiusExtraSmall =
+  static final BorderRadius borderRadius = BorderRadius.all(_radius);
+  static final BorderRadius borderRadiusSmall = BorderRadius.all(_radiusSmall);
+  static final BorderRadius borderRadiusExtraSmall =
       BorderRadius.all(_radiusExtraSmall);
-  static const BorderRadius borderRadiusLarge = BorderRadius.all(_radiusLarge);
+  static final BorderRadius borderRadiusLarge = BorderRadius.all(_radiusLarge);
 }

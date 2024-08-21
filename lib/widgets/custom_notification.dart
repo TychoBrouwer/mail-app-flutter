@@ -8,13 +8,11 @@ import 'package:mail_app/types/project_sizes.dart';
 
 class CustomNotification extends StatefulWidget {
   final NotificationInfo notification;
-  final OverlayBuilder overlayBuilder;
   final Future? callback;
 
   const CustomNotification({
     super.key,
     required this.notification,
-    required this.overlayBuilder,
     required this.callback,
   });
 
@@ -25,7 +23,6 @@ class CustomNotification extends StatefulWidget {
 class CustomNotificationState extends State<CustomNotification>
     with TickerProviderStateMixin {
   late NotificationInfo _notification;
-  late OverlayBuilder _overlayBuilder;
   late Future? _callback;
 
   late final AnimationController _controller =
@@ -37,7 +34,6 @@ class CustomNotificationState extends State<CustomNotification>
     super.initState();
 
     _notification = widget.notification;
-    _overlayBuilder = widget.overlayBuilder;
     _callback = widget.callback;
 
     if (_notification.showLoader) {
@@ -55,14 +51,14 @@ class CustomNotificationState extends State<CustomNotification>
 
   void _autoRemove() async {
     await Future.delayed(const Duration(seconds: 5), () {
-      _overlayBuilder.removeOverlay(_notification.idx);
+      OverlayBuilder().removeOverlay(_notification.idx);
     });
   }
 
   void _awaitRemove() async {
     await _callback;
 
-    _overlayBuilder.removeOverlay(_notification.idx);
+    OverlayBuilder().removeOverlay(_notification.idx);
   }
 
   @override

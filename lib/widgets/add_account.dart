@@ -10,23 +10,13 @@ import 'package:mail_app/widgets/custom_button.dart';
 import 'package:mail_app/widgets/custom_form_field.dart';
 
 class AddAccount extends StatefulWidget {
-  final OverlayBuilder overlayBuilder;
-  final InboxService inboxService;
-
-  const AddAccount({
-    super.key,
-    required this.overlayBuilder,
-    required this.inboxService,
-  });
+  const AddAccount({super.key});
 
   @override
   AddAccountState createState() => AddAccountState();
 }
 
 class AddAccountState extends State<AddAccount> {
-  late OverlayBuilder _overlayBuilder;
-  late InboxService _inboxService;
-
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   bool loading = false;
@@ -39,13 +29,10 @@ class AddAccountState extends State<AddAccount> {
   @override
   void initState() {
     super.initState();
-
-    _overlayBuilder = widget.overlayBuilder;
-    _inboxService = widget.inboxService;
   }
 
   void _cancel() {
-    _overlayBuilder.removeOverlay(0);
+    OverlayBuilder().removeOverlay(0);
   }
 
   Future<void> _confirm() async {
@@ -61,7 +48,7 @@ class AddAccountState extends State<AddAccount> {
         return;
       }
 
-      final connection = await _inboxService.newSession(
+      final connection = await InboxService().newSession(
         _username!,
         _password!,
         _address!,
@@ -71,7 +58,7 @@ class AddAccountState extends State<AddAccount> {
       if (connection != -1) {
         print('success');
 
-        _overlayBuilder.removeOverlay(0);
+        OverlayBuilder().removeOverlay(0);
       } else {
         print('failed to add');
       }

@@ -1,0 +1,24 @@
+[appColors]
+accent = "200, 168, 218, 1"
+accentSecondary = "200, 168, 218, 0.5"
+text = "200, 200, 200, 1"
+textSecondary = "120, 120, 120, 1"
+border = "200, 200, 200, 1"
+borderSecondary = "120, 120, 120, 1"
+background = "33, 33, 33, 1"
+backgroundSecondary = "52, 52, 52, 1"
+button = "52, 52, 52, 1"
+buttonSecondary = "100, 100, 100, 1"
+header = "20, 20, 20, 1"
+headerSecondary = "52, 52, 52, 1"
+
+[appSizes]
+fontSize = 12
+fontSizeSmall = 10
+fontSizeLarge = 15
+fontSizeExtraLarge = 22
+iconSize = 16
+radius = 10
+radiusSmall = 5
+radiusExtraSmall = 3
+radiusLarge = 15

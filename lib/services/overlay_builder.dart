@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 
 class OverlayBuilder {
+  static final OverlayBuilder _singleton = OverlayBuilder._internal();
+
   late BuildContext _context;
   final Map<int, OverlayEntry?> _overlayEntries = {};
 
-  OverlayBuilder(BuildContext context) {
+  factory OverlayBuilder() {
+    return _singleton;
+  }
+
+  OverlayBuilder._internal();
+
+  loadContext(BuildContext context) {
     _context = context;
   }
 

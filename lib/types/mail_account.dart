@@ -1,4 +1,7 @@
-import 'package:mail_app/types/special_mailbox.dart';
+enum SpecialMailboxType {
+  archive,
+  trash,
+}
 
 class MailAccount {
   late int sessionId;

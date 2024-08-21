@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:mail_app/types/message_flag.dart';
 import 'package:mail_app/types/project_colors.dart';
-import 'package:mail_app/types/special_mailbox.dart';
+import 'package:mail_app/types/mail_account.dart';
 import 'package:mail_app/widgets/custom_icon_button.dart';
 
 class MessageControlBar extends StatefulWidget {

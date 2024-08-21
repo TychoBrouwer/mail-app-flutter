@@ -1,27 +1,28 @@
 import 'package:flutter/material.dart' show Color;
+import 'package:mail_app/services/global_configuration.dart';
 
 class ProjectColors {
-  static Color Function(bool) accent = (bool main) => main
-      ? const Color.fromRGBO(200, 168, 218, 1)
-      : const Color.fromRGBO(200, 168, 218, 0.5);
+  static Color Function(bool) get accent => (bool main) => main
+      ? Configuration().getValue<Color>('appColors:accent')!
+      : Configuration().getValue<Color>('appColors:accentSecondary')!;
 
   static Color Function(bool) text = (bool main) => main
-      ? const Color.fromRGBO(200, 200, 200, 1)
-      : const Color.fromRGBO(120, 120, 120, 1);
+      ? Configuration().getValue<Color>('appColors:text')!
+      : Configuration().getValue<Color>('appColors:textSecondary')!;
 
   static Color Function(bool) border = (bool main) => main
-      ? const Color.fromRGBO(200, 200, 200, 1)
-      : const Color.fromRGBO(120, 120, 120, 1);
+      ? Configuration().getValue<Color>('appColors:border')!
+      : Configuration().getValue<Color>('appColors:borderSecondary')!;
 
   static Color Function(bool) background = (bool main) => main
-      ? const Color.fromRGBO(33, 33, 33, 1)
-      : const Color.fromRGBO(52, 52, 52, 1);
+      ? Configuration().getValue<Color>('appColors:background')!
+      : Configuration().getValue<Color>('appColors:backgroundSecondary')!;
 
   static Color Function(bool) button = (bool main) => main
-      ? const Color.fromRGBO(52, 52, 52, 1)
-      : const Color.fromRGBO(100, 100, 100, 1);
+      ? Configuration().getValue<Color>('appColors:button')!
+      : Configuration().getValue<Color>('appColors:buttonSecondary')!;
 
   static Color Function(bool) header = (bool main) => main
-      ? const Color.fromRGBO(20, 20, 20, 1)
-      : const Color.fromRGBO(52, 52, 52, 1);
+      ? Configuration().getValue<Color>('appColors:header')!
+      : Configuration().getValue<Color>('appColors:headerSecondary')!;
 }

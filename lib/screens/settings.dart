@@ -14,6 +14,7 @@ class SettingsPage extends StatefulWidget {
 class SettingsPageState extends State<SettingsPage> {
   _closeSettings() {
     if (!mounted) return;
+
     Navigator.pop(context);
   }
 

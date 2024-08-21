@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:mail_app/screens/settings.dart';
 
 import 'package:mail_app/services/inbox_service.dart';
+import 'package:mail_app/types/mail_account.dart';
 import 'package:mail_app/types/mailbox_info.dart';
 import 'package:mail_app/types/message.dart';
 import 'package:mail_app/types/message_flag.dart';
 import 'package:mail_app/types/notification_info.dart';
-import 'package:mail_app/types/special_mailbox.dart';
 import 'package:mail_app/widgets/add_account.dart';
 import 'package:mail_app/widgets/custom_notification.dart';
 import 'package:mail_app/widgets/message_list/message_list.dart';
@@ -22,21 +22,13 @@ import 'package:mail_app/types/project_colors.dart';
 import 'package:mail_app/widgets/vertical_split_view.dart';
 
 class HomePage extends StatefulWidget {
-  final InboxService inboxService;
-
-  const HomePage({
-    super.key,
-    required this.inboxService,
-  });
+  const HomePage({super.key});
 
   @override
   HomePageState createState() => HomePageState();
 }
 
 class HomePageState extends State<HomePage> {
-  late InboxService _inboxService;
-  late OverlayBuilder _overlayBuilder;
-
   String? _activeMailbox;
   int? _activeSession;
   int? _activeID;
@@ -55,21 +47,19 @@ class HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
 
-    _inboxService = widget.inboxService;
-
     _initMessages();
   }
 
   void _initMessages() async {
-    if (_inboxService.getActiveSessionId() == null) {
+    if (InboxService().getActiveSessionId() == null) {
       return;
     }
 
-    final inboxes = await _inboxService.getMailboxes();
+    final inboxes = await InboxService().getMailboxes();
 
     await _changeMailbox(0, inboxes[0].path);
 
-    _mailboxTree = await _inboxService.getMailboxTree();
+    _mailboxTree = await InboxService().getMailboxTree();
 
     setState(() {
       _mailboxTree = _mailboxTree;
@@ -85,10 +75,9 @@ class HomePageState extends State<HomePage> {
     );
 
     _notifications[idx] = notification;
-    _overlayBuilder.insertOverlay(
+    OverlayBuilder().insertOverlay(
       CustomNotification(
         notification: notification,
-        overlayBuilder: _overlayBuilder,
         callback: callback,
       ),
       idx,
@@ -96,22 +85,22 @@ class HomePageState extends State<HomePage> {
   }
 
   Future<void> _changeMailbox(int sessionId, String mailboxPath) async {
-    if (sessionId == _inboxService.getActiveSessionId() &&
-        mailboxPath == _inboxService.getActiveMailbox()) {
+    if (sessionId == InboxService().getActiveSessionId() &&
+        mailboxPath == InboxService().getActiveMailbox()) {
       return;
     }
 
-    _inboxService.setActiveSessionId(sessionId);
-    _inboxService.setActiveMailbox(mailboxPath);
+    InboxService().setActiveSessionId(sessionId);
+    InboxService().setActiveMailbox(mailboxPath);
 
     _messages =
-        await _inboxService.getMessages(start: 1, end: _messageLoadCount);
+        await InboxService().getMessages(start: 1, end: _messageLoadCount);
 
     setState(() {
       _messageListKeyIndex += 1;
 
-      _activeMailbox = _inboxService.getActiveMailbox();
-      _activeSession = _inboxService.getActiveSessionId();
+      _activeMailbox = InboxService().getActiveMailbox();
+      _activeSession = InboxService().getActiveSessionId();
 
       _currentPage = 0;
       _messages = _messages;
@@ -136,7 +125,7 @@ class HomePageState extends State<HomePage> {
     final completer = Completer();
     _showNotification("Loading more messages", true, completer.future);
 
-    final newMessages = await _inboxService.getMessages(
+    final newMessages = await InboxService().getMessages(
       start: 1 + _currentPage * _messageLoadCount,
       end: _messageLoadCount + _currentPage * _messageLoadCount,
     );
@@ -154,14 +143,14 @@ class HomePageState extends State<HomePage> {
   }
 
   Future<void> _refreshAll() async {
-    final updatedMessageUids = await _inboxService.updateInbox();
+    final updatedMessageUids = await InboxService().updateInbox();
 
     if (updatedMessageUids.isEmpty) {
       return;
     }
 
     if (_messages.length < _messageLoadCount) {
-      _messages = await _inboxService.getMessages(
+      _messages = await InboxService().getMessages(
         start: 1,
         end: _messageLoadCount,
       );
@@ -170,7 +159,7 @@ class HomePageState extends State<HomePage> {
       //     .where((element) => _messages.any((m) => m.uid == element))
       //     .toList();
 
-      // final updatedMessages = await _inboxService.getMessagesWithUids(
+      // final updatedMessages = await InboxService().getMessagesWithUids(
       //   uids: loadedUpdatedMessageUids[0],
       // );
 
@@ -188,12 +177,7 @@ class HomePageState extends State<HomePage> {
   }
 
   void _addMailAccount() {
-    _overlayBuilder.insertOverlay(
-        AddAccount(
-          overlayBuilder: _overlayBuilder,
-          inboxService: _inboxService,
-        ),
-        0);
+    OverlayBuilder().insertOverlay(const AddAccount(), 0);
   }
 
   Future<void> _composeMessage() async {
@@ -208,8 +192,8 @@ class HomePageState extends State<HomePage> {
     final add = !message.flags.contains(flag);
     final messageUid = message.uid;
 
-    await _inboxService.modifyFlags(
-        messageUid: messageUid, flags: [flag], add: add);
+    await InboxService()
+        .modifyFlags(messageUid: messageUid, flags: [flag], add: add);
 
     setState(() {
       if (add) {
@@ -225,11 +209,11 @@ class HomePageState extends State<HomePage> {
 
     final message = _messages[_activeID!];
 
-    final mailboxDest = _inboxService.getSpecialMailbox(mailbox);
+    final mailboxDest = InboxService().getSpecialMailbox(mailbox);
     final messageUid = message.uid;
 
-    final mailboxNew = await _inboxService.moveMessage(
-        messageUid: messageUid, mailboxDest: mailboxDest);
+    final mailboxNew = await InboxService()
+        .moveMessage(messageUid: messageUid, mailboxDest: mailboxDest);
 
     if (mailboxNew == '') {
       print('failed to move message');
@@ -253,8 +237,7 @@ class HomePageState extends State<HomePage> {
     print('share message');
   }
 
-  Future<void> _openSettings() async {
-    if (!mounted) return;
+  void _openSettings() async {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -265,7 +248,7 @@ class HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    _overlayBuilder = OverlayBuilder(context);
+    OverlayBuilder().loadContext(context);
 
     return Scaffold(
       body: Container(
@@ -294,7 +277,7 @@ class HomePageState extends State<HomePage> {
             middle: Column(
               children: [
                 MessageListHeader(
-                  mailboxTitle: _inboxService.getActiveMailboxDisplay() ?? '',
+                  mailboxTitle: InboxService().getActiveMailboxDisplay() ?? '',
                   refreshAll: _refreshAll,
                 ),
                 Expanded(
