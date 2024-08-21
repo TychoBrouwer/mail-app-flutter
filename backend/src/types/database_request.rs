@@ -9,6 +9,7 @@ pub enum MessageReturnData {
     All,
     AllWithFlags,
     Flags,
+    Uid,
 }
 
 pub struct DatabaseRequest {

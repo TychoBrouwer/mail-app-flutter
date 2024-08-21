@@ -37,14 +37,7 @@ async fn handle_connection(
     stream.read(&mut buffer).await.unwrap();
 
     let request = String::from_utf8_lossy(&buffer);
-    let header = request.split("\r\n").next().unwrap_or("");
-    let header_parts: Vec<&str> = header.split(" ").collect();
-
-    let uri = header_parts.get(1).unwrap_or(&"");
-    let uri_parts: Vec<&str> = uri.split("?").collect();
-
-    let path: &str = uri_parts.get(0).unwrap_or(&"");
-    let params: &str = uri_parts.get(1).unwrap_or(&"");
+    let (path, params) = extract_params_from_request(&request);
 
     let data = match path {
         "/login" => handle_conn::login(params, sessions, database_conn, clients).await,
@@ -84,4 +77,40 @@ async fn handle_connection(
 
     stream.write(response.as_bytes()).await.unwrap();
     stream.flush().await.unwrap();
+}
+
+fn extract_params_from_request(request: &str) -> (&str, &str) {
+    let header = request.split("\r\n").next().unwrap_or("");
+    let header_parts: Vec<&str> = header.split(" ").collect();
+
+    let uri = header_parts.get(1).unwrap_or(&"");
+    let uri_parts: Vec<&str> = uri.split("?").collect();
+
+    let path: &str = uri_parts.get(0).unwrap_or(&"");
+    let params: &str = uri_parts.get(1).unwrap_or(&"");
+
+    return (path, params);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_params_from_request() {
+        let request = "GET /login?username=test&password=test HTTP/1.1\r\n";
+        let (path, params) = extract_params_from_request(request);
+
+        assert_eq!(path, "/login");
+        assert_eq!(params, "username=test&password=test");
+    }
+
+    #[test]
+    fn test_extract_params_from_request_no_params() {
+        let request = "GET /login HTTP/1.1\r\n";
+        let (path, params) = extract_params_from_request(request);
+
+        assert_eq!(path, "/login");
+        assert_eq!(params, "");
+    }
 }

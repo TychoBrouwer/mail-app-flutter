@@ -1,8 +1,7 @@
 use async_std::sync::{Arc, Mutex};
 
-use crate::http_server::params;
+use crate::http_server::{params, to_display};
 use crate::inbox_client;
-use crate::mime_parser::parser;
 use crate::types::session::{Client, Session};
 
 pub async fn login(
@@ -167,7 +166,7 @@ pub async fn get_mailboxes(
 
     match inbox_client::mailboxes::get_database(database_conn, client).await {
         Ok(mailboxes) => {
-            let mailboxes_str = parser::parse_string_vec(&mailboxes);
+            let mailboxes_str = to_display::string_vec_to_display(&mailboxes);
 
             return format!(
                 "{{\"success\": true, \"message\": \"Mailboxes retrieved\", \"data\": {}}}",
@@ -215,7 +214,7 @@ pub async fn update_mailboxes(
 
     match inbox_client::mailboxes::update(sessions, database_conn, session_id, client).await {
         Ok(mailboxes) => {
-            let mailboxes_str = parser::parse_string_vec(&mailboxes);
+            let mailboxes_str = to_display::string_vec_to_display(&mailboxes);
 
             return format!(
                 "{{\"success\": true, \"message\": \"Mailboxes updated\", \"data\": {}}}",
@@ -279,7 +278,7 @@ pub async fn get_messages_with_uids(
     .await
     {
         Ok(messages) => {
-            let messages_str = parser::parse_message_vec(&messages);
+            let messages_str = to_display::message_vec_to_display(&messages);
 
             return format!(
                 "{{\"success\": true, \"message\": \"Messages retrieved\", \"data\": {}}}",
@@ -354,7 +353,7 @@ pub async fn get_messages_sorted(
     .await
     {
         Ok(messages) => {
-            let messages_str = parser::parse_message_vec(&messages);
+            let messages_str = to_display::message_vec_to_display(&messages);
 
             return format!(
                 "{{\"success\": true, \"message\": \"Messages retrieved\", \"data\": {}}}",
@@ -421,7 +420,7 @@ pub async fn get_messages_with_flag(
     .await
     {
         Ok(messages) => {
-            let messages_str = parser::parse_message_vec(&messages);
+            let messages_str = to_display::message_vec_to_display(&messages);
 
             return format!(
                 "{{\"success\": true, \"message\": \"Messages retrieved\", \"data\": {}}}",
@@ -491,9 +490,9 @@ pub async fn update_mailbox(
     .await
     {
         Ok(updated) => {
-            let removed_uids_str = parser::parse_u32_vec(&updated.removed);
-            let new_uids_str = parser::parse_u32_vec(&updated.new);
-            let changed_uids_str = parser::parse_u32_vec(&updated.changed);
+            let removed_uids_str = to_display::u32_vec_to_display(&updated.removed);
+            let new_uids_str = to_display::u32_vec_to_display(&updated.new);
+            let changed_uids_str = to_display::u32_vec_to_display(&updated.changed);
 
             return format!(
                 "{{\"success\": true, \"message\": \"Mailbox updated\", \"data\": {{\"new_uids\": {}, \"removed_uids\": {}, \"changed_uids\": {}}}}}",
@@ -578,7 +577,7 @@ pub async fn modify_flags(
     .await
     {
         Ok(_) => {
-            let flag_str = parser::parse_string_vec(&flags);
+            let flag_str = to_display::string_vec_to_display(&flags);
 
             return format!(
                 "{{\"success\": true, \"message\": \"Flags successfully updated\", \"data\": {}}}",

@@ -1,4 +1,4 @@
-use async_imap::types::{Fetch, Flag};
+use async_imap::types::Fetch;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use regex::Regex;
 use std::collections::HashMap;
@@ -200,69 +200,6 @@ fn parse_message_body(body: &str) -> Message {
         text,
         html,
     };
-}
-
-pub fn parse_flag_vec(flags: &[Flag]) -> String {
-    let mut flags_str = String::from("[");
-
-    for (i, flag) in flags.iter().enumerate() {
-        flags_str.push_str(&format!("\"{:?}\"", flag));
-
-        if i < flags.len() - 1 {
-            flags_str.push_str(", ");
-        }
-    }
-    flags_str.push_str("]");
-
-    return flags_str;
-}
-
-pub fn parse_message_vec(messages: &Vec<Message>) -> String {
-    let mut result = String::from("[");
-
-    for (i, message) in messages.iter().enumerate() {
-        result.push_str(&message.to_string());
-
-        if i < messages.len() - 1 {
-            result.push_str(",");
-        }
-    }
-
-    result.push_str("]");
-
-    return result;
-}
-
-pub fn parse_string_vec(strings: &Vec<String>) -> String {
-    let mut result = String::from("[");
-
-    for (i, string) in strings.iter().enumerate() {
-        result.push_str(&format!("\"{}\"", string));
-
-        if i < strings.len() - 1 {
-            result.push_str(",");
-        }
-    }
-
-    result.push_str("]");
-
-    return result;
-}
-
-pub fn parse_u32_vec(u32s: &Vec<u32>) -> String {
-    let mut result = String::from("[");
-
-    for (i, u32) in u32s.iter().enumerate() {
-        result.push_str(&u32.to_string());
-
-        if i < u32s.len() - 1 {
-            result.push_str(",");
-        }
-    }
-
-    result.push_str("]");
-
-    return result;
 }
 
 pub fn parse_fetch(fetch: &Fetch) -> Result<Message, MyError> {

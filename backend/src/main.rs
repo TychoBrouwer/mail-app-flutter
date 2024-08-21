@@ -7,6 +7,7 @@ mod http_server {
     mod handle_conn;
     pub mod http_server;
     mod params;
+    pub mod to_display;
 }
 pub mod inbox_client;
 mod types {

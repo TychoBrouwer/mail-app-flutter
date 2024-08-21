@@ -128,24 +128,20 @@ async fn get_highest_seq_imap(
         Err(e) => return Err(e),
     };
 
-    let highest_seq: u32;
-    let highest_seq_uid: u32;
+    match messages.first() {
+        Some(m) => {
+            return Ok((m.sequence_id, m.message_uid));
+        }
+        None => {
+            let err = MyError::String(
+                String::from("Sequence id not found in imap"),
+                String::from("Failed to get message from imap"),
+            );
+            err.log_error();
 
-    let message = messages.first();
-    if message.is_some() {
-        highest_seq = message.unwrap().sequence_id;
-        highest_seq_uid = message.unwrap().message_uid;
-    } else {
-        let err = MyError::String(
-            String::from("Sequence id not found in imap"),
-            String::from("Failed to get message from imap"),
-        );
-        err.log_error();
-
-        return Err(err);
+            return Err(err);
+        }
     }
-
-    return Ok((highest_seq, highest_seq_uid));
 }
 
 async fn get_highest_seq_db(
@@ -173,17 +169,19 @@ async fn get_highest_seq_db(
         Err(e) => return Err(e),
     };
 
-    let message = messages.first();
-    if message.is_some() {
-        return Ok(message.unwrap().sequence_id);
-    } else {
-        let err = MyError::String(
-            String::from("Message not found in db"),
-            String::from("Failed to get message from db"),
-        );
-        err.log_error();
+    match messages.first() {
+        Some(m) => {
+            return Ok(m.sequence_id);
+        }
+        None => {
+            let err = MyError::String(
+                String::from("Sequence id not found in db"),
+                String::from("Failed to get message from db"),
+            );
+            err.log_error();
 
-        return Err(err);
+            return Err(err);
+        }
     }
 }
 
@@ -293,7 +291,7 @@ async fn get_changes(
         .map(|message| (message.message_uid, message.sequence_id))
         .collect();
 
-    let database_request = DatabaseRequest {
+    let batch_messages_request = DatabaseRequest {
         username: client.username.clone(),
         address: client.address.clone(),
         mailbox_path: mailbox_path.to_string(),
@@ -308,10 +306,11 @@ async fn get_changes(
     };
 
     let database_conn_2 = Arc::clone(&database_conn);
-    let messages_database = match database::messages::get(database_conn_2, database_request).await {
-        Ok(m) => m,
-        Err(e) => return Err(e),
-    };
+    let messages_database =
+        match database::messages::get(database_conn_2, batch_messages_request).await {
+            Ok(m) => m,
+            Err(e) => return Err(e),
+        };
 
     let changed_seq_id_uids: Vec<ChangedSeqIdData> = messages_database
         .iter()
@@ -331,7 +330,7 @@ async fn get_changes(
         username: client.username.clone(),
         address: client.address.clone(),
         mailbox_path: mailbox_path.to_string(),
-        return_data: MessageReturnData::All,
+        return_data: MessageReturnData::Uid,
         id_type: MessageIdType::SequenceIds,
         sorted: false,
         start: None,

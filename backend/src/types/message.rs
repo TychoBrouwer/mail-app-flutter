@@ -3,7 +3,7 @@ use std::vec;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use rusqlite::Row;
 
-use crate::{mime_parser::parser, types::database_request::MessageReturnData};
+use crate::types::database_request::MessageReturnData;
 
 #[derive(Debug)]
 pub struct Message {
@@ -32,6 +32,7 @@ impl Message {
             MessageReturnData::All => Message::from_row_all(row),
             MessageReturnData::Flags => Message::from_row_flags(row),
             MessageReturnData::AllWithFlags => Message::from_row_all_with_flags(row),
+            MessageReturnData::Uid => Message::from_row_uid(row),
         }
     }
 
@@ -57,6 +58,28 @@ impl Message {
             flags: vec![],
             html: BASE64_STANDARD.encode(html.as_bytes()),
             text: BASE64_STANDARD.encode(text.as_bytes()),
+        }
+    }
+
+    fn from_row_uid(row: &Row) -> Message {
+        Message {
+            message_uid: row.get(0).unwrap(),
+            sequence_id: 0,
+            message_id: String::from(""),
+            subject: String::from(""),
+            from: String::from(""),
+            sender: String::from(""),
+            to: String::from(""),
+            cc: String::from(""),
+            bcc: String::from(""),
+            reply_to: String::from(""),
+            in_reply_to: String::from(""),
+            delivered_to: String::from(""),
+            date: 0,
+            received: 0,
+            flags: vec![],
+            html: String::from(""),
+            text: String::from(""),
         }
     }
 
@@ -110,65 +133,5 @@ impl Message {
             html: BASE64_STANDARD.encode(html.as_bytes()),
             text: BASE64_STANDARD.encode(text.as_bytes()),
         }
-    }
-
-    pub fn to_string(&self) -> String {
-        let result = String::from("{")
-            + &format!("\"uid\":{},", self.message_uid)
-            + &format!("\"sequence_id\":{},", self.sequence_id)
-            + &format!("\"message_id\":\"{}\",", self.message_id)
-            + &format!("\"subject\":\"{}\",", self.subject)
-            + &format!("\"from\":{},", self.from)
-            + &format!("\"sender\":{},", self.sender)
-            + &format!("\"to\":{},", self.to)
-            + &format!("\"cc\":{},", self.cc)
-            + &format!("\"bcc\":{},", self.bcc)
-            + &format!("\"reply_to\":{},", self.reply_to)
-            + &format!("\"in_reply_to\":\"{}\",", self.in_reply_to)
-            + &format!("\"delivered_to\":\"{}\",", self.delivered_to)
-            + &format!("\"date\":{},", self.date)
-            + &format!("\"received\":{},", self.received)
-            + &format!("\"flags\":{},", parser::parse_string_vec(&self.flags))
-            + &format!("\"html\":\"{}\",", self.html)
-            + &format!("\"text\":\"{}\"", self.text)
-            + "}";
-
-        return result;
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn get_message() -> Message {
-        Message {
-            message_uid: 1,
-            sequence_id: 2,
-            message_id: String::from("message_id"),
-            subject: String::from("subject"),
-            from: String::from("from"),
-            sender: String::from("sender"),
-            to: String::from("to"),
-            cc: String::from("cc"),
-            bcc: String::from("bcc"),
-            reply_to: String::from("reply_to"),
-            in_reply_to: String::from("in_reply_to"),
-            delivered_to: String::from("delivered_to"),
-            date: 3,
-            received: 4,
-            flags: vec![String::from("seen"), String::from("flagged")],
-            text: String::from("text"),
-            html: String::from("html"),
-        }
-    }
-
-    #[test]
-    fn to_string() {
-        let message = get_message();
-
-        let expected = r#"{"uid":1,"sequence_id":2,"message_id":"message_id","subject":"subject","from":from,"sender":sender,"to":to,"cc":cc,"bcc":bcc,"reply_to":reply_to,"in_reply_to":"in_reply_to","delivered_to":"delivered_to","date":3,"received":4,"flags":["seen","flagged"],"html":"html","text":"text"}"#;
-
-        assert_eq!(message.to_string(), expected);
     }
 }

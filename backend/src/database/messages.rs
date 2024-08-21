@@ -168,7 +168,7 @@ pub async fn get(
 ) -> Result<Vec<Message>, MyError> {
     let locked_conn = conn.lock().await;
 
-    let (query, highest_param) = get_query(&request);
+    let (query, highest_param) = construct_sql_query(&request);
 
     let mut list: Option<vtab::array::Array> = None;
     if request.id_rarray.is_some() {
@@ -311,7 +311,7 @@ pub async fn get_flags_with_rarray(
     return Ok(flags);
 }
 
-fn get_query(request: &DatabaseRequest) -> (String, usize) {
+fn construct_sql_query(request: &DatabaseRequest) -> (String, usize) {
     let mut query = String::from("SELECT ");
 
     let mut highest_param = 3;
@@ -328,6 +328,9 @@ fn get_query(request: &DatabaseRequest) -> (String, usize) {
         MessageReturnData::Flags => {
             query.push_str("messages.message_uid, flags.flag ");
             get_flags = true;
+        }
+        MessageReturnData::Uid => {
+            query.push_str("messages.message_uid ");
         }
     }
     query.push_str("FROM messages ");
@@ -388,7 +391,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn get_query_rarray_uids() {
+    fn construct_sql_query_rarray_uids() {
         let request = DatabaseRequest {
             username: "username".to_string(),
             address: "address".to_string(),
@@ -403,13 +406,13 @@ mod tests {
             not_flag: None,
         };
 
-        let (query, highest_param) = get_query(&request);
+        let (query, highest_param) = construct_sql_query(&request);
         assert_eq!(query, "SELECT * FROM messages WHERE messages.c_username = ?1 AND messages.c_address = ?2 AND messages.m_path = ?3 AND messages.message_uid IN rarray(?4) ");
         assert_eq!(highest_param, 4);
     }
 
     #[test]
-    fn get_query_rarray_seq() {
+    fn construct_sql_query_rarray_seq() {
         let request = DatabaseRequest {
             username: "username".to_string(),
             address: "address".to_string(),
@@ -424,13 +427,13 @@ mod tests {
             not_flag: None,
         };
 
-        let (query, highest_param) = get_query(&request);
+        let (query, highest_param) = construct_sql_query(&request);
         assert_eq!(query, "SELECT * FROM messages WHERE messages.c_username = ?1 AND messages.c_address = ?2 AND messages.m_path = ?3 AND messages.sequence_id IN rarray(?4) ");
         assert_eq!(highest_param, 4);
     }
 
     #[test]
-    fn get_query_start_end() {
+    fn construct_sql_query_start_end() {
         let request = DatabaseRequest {
             username: "username".to_string(),
             address: "address".to_string(),
@@ -445,13 +448,13 @@ mod tests {
             not_flag: None,
         };
 
-        let (query, highest_param) = get_query(&request);
+        let (query, highest_param) = construct_sql_query(&request);
         assert_eq!(query, "SELECT * FROM messages WHERE messages.c_username = ?1 AND messages.c_address = ?2 AND messages.m_path = ?3 LIMIT ?6 OFFSET ?7 ");
         assert_eq!(highest_param, 7);
     }
 
     #[test]
-    fn get_query_start_end_sorted() {
+    fn construct_sql_query_start_end_sorted() {
         let request = DatabaseRequest {
             username: "username".to_string(),
             address: "address".to_string(),
@@ -466,13 +469,13 @@ mod tests {
             not_flag: None,
         };
 
-        let (query, highest_param) = get_query(&request);
+        let (query, highest_param) = construct_sql_query(&request);
         assert_eq!(query, "SELECT * FROM messages WHERE messages.c_username = ?1 AND messages.c_address = ?2 AND messages.m_path = ?3 ORDER BY messages.received DESC LIMIT ?6 OFFSET ?7 ");
         assert_eq!(highest_param, 7);
     }
 
     #[test]
-    fn get_query_with_flag() {
+    fn construct_sql_query_with_flag() {
         let request = DatabaseRequest {
             username: "username".to_string(),
             address: "address".to_string(),
@@ -487,13 +490,13 @@ mod tests {
             not_flag: Some(false),
         };
 
-        let (query, highest_param) = get_query(&request);
+        let (query, highest_param) = construct_sql_query(&request);
         assert_eq!(query, "SELECT messages.message_uid, flags.flag FROM messages INNER JOIN flags ON messages.message_uid = flags.message_uid AND messages.c_username = flags.c_username AND messages.c_address = flags.c_address AND messages.m_path = flags.m_path WHERE messages.c_username = ?1 AND messages.c_address = ?2 AND messages.m_path = ?3 AND flags.flag = ?5 ");
         assert_eq!(highest_param, 5);
     }
 
     #[test]
-    fn get_query_without_flag() {
+    fn construct_sql_query_without_flag() {
         let request = DatabaseRequest {
             username: "username".to_string(),
             address: "address".to_string(),
@@ -508,13 +511,13 @@ mod tests {
             not_flag: Some(true),
         };
 
-        let (query, highest_param) = get_query(&request);
+        let (query, highest_param) = construct_sql_query(&request);
         assert_eq!(query, "SELECT messages.message_uid, flags.flag FROM messages LEFT JOIN flags ON messages.message_uid = flags.message_uid AND messages.c_username = flags.c_username AND messages.c_address = flags.c_address AND messages.m_path = flags.m_path WHERE messages.c_username = ?1 AND messages.c_address = ?2 AND messages.m_path = ?3 AND messages.message_uid NOT IN (SELECT message_uid FROM flags WHERE flag = ?5) ");
         assert_eq!(highest_param, 5);
     }
 
     #[test]
-    fn get_query_with_flags() {
+    fn construct_sql_query_with_flags() {
         let request = DatabaseRequest {
             username: "username".to_string(),
             address: "address".to_string(),
@@ -529,13 +532,13 @@ mod tests {
             not_flag: None,
         };
 
-        let (query, highest_param) = get_query(&request);
+        let (query, highest_param) = construct_sql_query(&request);
         assert_eq!(query, "SELECT messages.message_uid, flags.flag FROM messages INNER JOIN flags ON messages.message_uid = flags.message_uid AND messages.c_username = flags.c_username AND messages.c_address = flags.c_address AND messages.m_path = flags.m_path WHERE messages.c_username = ?1 AND messages.c_address = ?2 AND messages.m_path = ?3 ");
         assert_eq!(highest_param, 3);
     }
 
     #[test]
-    fn get_query_all_with_flags() {
+    fn construct_sql_query_all_with_flags() {
         let request = DatabaseRequest {
             username: "username".to_string(),
             address: "address".to_string(),
@@ -550,7 +553,7 @@ mod tests {
             not_flag: None,
         };
 
-        let (query, highest_param) = get_query(&request);
+        let (query, highest_param) = construct_sql_query(&request);
         assert_eq!(query, "SELECT messages.*, flags.flag FROM messages INNER JOIN flags ON messages.message_uid = flags.message_uid AND messages.c_username = flags.c_username AND messages.c_address = flags.c_address AND messages.m_path = flags.m_path WHERE messages.c_username = ?1 AND messages.c_address = ?2 AND messages.m_path = ?3 ");
         assert_eq!(highest_param, 3);
     }
