@@ -1,5 +1,5 @@
-import 'dart:io' show File, Platform;
-import 'dart:ui';
+import 'dart:io' show File, PathNotFoundException, Platform;
+import 'dart:ui' show Color;
 
 import 'package:flutter/services.dart' show rootBundle;
 
@@ -44,6 +44,10 @@ class Configuration {
       _appConfig.addAll(configAsMap);
     } catch (e) {
       print("Error: $e");
+
+      if (e is PathNotFoundException) {
+        await save();
+      }
     }
 
     return _singleton;

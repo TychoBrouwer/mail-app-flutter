@@ -1,9 +1,9 @@
-import 'package:mail_app/services/http_service.dart';
-import 'package:mail_app/types/http_request_path.dart';
-import 'package:mail_app/types/mail_account.dart';
-import 'package:mail_app/types/mailbox_info.dart';
-import 'package:mail_app/types/message.dart';
-import 'package:mail_app/types/message_flag.dart';
+import 'http_service.dart';
+import '../types/http_request_path.dart';
+import '../types/mail_account.dart';
+import '../types/mailbox_info.dart';
+import '../types/message.dart';
+import '../types/message_flag.dart';
 
 class InboxService {
   static final InboxService _singleton = InboxService._internal();

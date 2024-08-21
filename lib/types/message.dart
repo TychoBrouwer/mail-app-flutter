@@ -1,7 +1,7 @@
 import 'dart:convert' as convert show base64Decode, utf8;
 
-import 'package:mail_app/types/message_address.dart';
-import 'package:mail_app/types/message_flag.dart';
+import 'message_address.dart';
+import 'message_flag.dart';
 
 class Message {
   late int uid;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:mail_app/types/project_colors.dart';
-import 'package:mail_app/types/project_sizes.dart';
+import '../types/project_colors.dart';
+import '../types/project_sizes.dart';
 
 class CustomButton extends StatelessWidget {
   final void Function() onTap;

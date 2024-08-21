@@ -1,14 +1,14 @@
+import 'package:csslib/visitor.dart' as css_parser show Declaration;
 import 'package:flutter/material.dart';
-import 'package:html/dom.dart' as html_dom;
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart'
-    as html_widget;
-import 'package:csslib/visitor.dart' as css_parser;
+    as html_widget show BuildTree, ListViewMode, WidgetFactory, HtmlWidget;
+import 'package:html/dom.dart' as html_dom show Element;
 
-import 'package:mail_app/types/message.dart';
-import 'package:mail_app/types/project_sizes.dart';
-import 'package:mail_app/utils/hex_color.dart';
-import 'package:mail_app/types/project_colors.dart';
-import 'package:mail_app/widgets/message/message_header.dart';
+import '../../types/message.dart';
+import '../../types/project_colors.dart';
+import '../../types/project_sizes.dart';
+import '../../utils/hex_color.dart';
+import 'message_header.dart';
 
 class _HtmlWidgetFactory extends html_widget.WidgetFactory {
   @override

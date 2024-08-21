@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:email_validator/email_validator.dart' show EmailValidator;
 
-import 'package:mail_app/services/inbox_service.dart';
-import 'package:mail_app/services/overlay_builder.dart';
-import 'package:mail_app/types/project_colors.dart';
-import 'package:mail_app/types/project_sizes.dart';
-import 'package:mail_app/widgets/custom_button.dart';
-import 'package:mail_app/widgets/custom_form_field.dart';
+import '../services/inbox_service.dart';
+import '../services/overlay_builder.dart';
+import '../types/project_colors.dart';
+import '../types/project_sizes.dart';
+import 'custom_button.dart';
+import 'custom_form_field.dart';
 
 class AddAccount extends StatefulWidget {
   const AddAccount({super.key});

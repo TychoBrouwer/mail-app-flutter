@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:mail_app/screens/splash.dart';
-import 'package:mail_app/services/global_configuration.dart';
-import 'package:mail_app/types/project_colors.dart';
+import 'screens/splash.dart';
+import 'services/global_configuration.dart';
+import 'types/project_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

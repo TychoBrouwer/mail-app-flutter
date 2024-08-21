@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'package:mail_app/types/project_colors.dart';
-import 'package:mail_app/types/project_sizes.dart';
-import 'package:mail_app/types/settings_tab.dart';
-import 'package:mail_app/widgets/custom_button.dart';
-import 'package:mail_app/widgets/custom_icon_button.dart';
+import '../../types/project_colors.dart';
+import '../../types/project_sizes.dart';
+import '../../types/settings_tab.dart';
+import '../custom_button.dart';
+import '../custom_icon_button.dart';
 
 class SettingsHeader extends StatefulWidget {
   final void Function() closeSettings;

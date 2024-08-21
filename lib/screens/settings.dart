@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:mail_app/types/project_colors.dart';
-import 'package:mail_app/types/settings_tab.dart';
-import 'package:mail_app/widgets/settings/settings_header.dart';
+import '../types/project_colors.dart';
+import '../types/settings_tab.dart';
+import '../widgets/settings/settings_header.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});

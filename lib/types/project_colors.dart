@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' show Color;
-import 'package:mail_app/services/global_configuration.dart';
+
+import '../services/global_configuration.dart';
 
 class ProjectColors {
   static Color Function(bool) get accent => (bool main) => main

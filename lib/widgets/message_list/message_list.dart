@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 
-import 'package:mail_app/types/message.dart';
-import 'package:mail_app/types/project_colors.dart';
-import 'package:mail_app/widgets/message_list/message_preview.dart';
+import '../../types/message.dart';
+import '../../types/project_colors.dart';
+import 'message_preview.dart';
 
 class MessageList extends StatefulWidget {
   final List<Message> messages;

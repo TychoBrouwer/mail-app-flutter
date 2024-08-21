@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show TextInputFormatter;
 
-import 'package:mail_app/types/project_colors.dart';
+import '../types/project_colors.dart';
 
 class CustomFormField extends StatefulWidget {
   final void Function(String?)? onSaved;

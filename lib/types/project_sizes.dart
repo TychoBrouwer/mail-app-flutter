@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' show Radius, BorderRadius;
-import 'package:mail_app/services/global_configuration.dart';
+
+import '../services/global_configuration.dart';
 
 class ProjectSizes {
   static final double fontSize =

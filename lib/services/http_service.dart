@@ -1,8 +1,8 @@
-import 'package:http/http.dart' as http;
+import 'package:http/http.dart' as http show get;
 import 'dart:convert' as convert show jsonDecode;
 
-import 'package:mail_app/types/http_request_path.dart';
-import 'package:mail_app/types/message_request.dart';
+import '../types/http_request_path.dart';
+import '../types/message_request.dart';
 
 class HttpService {
   final address = 'http://localhost:9001';

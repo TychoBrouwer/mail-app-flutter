@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
-import 'package:mail_app/services/overlay_builder.dart';
+import 'package:flutter_svg/svg.dart' show SvgPicture;
 
-import 'package:mail_app/types/notification_info.dart';
-import 'package:mail_app/types/project_colors.dart';
-import 'package:mail_app/types/project_sizes.dart';
+import '../services/overlay_builder.dart';
+import '../types/notification_info.dart';
+import '../types/project_colors.dart';
+import '../types/project_sizes.dart';
 
 class CustomNotification extends StatefulWidget {
   final NotificationInfo notification;

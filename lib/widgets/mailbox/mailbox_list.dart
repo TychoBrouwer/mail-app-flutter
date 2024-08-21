@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'package:mail_app/types/mailbox_info.dart';
-import 'package:mail_app/types/project_colors.dart';
-import 'package:mail_app/types/project_sizes.dart';
-import 'package:mail_app/widgets/custom_button.dart';
+import '../../types/mailbox_info.dart';
+import '../../types/project_colors.dart';
+import '../../types/project_sizes.dart';
+import '../custom_button.dart';
 
 class MailboxList extends StatefulWidget {
   final Map<int, List<MailboxInfo>> mailboxTree;

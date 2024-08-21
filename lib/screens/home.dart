@@ -1,25 +1,25 @@
-import 'dart:async';
+import 'dart:async' show Completer, Future;
 
 import 'package:flutter/material.dart';
-import 'package:mail_app/screens/settings.dart';
 
-import 'package:mail_app/services/inbox_service.dart';
-import 'package:mail_app/types/mail_account.dart';
-import 'package:mail_app/types/mailbox_info.dart';
-import 'package:mail_app/types/message.dart';
-import 'package:mail_app/types/message_flag.dart';
-import 'package:mail_app/types/notification_info.dart';
-import 'package:mail_app/widgets/add_account.dart';
-import 'package:mail_app/widgets/custom_notification.dart';
-import 'package:mail_app/widgets/message_list/message_list.dart';
-import 'package:mail_app/widgets/message_list/message_list_header.dart';
-import 'package:mail_app/widgets/mailbox/mailbox_list_header.dart';
-import 'package:mail_app/widgets/mailbox/mailbox_list.dart';
-import 'package:mail_app/widgets/message/message_content.dart';
-import 'package:mail_app/widgets/message/message_control_bar.dart';
-import 'package:mail_app/services/overlay_builder.dart';
-import 'package:mail_app/types/project_colors.dart';
-import 'package:mail_app/widgets/vertical_split_view.dart';
+import '../services/inbox_service.dart';
+import '../types/mail_account.dart';
+import '../types/mailbox_info.dart';
+import '../types/message.dart';
+import '../types/message_flag.dart';
+import '../types/notification_info.dart';
+import '../widgets/add_account.dart';
+import '../widgets/custom_notification.dart';
+import '../widgets/message_list/message_list.dart';
+import '../widgets/message_list/message_list_header.dart';
+import '../widgets/mailbox/mailbox_list_header.dart';
+import '../widgets/mailbox/mailbox_list.dart';
+import '../widgets/message/message_content.dart';
+import '../widgets/message/message_control_bar.dart';
+import '../services/overlay_builder.dart';
+import '../types/project_colors.dart';
+import 'settings.dart';
+import '../widgets/vertical_split_view.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
