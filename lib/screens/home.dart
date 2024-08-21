@@ -136,6 +136,8 @@ class HomePageState extends State<HomePage> {
 
     await Future.delayed(const Duration(milliseconds: 500), () {});
     completer.complete();
+
+    print('loaded more messages');
   }
 
   void _readMessage() async {

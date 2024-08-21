@@ -13,12 +13,12 @@ header = "20, 20, 20, 1"
 headerSecondary = "52, 52, 52, 1"
 
 [appSizes]
-fontSize = 12
-fontSizeSmall = 10
-fontSizeLarge = 15
-fontSizeExtraLarge = 22
-iconSize = 16
-radius = 10
-radiusSmall = 5
-radiusExtraSmall = 3
-radiusLarge = 15
+fontSize = 12.0
+fontSizeSmall = 10.0
+fontSizeLarge = 15.0
+fontSizeExtraLarge = 22.0
+iconSize = 16.0
+radius = 10.0
+radiusSmall = 5.0
+radiusExtraSmall = 3.0
+radiusLarge = 15.0

@@ -21,7 +21,9 @@ class Configuration {
 
   final Map<String, dynamic> _appConfig = {};
 
-  final _localPath = Platform.isWindows ? "~/AppData/Local/" : "~/.config/";
+  final _localPath = Platform.isWindows
+      ? "${Platform.environment["APPDATA"]}\\mail_app\\"
+      : "${Platform.environment["HOME"]}/.config/mail_app/";
 
   Future<Configuration> loadFromAsset() async {
     String content = await rootBundle.loadString("assets/cfg/$configName");
@@ -41,7 +43,7 @@ class Configuration {
       String content = await file.readAsString();
       Map<String, dynamic> configAsMap = decodeToml(content);
 
-      _appConfig.addAll(configAsMap);
+      _appConfig.updateAll((key, value) => configAsMap[key] ?? value);
     } catch (e) {
       print("Error: $e");
 
@@ -54,7 +56,7 @@ class Configuration {
   }
 
   Future<void> save() async {
-    final file = File(_localPath + configName);
+    final file = await File(_localPath + configName).create(recursive: true);
 
     await file.writeAsString(encodeToml(_appConfig));
   }
@@ -81,11 +83,9 @@ class Configuration {
           int.parse(rgbo[2]),
           double.parse(rgbo[3]),
         );
-      } else if (T == double) {
+      } else if (T is double) {
         value = double.parse(value);
-      }
-
-      if (T == int) {
+      } else if (T is int) {
         value = int.parse(value);
       }
 
@@ -118,7 +118,11 @@ Map<String, dynamic> decodeToml(String content) {
 
   for (var line in content.split("\n")) {
     if (line.startsWith("[")) {
-      final posibleKey = line.substring(1, line.length - 2);
+      var posibleKey = line.substring(1, line.length - 1);
+
+      if (posibleKey.endsWith("]")) {
+        posibleKey = posibleKey.substring(0, posibleKey.length - 1);
+      }
 
       if (validKeys.contains(posibleKey)) {
         key = posibleKey;
@@ -131,16 +135,20 @@ Map<String, dynamic> decodeToml(String content) {
       var parts = line.split("=");
 
       parts[0] = parts[0].trim();
-      parts[1] = parts[1].trim();
+      dynamic value = parts[1].trim();
 
-      if (parts[1].startsWith("\"") && parts[1].endsWith("\"")) {
-        parts[1] = parts[1].substring(1, parts[1].length - 1);
+      try {
+        value = double.parse(parts[1]);
+      } catch (e) {
+        if (value.startsWith("\"") && value.endsWith("\"")) {
+          value = value.substring(1, value.length - 1);
+        }
       }
 
       if (key.isNotEmpty) {
-        result[key]![parts[0]] = parts[1];
+        result[key]![parts[0]] = value;
       } else {
-        result[parts[0]] = parts[1];
+        result[parts[0]] = value;
       }
     }
   }
@@ -152,14 +160,23 @@ String encodeToml(Map<String, dynamic> content) {
   String result = "";
 
   content.forEach((key, value) {
-    result += "[$key]\n";
+    if (value is Map) {
+      result += "[$key]\n";
 
-    if (value.runtimeType == Map) {
       value.forEach((key, value) {
+        if (value is String) {
+          value = "\"$value\"";
+        }
         result += "$key = $value\n";
       });
+
+      result += "\n";
     } else {
-      result += "$value\n";
+      if (value is String) {
+        value = "\"$value\"";
+      }
+
+      result += "$key = $value\n";
     }
   });
 
