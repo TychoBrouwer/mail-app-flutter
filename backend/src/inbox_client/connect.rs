@@ -52,6 +52,10 @@ async fn database(
     match database::connections::insert(database_conn, client_add).await {
         Ok(_) => {}
         Err(e) => {
+            let mut locked_clients = clients.lock().await;
+            locked_clients.remove(idx);
+            drop(locked_clients);
+
             return Err(e);
         }
     }

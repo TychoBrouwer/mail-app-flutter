@@ -1,7 +1,7 @@
 use std::vec;
 
 use base64::{prelude::BASE64_STANDARD, Engine};
-use rusqlite::Row;
+use rusqlite::{Row, Error as SqlError};
 
 use crate::types::database_request::MessageReturnData;
 
@@ -84,6 +84,12 @@ impl Message {
     }
 
     fn from_row_flags(row: &Row) -> Message {
+        let mut flags = vec![];
+        let flag: Result<String, SqlError> = row.get(1);
+        if flag.is_ok() {
+            flags.push(flag.unwrap());
+        };
+
         Message {
             message_uid: row.get(0).unwrap(),
             sequence_id: 0,
@@ -99,7 +105,7 @@ impl Message {
             delivered_to: String::from(""),
             date: 0,
             received: 0,
-            flags: vec![row.get(1).unwrap()],
+            flags,
             html: String::from(""),
             text: String::from(""),
         }

@@ -26,10 +26,10 @@ def main():
     # response = requests.get(f'{base_url}/get_mailboxes', params=mailboxes_params)
     # print(f"received: {response.text}")
 
-    # Update mailbox quick
-    update_mailbox_params = { 'session_id': '0', 'mailbox_path': 'INBOX', 'quick': 'true' }
-    response = requests.get(f'{base_url}/update_mailbox', params=update_mailbox_params)
-    print(f"received: {response.text}")
+    ## Update mailbox quick
+    #update_mailbox_params = { 'session_id': '0', 'mailbox_path': 'INBOX', 'quick': 'true' }
+    #response = requests.get(f'{base_url}/update_mailbox', params=update_mailbox_params)
+    #print(f"received: {response.text}")
 
     # # Update mailbox
     # update_mailbox_params = { 'session_id': '0', 'mailbox_path': 'INBOX' }
@@ -41,10 +41,10 @@ def main():
     # response = requests.get(f'{base_url}/get_messages_with_uids', params=messages_params)
     # print(f"received: {response.text}")
 
-    # Get messages sorted
-    messages_params_sorted = { 'session_id': '0', 'mailbox_path': 'INBOX', 'start': '0', 'end': '30' }
-    response = requests.get(f'{base_url}/get_messages_sorted', params=messages_params_sorted)
-    print(f"received: {response.text}")
+    ## Get messages sorted
+    #messages_params_sorted = { 'session_id': '0', 'mailbox_path': 'INBOX', 'start': '0', 'end': '30' }
+    #response = requests.get(f'{base_url}/get_messages_sorted', params=messages_params_sorted)
+    #print(f"received: {response.text}")
 
     # # Get messages unseen
     # messages_params_unseen = { 'session_id': '0', 'mailbox_path': 'INBOX', 'flag': 'Seen', 'not_flag': 'true' }

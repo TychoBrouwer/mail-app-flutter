@@ -55,7 +55,8 @@ pub async fn login(
         port,
     };
 
-    match inbox_client::connect::connect(sessions, database_conn, clients, &client_add).await {
+    let clients_2 = Arc::clone(&clients);
+    match inbox_client::connect::connect(sessions, database_conn, clients_2, &client_add).await {
         Ok(idx) => {
             return format!("{{\"success\": true, \"message\": \"Connected to IMAP server\", \"data\": {{ \"session_id\": {}}}}}", idx);
         }
@@ -354,7 +355,7 @@ pub async fn get_messages_sorted(
     {
         Ok(messages) => {
             let messages_str = to_display::message_vec_to_display(&messages);
-
+            
             return format!(
                 "{{\"success\": true, \"message\": \"Messages retrieved\", \"data\": {}}}",
                 messages_str
