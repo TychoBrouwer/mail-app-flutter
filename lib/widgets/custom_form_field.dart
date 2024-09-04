@@ -76,17 +76,17 @@ class CustomFormFieldState extends State<CustomFormField> {
               borderSide:
                   BorderSide(width: 2, color: ProjectColors.accent(true)),
             ),
-            errorBorder: UnderlineInputBorder(
-              borderSide:
-                  BorderSide(width: 2, color: ProjectColors.accent(false)),
-            ),
             focusedErrorBorder: UnderlineInputBorder(
               borderSide:
                   BorderSide(width: 2, color: ProjectColors.accent(true)),
             ),
-            errorStyle: TextStyle(color: ProjectColors.accent(true)),
+            errorBorder: UnderlineInputBorder(
+              borderSide:
+                  BorderSide(width: 2, color: ProjectColors.accent(false)),
+            ),
             labelStyle: TextStyle(color: ProjectColors.text(true)),
             hintStyle: TextStyle(color: ProjectColors.text(true)),
+            errorStyle: const TextStyle(fontWeight: FontWeight.w500),
             errorMaxLines: 1,
             hintText: _hintText,
             labelText: _labelText,

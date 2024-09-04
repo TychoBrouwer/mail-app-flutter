@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../types/project_colors.dart';
 import '../types/settings_tab.dart';
+import '../widgets/settings/settings_account.dart';
+import '../widgets/settings/settings_customization.dart';
 import '../widgets/settings/settings_header.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -12,6 +14,8 @@ class SettingsPage extends StatefulWidget {
 }
 
 class SettingsPageState extends State<SettingsPage> {
+  Widget settingsPage = const SettingsAccount();
+
   _closeSettings() {
     if (!mounted) return;
 
@@ -19,7 +23,22 @@ class SettingsPageState extends State<SettingsPage> {
   }
 
   _showPage(SettingsTab tab) {
-    // Show the page
+    if (!mounted) return;
+
+    switch (tab) {
+      case SettingsTab.Customization:
+        setState(() {
+          settingsPage = const SettingsCustomization();
+        });
+        break;
+      case SettingsTab.Accounts:
+        setState(() {
+          settingsPage = const SettingsAccount();
+        });
+        break;
+      default:
+        break;
+    }
   }
 
   @override
@@ -36,6 +55,9 @@ class SettingsPageState extends State<SettingsPage> {
                 closeSettings: _closeSettings,
                 showPage: _showPage,
               ),
+              Expanded(
+                child: settingsPage,
+              )
             ],
           ),
         ),

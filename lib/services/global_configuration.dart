@@ -34,6 +34,17 @@ class Configuration {
     return _singleton;
   }
 
+  Future<Configuration> resetLocal() async {
+    final file = File(_localPath + configName);
+
+    if (!await file.exists()) return _singleton;
+
+    await file.delete();
+    await loadFromAsset();
+
+    return _singleton;
+  }
+
   Future<Configuration> loadFromLocal() async {
     await loadFromAsset();
 
