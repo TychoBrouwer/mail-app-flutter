@@ -47,6 +47,8 @@ Run flutter frontend with ```flutter run -d windows```
 
 ![Screenshot](assets/screenshots/screenshot-2.png)
 
+![Screenshot](assets/screenshots/screenshot-3.png)
+
 ## Database Design
 
 | CONNECTIONS   |      |              |
