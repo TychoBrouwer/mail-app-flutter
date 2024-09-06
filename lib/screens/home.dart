@@ -124,12 +124,16 @@ class HomePageState extends State<HomePage> {
 
     final completer = Completer();
     _showNotification("Loading more messages", true, completer.future);
+  
+    print(1+_currentPage*_messageLoadCount);
+    print(_messageLoadCount + _currentPage*_messageLoadCount);
 
     final newMessages = await InboxService().getMessages(
       start: 1 + _currentPage * _messageLoadCount,
       end: _messageLoadCount + _currentPage * _messageLoadCount,
     );
 
+    print(newMessages.length);
     setState(() {
       _messages.addAll(newMessages);
     });

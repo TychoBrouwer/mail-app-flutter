@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import '../types/project_colors.dart';
 import '../types/settings_tab.dart';
 import '../widgets/settings/settings_account.dart';
-import '../widgets/settings/settings_customization.dart';
+import '../widgets/settings/settings_theme.dart';
 import '../widgets/settings/settings_header.dart';
+import '../widgets/settings/settings_customisation.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -26,11 +27,15 @@ class SettingsPageState extends State<SettingsPage> {
     if (!mounted) return;
 
     switch (tab) {
-      case SettingsTab.Customization:
+      case SettingsTab.Theme:
         setState(() {
-          settingsPage = const SettingsCustomization();
+          settingsPage = const SettingsTheme();
         });
         break;
+      case SettingsTab.Customisation:
+        setState(() {
+          settingsPage = const SettingsCustomisation();
+        });
       case SettingsTab.Accounts:
         setState(() {
           settingsPage = const SettingsAccount();

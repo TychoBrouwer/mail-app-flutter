@@ -6,14 +6,14 @@ import '../../types/project_colors.dart';
 import '../../types/project_sizes.dart';
 import '../../utils/hex_color.dart';
 
-class SettingsCustomization extends StatefulWidget {
-  const SettingsCustomization({super.key});
+class SettingsTheme extends StatefulWidget {
+  const SettingsTheme({super.key});
 
   @override
-  SettingsCustomizationState createState() => SettingsCustomizationState();
+  SettingsThemeState createState() => SettingsThemeState();
 }
 
-class SettingsCustomizationState extends State<SettingsCustomization> {
+class SettingsThemeState extends State<SettingsTheme> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   String rgbaToHex(int r, int g, int b, double a) {

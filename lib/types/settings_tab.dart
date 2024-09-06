@@ -2,5 +2,6 @@
 
 enum SettingsTab {
   Accounts,
-  Customization,
+  Theme,
+  Customisation,
 }
