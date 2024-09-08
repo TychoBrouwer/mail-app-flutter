@@ -13,8 +13,6 @@ class SettingsCustomisation extends StatefulWidget {
 }
 
 class SettingsCustomisationState extends State<SettingsCustomisation> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
   Widget sizeForm(
     double size,
     String labelText,
@@ -77,6 +75,7 @@ class SettingsCustomisationState extends State<SettingsCustomisation> {
                 child: CustomButton(
                   onTap: () {
                     currentSize.value = size;
+                    onChanged(currentSize.value);
                   },
                   child: Container(
                     padding: const EdgeInsets.only(
@@ -102,90 +101,87 @@ class SettingsCustomisationState extends State<SettingsCustomisation> {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Form(
-        key: _formKey,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 20),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  sizeForm(
-                    ProjectSizes.fontSizeSmall,
-                    "Font Size Small",
-                    (size) {
-                      print("Font size small: $size");
-                    },
-                  ),
-                  sizeForm(
-                    ProjectSizes.fontSize,
-                    "Font Size",
-                    (size) {
-                      print("Font size: $size");
-                    },
-                  ),
-                  sizeForm(
-                    ProjectSizes.fontSizeLarge,
-                    "Font Size Large",
-                    (size) {
-                      print("Font size Large: $size");
-                    },
-                  ),
-                  sizeForm(
-                    ProjectSizes.fontSizeExtraLarge,
-                    "Font Size Extra Large",
-                    (size) {
-                      print("Font size Extra Large: $size");
-                    },
-                  ),
-                  sizeForm(
-                    ProjectSizes.iconSize,
-                    "Icon Size",
-                    (size) {
-                      print("Icon size: $size");
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(width: 80),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  sizeForm(
-                    ProjectSizes.radiusExtraSmall,
-                    "Border Radius Extra Small",
-                    (size) {
-                      print("Border Radius Extra Small: $size");
-                    },
-                  ),
-                  sizeForm(
-                    ProjectSizes.radiusSmall,
-                    "Border Radius Small",
-                    (size) {
-                      print("Border Radius Small: $size");
-                    },
-                  ),
-                  sizeForm(
-                    ProjectSizes.radius,
-                    "Border Radius",
-                    (size) {
-                      print("Border Radius: $size");
-                    },
-                  ),
-                  sizeForm(
-                    ProjectSizes.radiusLarge,
-                    "Border Radius Large",
-                    (size) {
-                      print("Border Radius Large: $size");
-                    },
-                  ),
-                  const SizedBox(height: 60),
-                ],
-              ),
-            ],
-          ),
+      child: Padding(
+        padding: const EdgeInsets.only(top: 20),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                sizeForm(
+                  ProjectSizes.fontSizeSmall,
+                  "Font Size Small",
+                  (size) {
+                    print("Font size small: $size");
+                  },
+                ),
+                sizeForm(
+                  ProjectSizes.fontSize,
+                  "Font Size",
+                  (size) {
+                    print("Font size: $size");
+                  },
+                ),
+                sizeForm(
+                  ProjectSizes.fontSizeLarge,
+                  "Font Size Large",
+                  (size) {
+                    print("Font size Large: $size");
+                  },
+                ),
+                sizeForm(
+                  ProjectSizes.fontSizeExtraLarge,
+                  "Font Size Extra Large",
+                  (size) {
+                    print("Font size Extra Large: $size");
+                  },
+                ),
+                sizeForm(
+                  ProjectSizes.iconSize,
+                  "Icon Size",
+                  (size) {
+                    print("Icon size: $size");
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(width: 80),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                sizeForm(
+                  ProjectSizes.radiusExtraSmall,
+                  "Border Radius Extra Small",
+                  (size) {
+                    print("Border Radius Extra Small: $size");
+                  },
+                ),
+                sizeForm(
+                  ProjectSizes.radiusSmall,
+                  "Border Radius Small",
+                  (size) {
+                    print("Border Radius Small: $size");
+                  },
+                ),
+                sizeForm(
+                  ProjectSizes.radius,
+                  "Border Radius",
+                  (size) {
+                    print("Border Radius: $size");
+                  },
+                ),
+                sizeForm(
+                  ProjectSizes.radiusLarge,
+                  "Border Radius Large",
+                  (size) {
+                    print("Border Radius Large: $size");
+                  },
+                ),
+                const SizedBox(height: 60),
+              ],
+            ),
+          ],
         ),
       ),
     );
