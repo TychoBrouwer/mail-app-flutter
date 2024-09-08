@@ -74,11 +74,11 @@ class MessageListHeaderState extends State<MessageListHeader> {
             ),
           ),
           CustomButton(
-            onTap: () async => {
-              refreshFinished = false,
-              _refreshRotate(),
-              await _refreshAll(),
-              refreshFinished = true,
+            onTap: () async {
+              refreshFinished = false;
+              _refreshRotate();
+              await _refreshAll();
+              refreshFinished = true;
             },
             child: AnimatedRotation(
               alignment: Alignment.center,

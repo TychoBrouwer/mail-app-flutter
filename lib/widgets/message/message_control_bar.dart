@@ -59,17 +59,23 @@ class MessageControlBarState extends State<MessageControlBar> {
           CustomIconButton(
               onTap: () => _moveMessage(SpecialMailboxType.archive),
               icon: "box-archive"),
+          const SizedBox(width: 10),
           CustomIconButton(
               onTap: () => _flagMessage(MessageFlag.Flagged),
               icon: "circle-exclamation"),
+          const SizedBox(width: 10),
           CustomIconButton(
               onTap: () => _moveMessage(SpecialMailboxType.trash),
               icon: "trash-can"),
+          const SizedBox(width: 10),
           CustomIconButton(
               onTap: () => _flagMessage(MessageFlag.Seen),
               icon: "envelope-dot"),
+          const SizedBox(width: 10),
           CustomIconButton(onTap: _reply, icon: "reply"),
+          const SizedBox(width: 10),
           CustomIconButton(onTap: _replyAll, icon: "reply-all"),
+          const SizedBox(width: 10),
           CustomIconButton(onTap: _share, icon: "share"),
           const Spacer(),
           CustomIconButton(onTap: _openSettings, icon: "settings"),

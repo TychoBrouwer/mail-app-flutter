@@ -39,134 +39,132 @@ class SettingsThemeState extends State<SettingsTheme> {
 
     final controller = TextEditingController(text: colorString.value);
 
-    return Padding(
+    return Container(
       padding: const EdgeInsets.only(bottom: 10),
-      child: SizedBox(
-        width: 300,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              labelText,
-              style: TextStyle(
-                color: ProjectColors.text(true),
-                fontSize: ProjectSizes.fontSize,
+      width: 300,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            labelText,
+            style: TextStyle(
+              color: ProjectColors.text(true),
+              fontSize: ProjectSizes.fontSize,
+            ),
+          ),
+          Row(
+            children: [
+              ValueListenableBuilder<String>(
+                valueListenable: colorString,
+                builder: (context, value, child) {
+                  return Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Colors.blue,
+                        width: 1,
+                      ),
+                      color: HexColor.fromHex(value),
+                    ),
+                    margin: const EdgeInsets.only(right: 10),
+                  );
+                },
               ),
-            ),
-            Row(
-              children: [
-                ValueListenableBuilder<String>(
-                  valueListenable: colorString,
-                  builder: (context, value, child) {
-                    return Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Colors.blue,
-                          width: 1,
-                        ),
-                        color: HexColor.fromHex(value),
-                      ),
-                      margin: const EdgeInsets.only(right: 10),
-                    );
+              Expanded(
+                child: TextFormField(
+                  controller: controller,
+                  cursorColor: ProjectColors.accent(true),
+                  cursorWidth: 0.6,
+                  onChanged: (val) {
+                    if (!(_formKey.currentState?.validate() ?? false)) {
+                      return;
+                    }
+
+                    final color = HexColor.fromHex(val);
+                    colorString.value = val;
+
+                    onChanged(color);
                   },
-                ),
-                Expanded(
-                  child: TextFormField(
-                    controller: controller,
-                    cursorColor: ProjectColors.accent(true),
-                    cursorWidth: 0.6,
-                    onChanged: (val) {
-                      if (!(_formKey.currentState?.validate() ?? false)) {
-                        return;
-                      }
+                  validator: (color) {
+                    if (color == null) {
+                      return "Please enter a color";
+                    }
 
-                      final color = HexColor.fromHex(val);
-                      colorString.value = val;
+                    if (color.isEmpty) {
+                      return "Please enter a color";
+                    }
 
-                      onChanged(color);
-                    },
-                    validator: (color) {
-                      if (color == null) {
-                        return "Please enter a color";
-                      }
+                    if (!RegExp(r'^#[0-9a-fA-F]{8}$').hasMatch(color)) {
+                      return "Please enter a valid hex color";
+                    }
 
-                      if (color.isEmpty) {
-                        return "Please enter a color";
-                      }
-
-                      if (!RegExp(r'^#[0-9a-fA-F]{8}$').hasMatch(color)) {
-                        return "Please enter a valid hex color";
-                      }
-
-                      return null;
-                    },
-                    decoration: InputDecoration(
-                      isDense: true,
-                      errorText: '',
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 5,
-                        horizontal: 5,
-                      ),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(
-                            width: 2, color: ProjectColors.accent(false)),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(
-                            width: 2, color: ProjectColors.accent(true)),
-                      ),
-                      focusedErrorBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(
-                            width: 2, color: ProjectColors.accent(true)),
-                      ),
-                      errorBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(
-                            width: 2, color: ProjectColors.accent(false)),
-                      ),
-                      labelStyle: TextStyle(color: ProjectColors.text(true)),
-                      hintStyle: TextStyle(color: ProjectColors.text(true)),
-                      errorStyle: const TextStyle(fontWeight: FontWeight.w500),
+                    return null;
+                  },
+                  decoration: InputDecoration(
+                    isDense: true,
+                    errorText: '',
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 5,
+                      horizontal: 5,
                     ),
-                    style: TextStyle(
-                      color: ProjectColors.text(true),
-                      fontSize: ProjectSizes.fontSizeLarge,
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                          width: 2, color: ProjectColors.accent(false)),
                     ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                          width: 2, color: ProjectColors.accent(true)),
+                    ),
+                    focusedErrorBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                          width: 2, color: ProjectColors.accent(true)),
+                    ),
+                    errorBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                          width: 2, color: ProjectColors.accent(false)),
+                    ),
+                    labelStyle: TextStyle(color: ProjectColors.text(true)),
+                    hintStyle: TextStyle(color: ProjectColors.text(true)),
+                    errorStyle: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  style: TextStyle(
+                    color: ProjectColors.text(true),
+                    fontSize: ProjectSizes.fontSizeLarge,
                   ),
                 ),
-                Container(
-                  width: 60,
-                  padding: const EdgeInsets.only(left: 10),
-                  child: CustomButton(
-                    onTap: () {
-                      colorString.value = initialValue;
-                      controller.value = TextEditingValue(
-                        text: colorString.value,
-                        selection: TextSelection.collapsed(
-                            offset: colorString.value.length),
-                      );
+              ),
+              Container(
+                width: 60,
+                padding: const EdgeInsets.only(left: 10),
+                child: CustomButton(
+                  onTap: () {
+                    colorString.value = initialValue;
+                    controller.value = TextEditingValue(
+                      text: colorString.value,
+                      selection: TextSelection.collapsed(
+                          offset: colorString.value.length),
+                    );
 
-                      _formKey.currentState?.validate();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.only(
-                          top: 3, bottom: 5, left: 5, right: 5),
-                      child: Text(
-                        "Reset",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: ProjectSizes.fontSizeLarge,
-                          color: ProjectColors.text(true),
-                        ),
+                    _formKey.currentState?.validate();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.only(
+                        top: 3, bottom: 5, left: 5, right: 5),
+                    child: Text(
+                      "Reset",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: ProjectSizes.fontSizeLarge,
+                        color: ProjectColors.text(true),
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -182,7 +180,7 @@ class SettingsThemeState extends State<SettingsTheme> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   colorForm(
                     ProjectColors.accent(true),
@@ -230,6 +228,7 @@ class SettingsThemeState extends State<SettingsTheme> {
               ),
               const SizedBox(width: 80),
               Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   colorForm(
                     ProjectColors.border(true),

@@ -15,18 +15,21 @@ class ProjectSizes {
   static final double iconSize =
       Configuration().getValue<double>('appSizes:iconSize')!;
 
-  static final Radius _radius =
-      Radius.circular(Configuration().getValue<double>('appSizes:radius')!);
-  static final Radius _radiusSmall = Radius.circular(
-      Configuration().getValue<double>('appSizes:radiusSmall')!);
-  static final Radius _radiusExtraSmall = Radius.circular(
-      Configuration().getValue<double>('appSizes:radiusExtraSmall')!);
-  static final Radius _radiusLarge = Radius.circular(
-      Configuration().getValue<double>('appSizes:radiusLarge')!);
+  static final double radius =
+      Configuration().getValue<double>('appSizes:radius')!;
+  static final double radiusSmall =
+      Configuration().getValue<double>('appSizes:radiusSmall')!;
+  static final double radiusExtraSmall =
+      Configuration().getValue<double>('appSizes:radiusExtraSmall')!;
+  static final double radiusLarge =
+      Configuration().getValue<double>('appSizes:radiusLarge')!;
 
-  static final BorderRadius borderRadius = BorderRadius.all(_radius);
-  static final BorderRadius borderRadiusSmall = BorderRadius.all(_radiusSmall);
+  static final BorderRadius borderRadius =
+      BorderRadius.all(Radius.circular(radius));
+  static final BorderRadius borderRadiusSmall =
+      BorderRadius.all(Radius.circular(radiusSmall));
   static final BorderRadius borderRadiusExtraSmall =
-      BorderRadius.all(_radiusExtraSmall);
-  static final BorderRadius borderRadiusLarge = BorderRadius.all(_radiusLarge);
+      BorderRadius.all(Radius.circular(radiusExtraSmall));
+  static final BorderRadius borderRadiusLarge =
+      BorderRadius.all(Radius.circular(radiusLarge));
 }
