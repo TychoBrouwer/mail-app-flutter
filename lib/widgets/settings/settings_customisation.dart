@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../services/global_configuration.dart';
 import '../../types/project_colors.dart';
 import '../../types/project_sizes.dart';
 import '../custom_button.dart';
@@ -13,7 +14,15 @@ class SettingsCustomisation extends StatefulWidget {
 }
 
 class SettingsCustomisationState extends State<SettingsCustomisation> {
-  Widget sizeForm(
+  final ValueKey _key = const ValueKey("SettingsCustomisation");
+
+  _updateSize(String key, double size) {
+    Configuration().updateValue(key, size);
+
+    setState(() {});
+  }
+
+  Widget _sizeForm(
     double size,
     String labelText,
     void Function(double) onChanged,
@@ -70,7 +79,6 @@ class SettingsCustomisationState extends State<SettingsCustomisation> {
                   },
                   icon: "plus"),
               Container(
-                width: 60,
                 padding: const EdgeInsets.only(left: 10),
                 child: CustomButton(
                   onTap: () {
@@ -79,7 +87,7 @@ class SettingsCustomisationState extends State<SettingsCustomisation> {
                   },
                   child: Container(
                     padding: const EdgeInsets.only(
-                        top: 3, bottom: 5, left: 5, right: 5),
+                        top: 3, bottom: 5, left: 8, right: 8),
                     child: Text(
                       "Reset",
                       textAlign: TextAlign.center,
@@ -101,6 +109,7 @@ class SettingsCustomisationState extends State<SettingsCustomisation> {
   @override
   Widget build(BuildContext context) {
     return Center(
+      key: _key,
       child: Padding(
         padding: const EdgeInsets.only(top: 20),
         child: Row(
@@ -109,40 +118,30 @@ class SettingsCustomisationState extends State<SettingsCustomisation> {
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                sizeForm(
+                _sizeForm(
                   ProjectSizes.fontSizeSmall,
                   "Font Size Small",
-                  (size) {
-                    print("Font size small: $size");
-                  },
+                  (size) => _updateSize("appSizes:fontSizeSmall", size),
                 ),
-                sizeForm(
+                _sizeForm(
                   ProjectSizes.fontSize,
                   "Font Size",
-                  (size) {
-                    print("Font size: $size");
-                  },
+                  (size) => _updateSize("appSizes:fontSize", size),
                 ),
-                sizeForm(
+                _sizeForm(
                   ProjectSizes.fontSizeLarge,
                   "Font Size Large",
-                  (size) {
-                    print("Font size Large: $size");
-                  },
+                  (size) => _updateSize("appSizes:fontSizeLarge", size),
                 ),
-                sizeForm(
+                _sizeForm(
                   ProjectSizes.fontSizeExtraLarge,
                   "Font Size Extra Large",
-                  (size) {
-                    print("Font size Extra Large: $size");
-                  },
+                  (size) => _updateSize("appSizes:fontSizeExtraLarge", size),
                 ),
-                sizeForm(
+                _sizeForm(
                   ProjectSizes.iconSize,
                   "Icon Size",
-                  (size) {
-                    print("Icon size: $size");
-                  },
+                  (size) => _updateSize("appSizes:iconSize", size),
                 ),
               ],
             ),
@@ -150,33 +149,25 @@ class SettingsCustomisationState extends State<SettingsCustomisation> {
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                sizeForm(
+                _sizeForm(
                   ProjectSizes.radiusExtraSmall,
                   "Border Radius Extra Small",
-                  (size) {
-                    print("Border Radius Extra Small: $size");
-                  },
+                  (size) => _updateSize("appSizes:radiusExtraSmall", size),
                 ),
-                sizeForm(
+                _sizeForm(
                   ProjectSizes.radiusSmall,
                   "Border Radius Small",
-                  (size) {
-                    print("Border Radius Small: $size");
-                  },
+                  (size) => _updateSize("appSizes:radiusSmall", size),
                 ),
-                sizeForm(
+                _sizeForm(
                   ProjectSizes.radius,
                   "Border Radius",
-                  (size) {
-                    print("Border Radius: $size");
-                  },
+                  (size) => _updateSize("appSizes:radius", size),
                 ),
-                sizeForm(
+                _sizeForm(
                   ProjectSizes.radiusLarge,
                   "Border Radius Large",
-                  (size) {
-                    print("Border Radius Large: $size");
-                  },
+                  (size) => _updateSize("appSizes:radiusLarge", size),
                 ),
                 const SizedBox(height: 60),
               ],

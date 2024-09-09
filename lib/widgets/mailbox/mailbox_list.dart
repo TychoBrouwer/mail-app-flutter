@@ -48,8 +48,8 @@ class MailboxListState extends State<MailboxList> {
           Padding(
             padding: const EdgeInsets.only(bottom: 3),
             child: CustomButton(
-              onTap: () => {
-                _updateMessageList(session, inboxInfo.path),
+              onTap: () {
+                _updateMessageList(session, inboxInfo.path);
               },
               child: Container(
                 padding: inboxInfo.indent

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mail_app/services/global_configuration.dart';
 
 import '../../types/project_colors.dart';
 import '../../types/project_sizes.dart';
@@ -80,6 +81,11 @@ class SettingsHeaderState extends State<SettingsHeader> {
             headerButton(tab.toString().split('.').last, _activeTab == tab,
                 () => _updatePage(tab)),
           const Spacer(),
+          headerButton("Reset Settings", false, () {
+            Configuration().resetLocal();
+
+            setState(() {});
+          }),
         ],
       ),
     );

@@ -124,9 +124,9 @@ class HomePageState extends State<HomePage> {
 
     final completer = Completer();
     _showNotification("Loading more messages", true, completer.future);
-  
-    print(1+_currentPage*_messageLoadCount);
-    print(_messageLoadCount + _currentPage*_messageLoadCount);
+
+    print(1 + _currentPage * _messageLoadCount);
+    print(_messageLoadCount + _currentPage * _messageLoadCount);
 
     final newMessages = await InboxService().getMessages(
       start: 1 + _currentPage * _messageLoadCount,
@@ -249,7 +249,7 @@ class HomePageState extends State<HomePage> {
       MaterialPageRoute(
         builder: (context) => const SettingsPage(),
       ),
-    );
+    ).then((value) => setState(() {}));
   }
 
   @override

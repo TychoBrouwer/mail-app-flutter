@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mail_app/widgets/custom_button.dart';
 
 import '../../services/global_configuration.dart';
 import '../../types/project_colors.dart';
 import '../../types/project_sizes.dart';
 import '../../utils/hex_color.dart';
+import '../custom_button.dart';
 
 class SettingsTheme extends StatefulWidget {
   const SettingsTheme({super.key});
@@ -16,17 +16,10 @@ class SettingsTheme extends StatefulWidget {
 class SettingsThemeState extends State<SettingsTheme> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  String rgbaToHex(int r, int g, int b, double a) {
-    final aHex = (a * 255).round().toRadixString(16).padLeft(2, '0');
-    final rHex = r.toRadixString(16).padLeft(2, '0');
-    final gHex = g.toRadixString(16).padLeft(2, '0');
-    final bHex = b.toRadixString(16).padLeft(2, '0');
+  _updateColor(String key, Color color) {
+    Configuration().updateValue(key, color);
 
-    return "#$aHex$rHex$gHex$bHex";
-  }
-
-  updateColor(String key, int r, int g, int b, double a) {
-    Configuration().updateValue(key, "$r, $g, $b, $a");
+    setState(() {});
   }
 
   Widget colorForm(
@@ -62,7 +55,7 @@ class SettingsThemeState extends State<SettingsTheme> {
                     height: 30,
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: Colors.blue,
+                        color: ProjectColors.accent(true),
                         width: 1,
                       ),
                       color: HexColor.fromHex(value),
@@ -135,7 +128,6 @@ class SettingsThemeState extends State<SettingsTheme> {
                 ),
               ),
               Container(
-                width: 60,
                 padding: const EdgeInsets.only(left: 10),
                 child: CustomButton(
                   onTap: () {
@@ -150,7 +142,7 @@ class SettingsThemeState extends State<SettingsTheme> {
                   },
                   child: Container(
                     padding: const EdgeInsets.only(
-                        top: 3, bottom: 5, left: 5, right: 5),
+                        top: 3, bottom: 5, left: 8, right: 8),
                     child: Text(
                       "Reset",
                       textAlign: TextAlign.center,
@@ -185,44 +177,33 @@ class SettingsThemeState extends State<SettingsTheme> {
                   colorForm(
                     ProjectColors.accent(true),
                     "Accent Color",
-                    (color) {
-                      print("Accent Color: ${color.toHex()}");
-                    },
+                    (color) => _updateColor("appColors:accent", color),
                   ),
                   colorForm(
                     ProjectColors.accent(false),
                     "Accent Color Secondary",
-                    (color) {
-                      print("Accent Color Secondary: ${color.toHex()}");
-                    },
+                    (color) => _updateColor("appColors:accentSecondary", color),
                   ),
                   colorForm(
                     ProjectColors.background(true),
                     "Background Color",
-                    (color) {
-                      print("Background Color: ${color.toHex()}");
-                    },
+                    (color) => _updateColor("appColors:background", color),
                   ),
                   colorForm(
                     ProjectColors.background(false),
                     "Background Color Secondary",
-                    (color) {
-                      print("Background Color Secondary: ${color.toHex()}");
-                    },
+                    (color) =>
+                        _updateColor("appColors:backgroundSecondary", color),
                   ),
                   colorForm(
                     ProjectColors.text(true),
                     "Text Color",
-                    (color) {
-                      print("Text Color: ${color.toHex()}");
-                    },
+                    (color) => _updateColor("appColors:text", color),
                   ),
                   colorForm(
                     ProjectColors.text(false),
                     "Text Color Secondary",
-                    (color) {
-                      print("Text Color Secondary: ${color.toHex()}");
-                    },
+                    (color) => _updateColor("appColors:textSecondary", color),
                   ),
                 ],
               ),
@@ -233,44 +214,32 @@ class SettingsThemeState extends State<SettingsTheme> {
                   colorForm(
                     ProjectColors.border(true),
                     "Border Color",
-                    (color) {
-                      print("Border Color: ${color.toHex()}");
-                    },
+                    (color) => _updateColor("appColors:border", color),
                   ),
                   colorForm(
                     ProjectColors.border(false),
                     "Border Color Secondary",
-                    (color) {
-                      print("Border Color Secondary: ${color.toHex()}");
-                    },
+                    (color) => _updateColor("appColors:borderSecondary", color),
                   ),
                   colorForm(
                     ProjectColors.button(true),
                     "Button Color",
-                    (color) {
-                      print("Button Color: ${color.toHex()}");
-                    },
+                    (color) => _updateColor("appColors:button", color),
                   ),
                   colorForm(
                     ProjectColors.button(false),
                     "Button Color Secondary",
-                    (color) {
-                      print("Button Color Secondary: ${color.toHex()}");
-                    },
+                    (color) => _updateColor("appColors:buttonSecondary", color),
                   ),
                   colorForm(
                     ProjectColors.header(true),
                     "Header Color",
-                    (color) {
-                      print("Header Color: ${color.toHex()}");
-                    },
+                    (color) => _updateColor("appColors:header", color),
                   ),
                   colorForm(
                     ProjectColors.header(false),
                     "Header Color Secondary",
-                    (color) {
-                      print("Header Color Secondary: ${color.toHex()}");
-                    },
+                    (color) => _updateColor("appColors:headerSecondary", color),
                   ),
                 ],
               ),

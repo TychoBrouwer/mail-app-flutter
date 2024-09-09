@@ -117,7 +117,12 @@ class Configuration {
       value = "${color.red}, ${color.green}, ${color.blue}, ${color.opacity}";
     }
 
-    _appConfig.update(key, (dynamic) => value);
+    final keys = key.split(":");
+    if (keys.length == 2) {
+      _appConfig[keys[0]]![keys[1]] = value;
+    } else if (keys.length == 1) {
+      _appConfig[key] = value;
+    }
 
     save();
   }
